@@ -1,0 +1,38 @@
+from datetime import datetime
+from typing import Optional
+import uuid
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from app.models.user import UserRole
+
+
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: str = Field(..., min_length=1, max_length=255)
+    role: UserRole = UserRole.CANDIDATE
+    institution_id: Optional[uuid.UUID] = None
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    full_name: str = Field(..., min_length=1, max_length=255)
+    role: UserRole = UserRole.CANDIDATE
+    institution_id: Optional[uuid.UUID] = None
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: uuid.UUID
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    institution_id: Optional[uuid.UUID] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

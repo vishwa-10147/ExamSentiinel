@@ -1,0 +1,40 @@
+Thoroughly review the ExamSentinel codebase at d:\vishwa47\v47Studio\ExamSentinel and provide a comprehensive summary of:
+
+1. **Backend architecture**: Read and summarize key files:
+   - backend/app/main.py (FastAPI app setup)
+   - backend/app/core/ (all files - database, config, security)
+   - backend/app/models/ (all model files - understand the SQLAlchemy patterns)
+   - backend/app/schemas/ (all schema files - understand Pydantic patterns)
+   - backend/app/api/deps.py (dependency injection patterns)
+   - backend/app/api/router.py (route registration)
+   - backend/app/api/auth.py (auth patterns)
+   - backend/app/api/exams.py (exam CRUD patterns)
+   - backend/app/api/sessions.py (session management patterns)
+   - backend/app/api/questions.py (question bank patterns)
+   - backend/alembic/ (migration structure)
+
+2. **Frontend architecture**: Read and summarize:
+   - frontend/package.json (dependencies)
+   - frontend/app/ (all page files - routing structure)
+   - frontend/components/ (all component files - component patterns)
+   - frontend/contexts/ (auth/state management)
+   - frontend/services/ (API service patterns)
+   - frontend/tailwind.config.js
+
+3. **Infrastructure**:
+   - docker-compose.yml (services, ports, volumes)
+   - .env.example (environment variables)
+   - execution-workers/ (all files)
+   - e2e-tests/ (structure and patterns)
+
+4. **Project docs**:
+   - PROJECT.md (milestone decomposition)
+   - TEST_INFRA.md (testing plan)
+
+For each file, note:
+- Key patterns used (naming conventions, error handling, response formats)
+- Database table structures and relationships
+- API endpoint patterns (URL structure, auth decorators, response models)
+- Frontend component patterns (hooks, state management, styling)
+
+Provide enough detail that someone could continue building on this codebase and maintain perfect consistency.

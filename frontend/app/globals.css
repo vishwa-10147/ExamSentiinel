@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 248, 250, 252;
+  --background-end-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  min-height: 100vh;
+}
+
+/* Custom badge styling */
+.badge-low {
+  @apply bg-emerald-100 text-emerald-800 border border-emerald-300;
+}
+
+.badge-medium {
+  @apply bg-amber-100 text-amber-800 border border-amber-300;
+}
+
+.badge-high {
+  @apply bg-orange-100 text-orange-800 border border-orange-300;
+}
+
+.badge-critical {
+  @apply bg-rose-100 text-rose-800 border border-rose-300 animate-pulse;
+}
