@@ -25,8 +25,8 @@ export default function Sidebar() {
   const { user } = useAuth();
 
   const navItems = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
-    { label: "Live Proctoring", href: "/dashboard/live", icon: Video, roles: ["admin", "proctor"] },
+    { label: "Dashboard", href: "/${user?.role || 'candidate'}/dashboard", icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
+    { label: "Live Proctoring", href: "/${user?.role || 'proctor'}/live", icon: Video, roles: ["admin", "proctor"] },
     { label: "Exam Center", href: "/admin/exam", icon: ClipboardList, roles: ["admin"] },
     { label: "Results", href: "/admin/results", icon: FileCheck2, roles: ["admin"] },
     { label: "Review Queue", href: "/admin/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
