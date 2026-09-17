@@ -11,25 +11,34 @@ from app.core.security import get_password_hash
 from sqlalchemy import select
 
 async def seed():
+    default_users = [
+        {"email": "admin@sentinel.edu", "name": "System Admin", "role": UserRole.ADMIN},
+        {"email": "proctor@sentinel.edu", "name": "Chief Proctor", "role": UserRole.PROCTOR},
+        {"email": "reviewer@sentinel.edu", "name": "Senior Reviewer", "role": UserRole.REVIEWER},
+        {"email": "candidate@sentinel.edu", "name": "Test Candidate", "role": UserRole.CANDIDATE},
+    ]
+
     async with async_session_maker() as db:
-        # Check if admin already exists
-        result = await db.execute(select(User).where(User.email == "admin@sentinel.edu"))
-        existing_admin = result.scalar_one_or_none()
+        print("Seeding default testing accounts...")
+        for user_data in default_users:
+            result = await db.execute(select(User).where(User.email == user_data["email"]))
+            existing_user = result.scalar_one_or_none()
+            
+            if not existing_user:
+                new_user = User(
+                    email=user_data["email"],
+                    hashed_password=get_password_hash("DemoPass123!"),
+                    full_name=user_data["name"],
+                    role=user_data["role"],
+                    is_active=True
+                )
+                db.add(new_user)
+                print(f"Created: {user_data['email']} (Role: {user_data['role'].value})")
+            else:
+                print(f"Already exists: {user_data['email']}")
         
-        if not existing_admin:
-            print("Creating default admin account...")
-            admin = User(
-                email="admin@sentinel.edu",
-                hashed_password=get_password_hash("DemoPass123!"),
-                full_name="System Admin",
-                role=UserRole.ADMIN,
-                is_active=True
-            )
-            db.add(admin)
-            await db.commit()
-            print("Successfully created admin@sentinel.edu (Pass: DemoPass123!)")
-        else:
-            print("Admin account already exists.")
+        await db.commit()
+        print("Done seeding accounts. (All passwords are 'DemoPass123!')")
 
 if __name__ == "__main__":
     asyncio.run(seed())
