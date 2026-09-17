@@ -41,7 +41,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login(email, password);
-      router.push("/dashboard");
+      router.push("/admin/dashboard");
     } catch (err: any) {
       setError(err?.message || "Invalid email or password. Please try again.");
     } finally {

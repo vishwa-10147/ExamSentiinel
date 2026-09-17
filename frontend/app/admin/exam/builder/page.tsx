@@ -45,7 +45,7 @@ export default function ExamBuilderPage() {
 
   // Protect route
   if (!isLoading && user && !["admin", "proctor"].includes(user.role)) {
-    router.push("/dashboard");
+    router.push("/admin/dashboard");
     return null;
   }
 
@@ -94,7 +94,7 @@ export default function ExamBuilderPage() {
       
       setSuccess(true);
       setTimeout(() => {
-        router.push("/exam");
+        router.push("/admin/exam");
       }, 2000);
       
     } catch (err: any) {

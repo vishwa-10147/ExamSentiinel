@@ -117,7 +117,7 @@ export default function ReviewQueuePage() {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <Link href={`/review/${review.id}`} className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                      <Link href={`/admin/review/${review.id}`} className="text-blue-600 hover:text-blue-700 font-medium text-sm">
                         Review Case
                       </Link>
                     </td>

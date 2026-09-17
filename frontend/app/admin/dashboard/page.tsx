@@ -145,7 +145,7 @@ export default function DashboardPage() {
                 <h2 className="text-base font-bold text-slate-900">Quick Administrative Actions</h2>
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <button 
-                    onClick={() => router.push("/exam/builder")}
+                    onClick={() => router.push("/admin/exam/builder")}
                     className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left hover:border-blue-500 hover:bg-blue-50/40 transition"
                   >
                     <div>
@@ -155,7 +155,7 @@ export default function DashboardPage() {
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </button>
                   <button 
-                    onClick={() => router.push("/review")}
+                    onClick={() => router.push("/admin/review")}
                     className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left hover:border-blue-500 hover:bg-blue-50/40 transition"
                   >
                     <div>
@@ -165,7 +165,7 @@ export default function DashboardPage() {
                     <ArrowUpRight className="h-4 w-4 text-slate-400" />
                   </button>
                   <button 
-                    onClick={() => router.push("/audit")}
+                    onClick={() => router.push("/admin/audit")}
                     className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left hover:border-blue-500 hover:bg-blue-50/40 transition"
                   >
                     <div>

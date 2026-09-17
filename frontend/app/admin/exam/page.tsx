@@ -118,7 +118,7 @@ export default function ExamListPage() {
           {["admin", "proctor"].includes(user.role) && (
             <div className="flex items-center gap-3">
               <Link
-                href="/exam/builder"
+                href="/admin/exam/builder"
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm"
               >
                 <Plus className="h-4 w-4" />
@@ -145,7 +145,7 @@ export default function ExamListPage() {
               {["admin", "proctor"].includes(user.role) && (
                 <div className="mt-6">
                   <Link
-                    href="/exam/builder"
+                    href="/admin/exam/builder"
                     className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm"
                   >
                     <Plus className="h-4 w-4" />

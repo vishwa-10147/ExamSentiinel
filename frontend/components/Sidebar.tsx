@@ -21,14 +21,14 @@ export default function Sidebar() {
   const { user } = useAuth();
 
   const navItems = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
-    { label: "Live Proctoring", href: "/dashboard/live", icon: Video, roles: ["admin", "proctor"] },
-    { label: "Exam Center", href: "/exam", icon: ClipboardList, roles: ["admin", "candidate"] },
-    { label: "Review Queue", href: "/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
-    { label: "Appeals Center", href: "/appeals", icon: Scale, roles: ["admin", "reviewer", "candidate"] },
-    { label: "Audit Logs", href: "/audit", icon: History, roles: ["admin"] },
-    { label: "User Management", href: "/users", icon: Users, roles: ["admin"] },
-    { label: "Settings", href: "/settings", icon: Settings, roles: ["admin"] },
+    { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
+    { label: "Live Proctoring", href: "/admin/dashboard/live", icon: Video, roles: ["admin", "proctor"] },
+    { label: "Exam Center", href: "/admin/exam", icon: ClipboardList, roles: ["admin", "candidate"] },
+    { label: "Review Queue", href: "/admin/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
+    { label: "Appeals Center", href: "/admin/appeals", icon: Scale, roles: ["admin", "reviewer", "candidate"] },
+    { label: "Audit Logs", href: "/admin/audit", icon: History, roles: ["admin"] },
+    { label: "User Management", href: "/admin/users", icon: Users, roles: ["admin"] },
+    { label: "Settings", href: "/admin/settings", icon: Settings, roles: ["admin"] },
   ];
 
   const filteredItems = navItems.filter((item) =>
