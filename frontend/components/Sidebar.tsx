@@ -18,6 +18,7 @@ import {
   BookOpen,
   Trophy,
   User,
+  Code2,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -40,6 +41,7 @@ export default function Sidebar() {
     { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
     { label: "My Results", href: "/candidate/results", icon: FileCheck2, roles: ["candidate"] },
     { label: "Leaderboard", href: "/candidate/leaderboard", icon: Trophy, roles: ["candidate"] },
+    { label: "Practice Coding", href: "/candidate/practice", icon: Code2, roles: ["candidate"] },
     { label: "My Profile", href: "/candidate/profile", icon: User, roles: ["candidate"] },
   ];
 
@@ -84,3 +86,6 @@ export default function Sidebar() {
     </aside>
   );
 }
+
+
+
