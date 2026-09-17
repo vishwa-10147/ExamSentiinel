@@ -3,6 +3,7 @@ import time
 import uuid
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 import structlog
 
@@ -30,12 +31,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    description="AI-Powered Examination Integrity Platform - Backend API",
+    title="ExamSentinel API",
+    description="Core backend services for proctoring and assessment.",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
     openapi_url="/openapi.json",
 )
 
@@ -47,6 +48,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Enable GZip compression for large payloads (like candidate lists or telemetry logs)
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
 @app.middleware("http")

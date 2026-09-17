@@ -1,8 +1,14 @@
 "use client";
 
 import React from "react";
-import Editor from "@monaco-editor/react";
+import dynamic from "next/dynamic";
 import { QuestionCandidate } from "@/services/examService";
+
+// Lazy load Monaco Editor (massive bundle) only when needed, disable SSR
+const Editor = dynamic(() => import("@monaco-editor/react"), { 
+  ssr: false, 
+  loading: () => <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">Loading IDE...</div>
+});
 
 interface QuestionCardProps {
   question: QuestionCandidate;
