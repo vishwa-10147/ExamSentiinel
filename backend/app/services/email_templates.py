@@ -1,7 +1,7 @@
-"\""HTML Email Templates for ExamSentinel.\""\""
+"""HTML Email Templates for ExamSentinel."""
 
 def get_base_template(content: str) -> str:
-    return f\"""
+    return f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -30,10 +30,10 @@ def get_base_template(content: str) -> str:
         </div>
     </body>
     </html>
-    \"""
+    """
 
 def get_welcome_template(full_name: str, email: str, plain_password: str, login_url: str) -> str:
-    content = f\"""
+    content = f"""
         <h3>Welcome to ExamSentinel, {full_name}!</h3>
         <p>An account has been created for you on the ExamSentinel platform.</p>
         <p>Your login credentials are:</p>
@@ -45,11 +45,11 @@ def get_welcome_template(full_name: str, email: str, plain_password: str, login_
         <div style="text-align: center;">
             <a href="{login_url}" class="btn">Log In to ExamSentinel</a>
         </div>
-    \"""
+    """
     return get_base_template(content)
 
 def get_results_published_template(full_name: str, exam_name: str, results_url: str) -> str:
-    content = f\"""
+    content = f"""
         <h3>Exam Results Published</h3>
         <p>Dear {full_name},</p>
         <p>The results for <strong>{exam_name}</strong> have been published.</p>
@@ -57,7 +57,7 @@ def get_results_published_template(full_name: str, exam_name: str, results_url: 
         <div style="text-align: center;">
             <a href="{results_url}" class="btn">View My Results</a>
         </div>
-    \"""
+    """
     return get_base_template(content)
 
 def get_custom_broadcast_template(content: str) -> str:
