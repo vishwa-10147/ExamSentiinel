@@ -19,4 +19,4 @@ class AppealCreate(BaseModel):
 
 class AppealResolve(BaseModel):
     resolution: str = Field(..., min_length=1, max_length=20_000)
-    status: str = Field(pattern="^(UPHELD|REVERSED|PARTIALLY_UPHELD)$")
+    status: str = Field(pattern="^(UPHELD|REVERSED|OVERTURNED|PARTIALLY_UPHELD|RESOLVED)$")
