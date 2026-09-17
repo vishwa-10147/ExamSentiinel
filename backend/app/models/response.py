@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
 import uuid
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, UniqueConstraint, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, UniqueConstraint, Uuid, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import TimeStampedUUIDModel
 
@@ -49,6 +49,9 @@ class ExamResponse(TimeStampedUUIDModel):
         default=1,
         nullable=False,
     )
+    marks_awarded: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    is_correct: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    graded_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("session_id", "question_id", name="uq_session_question_response"),

@@ -10,7 +10,13 @@ class UserBase(BaseModel):
     full_name: str = Field(..., min_length=1, max_length=255)
     role: UserRole = UserRole.CANDIDATE
     institution_id: Optional[uuid.UUID] = None
-
+    department: Optional[str] = None
+    section: Optional[str] = None
+    batch_year: Optional[int] = None
+    roll_no: Optional[str] = None
+    phone: Optional[str] = None
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -18,12 +24,15 @@ class UserCreate(BaseModel):
     full_name: str = Field(..., min_length=1, max_length=255)
     role: UserRole = UserRole.CANDIDATE
     institution_id: Optional[uuid.UUID] = None
-
+    department: Optional[str] = None
+    section: Optional[str] = None
+    batch_year: Optional[int] = None
+    roll_no: Optional[str] = None
+    phone: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-
 
 class UserResponse(BaseModel):
     id: uuid.UUID
@@ -31,6 +40,13 @@ class UserResponse(BaseModel):
     full_name: str
     role: UserRole
     institution_id: Optional[uuid.UUID] = None
+    department: Optional[str] = None
+    section: Optional[str] = None
+    batch_year: Optional[int] = None
+    roll_no: Optional[str] = None
+    phone: Optional[str] = None
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

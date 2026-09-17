@@ -8,6 +8,7 @@ from app.schemas.question import QuestionCandidateResponse
 
 class SessionStartRequest(BaseModel):
     exam_id: uuid.UUID
+    device_fingerprint: Optional[str] = None
 
 
 class AnswerSaveRequest(BaseModel):

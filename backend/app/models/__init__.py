@@ -17,6 +17,7 @@ from app.models.interview import InterviewSession, InterviewScore
 from app.models.compliance import ConsentRecord, AppealCase
 from app.models.usage import UsageLog, BudgetAlert
 from app.models.review_case import ReviewCase, ReviewStatus, ReviewAction
+from app.models.lab import Lab, Seat, ExamSeat
 
 __all__ = [
     "Base",
@@ -52,4 +53,7 @@ __all__ = [
     "ReviewCase",
     "ReviewStatus",
     "ReviewAction",
+    "Lab",
+    "Seat",
+    "ExamSeat",
 ]

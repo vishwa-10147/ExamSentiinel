@@ -1,7 +1,7 @@
 import enum
 from typing import TYPE_CHECKING, List, Optional
 import uuid
-from sqlalchemy import Boolean, Enum, ForeignKey, String, Uuid
+from sqlalchemy import Boolean, Enum, ForeignKey, String, Uuid, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import TimeStampedUUIDModel
 
@@ -43,6 +43,14 @@ class User(TimeStampedUUIDModel):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    department: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    section: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    batch_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    roll_no: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True, index=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    display_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
 
     # Relationships
     institution: Mapped[Optional["Institution"]] = relationship("Institution", back_populates="users")

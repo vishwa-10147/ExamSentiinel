@@ -54,6 +54,11 @@ async def create_user_by_admin(
         full_name=user_in.full_name,
         role=user_in.role,  # Administrator is authorized to assign any role
         institution_id=user_in.institution_id,
+        department=user_in.department,
+        section=user_in.section,
+        batch_year=user_in.batch_year,
+        roll_no=user_in.roll_no,
+        phone=user_in.phone,
         is_active=True,
         is_verified=True,
     )
@@ -99,3 +104,44 @@ async def list_users(
     """List registered users (Admin only)."""
     result = await db.execute(select(User).offset(skip).limit(limit))
     return result.scalars().all()
+@router.post("/bulk-import", response_model=dict, status_code=status.HTTP_201_CREATED)
+async def bulk_import_users(
+    request: Request,
+    payload: dict,
+    current_user: User = Depends(require_roles([UserRole.ADMIN])),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.password_policy import generate_sequential_password
+    users_data = payload.get("users", [])
+    password_prefix = payload.get("password_prefix", "Exam@")
+    
+    count = 0
+    for idx, user_dict in enumerate(users_data):
+        email = user_dict.get("email", "").lower()
+        if not email:
+            continue
+            
+        existing = await db.execute(select(User).where(User.email == email))
+        if existing.scalar_one_or_none():
+            continue
+            
+        plain_pwd = generate_sequential_password(password_prefix, idx + 1)
+        hashed_pwd = get_password_hash(plain_pwd)
+        
+        new_user = User(
+            email=email,
+            hashed_password=hashed_pwd,
+            full_name=user_dict.get("full_name", "Unknown"),
+            role=UserRole(user_dict.get("role", "candidate")),
+            department=user_dict.get("department"),
+            section=user_dict.get("section"),
+            batch_year=user_dict.get("batch_year"),
+            roll_no=user_dict.get("roll_no"),
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(new_user)
+        count += 1
+        
+    await db.commit()
+    return {"status": "success", "imported_count": count}

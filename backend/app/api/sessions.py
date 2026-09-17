@@ -14,6 +14,7 @@ from app.models.response import ExamResponse
 from app.models.session import ExamSession, SessionStatus
 from app.models.user import User, UserRole
 from app.schemas.question import QuestionCandidateResponse
+from app.services.grading_service import grading_service
 from app.schemas.session import (
     AnswerSaveRequest,
     AnswerSaveResponse,
@@ -37,6 +38,7 @@ def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
 
 @router.post("/start", response_model=SessionStateResponse, status_code=status.HTTP_200_OK)
 async def start_exam_session(
+    request: Request,
     payload: SessionStartRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

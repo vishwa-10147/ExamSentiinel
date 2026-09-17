@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 import uuid
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, JSON, String, Uuid
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, JSON, String, Uuid, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import TimeStampedUUIDModel
 
@@ -74,6 +74,16 @@ class ExamSession(TimeStampedUUIDModel):
         default="LOW",
         nullable=False,
     )
+    total_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    max_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    percentage: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    rank: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    results_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    client_ip: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    device_fingerprint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    browser: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    os_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     # Relationships
     exam: Mapped["Exam"] = relationship("Exam", back_populates="sessions")
