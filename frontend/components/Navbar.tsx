@@ -54,26 +54,26 @@ export default function Navbar() {
           </Link>
 
           {isAuthenticated && (
-            <nav className="hidden md:flex items-center gap-4 text-sm font-medium text-slate-600">
-              <Link href="/dashboard" className="transition hover:text-blue-600">
+            <div className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
+              <Link href="/admin/dashboard" className="transition hover:text-blue-600">
                 Dashboard
               </Link>
-              {(user?.role === "admin" || user?.role === "proctor") && (
-                <Link href="/dashboard/live" className="transition hover:text-blue-600">
+              {["admin", "proctor"].includes(user?.role || "") && (
+                <Link href="/admin/dashboard/live" className="transition hover:text-blue-600">
                   Live Monitoring
                 </Link>
               )}
-              {(user?.role === "admin" || user?.role === "reviewer") && (
-                <Link href="/review" className="transition hover:text-blue-600">
+              {["admin", "reviewer"].includes(user?.role || "") && (
+                <Link href="/admin/review" className="transition hover:text-blue-600">
                   Review Center
                 </Link>
               )}
               {user?.role === "candidate" && (
-                <Link href="/exam" className="transition hover:text-blue-600">
+                <Link href="/admin/exam" className="transition hover:text-blue-600">
                   My Exams
                 </Link>
               )}
-            </nav>
+            </div>
           )}
         </div>
 

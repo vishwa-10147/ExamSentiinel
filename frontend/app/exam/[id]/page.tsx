@@ -255,7 +255,7 @@ export default function ExamTakingPage() {
           <h2 className="text-lg font-bold text-white mb-2">Exam Launch Issue</h2>
           <p className="text-sm text-slate-400 mb-6">{error}</p>
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/admin/dashboard")}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold"
           >
             Back to Dashboard
@@ -299,7 +299,7 @@ export default function ExamTakingPage() {
           </div>
 
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/admin/dashboard")}
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/30"
           >
             Return to Dashboard

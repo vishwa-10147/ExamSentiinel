@@ -81,8 +81,8 @@ export default function ReviewDetailPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="mb-6">
-        <Link href="/review" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-700">
-          <ArrowLeft className="w-4 h-4 mr-1" />
+        <Link href="/admin/review" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-700">
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Queue
         </Link>
       </div>
