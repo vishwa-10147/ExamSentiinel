@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 
-export default function SSOCallbackPage() {
+function SSOCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -42,5 +42,17 @@ export default function SSOCallbackPage() {
         <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
       </div>
     </div>
+  );
+}
+
+export default function SSOCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-slate-400">Loading secure environment...</div>
+      </div>
+    }>
+      <SSOCallbackContent />
+    </Suspense>
   );
 }
