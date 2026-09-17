@@ -50,22 +50,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {isAuthenticated && (
-            <div className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-              {["admin", "proctor"].includes(user?.role || "") && (
-                <Link href={`/${user?.role || 'proctor'}/live`} className="transition hover:text-blue-600">
-                  Live Monitoring
-                </Link>
-              )}
-              {["admin", "reviewer"].includes(user?.role || "") && (
-                <>
-                  <Link href="/admin/review" className="transition hover:text-blue-600">
-                    Review Center
-                  </Link>
-                </>
-              )}
-            </div>
-          )}
+
         </div>
 
         <div className="flex items-center gap-4">
