@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient, HealthCheckResponse } from "@/services/apiClient";
 import { Shield, Activity, User, LogOut, CheckCircle2, AlertTriangle } from "lucide-react";
@@ -42,9 +43,7 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <Shield className="h-6 w-6" />
-            </div>
+            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="drop-shadow-sm" />
             <div>
               <span className="text-xl font-bold tracking-tight text-slate-900">ExamSentinel</span>
             </div>

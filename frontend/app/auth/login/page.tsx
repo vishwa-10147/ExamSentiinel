@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { Shield, Lock, Mail, AlertCircle, Loader2 } from "lucide-react";
 
@@ -53,9 +54,7 @@ export default function LoginPage() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
         <div className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-            <Shield className="h-7 w-7" />
-          </div>
+          <Image src="/logo.png" alt="ExamSentinel Logo" width={48} height={48} className="mx-auto drop-shadow-sm" />
           <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
             Sign in to ExamSentinel
           </h2>
