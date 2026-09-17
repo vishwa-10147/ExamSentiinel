@@ -43,7 +43,7 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="drop-shadow-sm" />
+            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} style={{ width: "auto", height: "auto" }} className="drop-shadow-sm" />
             <div>
               <span className="text-xl font-bold tracking-tight text-slate-900">ExamSentinel</span>
             </div>

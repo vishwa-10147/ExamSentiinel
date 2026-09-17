@@ -126,16 +126,13 @@ export default function PracticeCodingPage() {
     setActiveTab("console");
     
     try {
-      const payload = {
-        language: PISTON_RUNTIMES[language].lang,
-        version: PISTON_RUNTIMES[language].version,
-        files: [{ content: code }],
-      };
-
-      const res = await fetch("https://emkc.org/api/v2/piston/execute", {
+      const res = await fetch("http://localhost:8000/api/sandbox/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          language: language,
+          code: code
+        }),
       });
 
       if (!res.ok) {
@@ -146,19 +143,13 @@ export default function PracticeCodingPage() {
       
       let outLines: string[] = [];
       
-      if (data.compile && data.compile.stderr) {
-         outLines.push("=== Compilation Error ===");
-         outLines = outLines.concat(data.compile.stderr.split('\n'));
+      if (data.stderr) {
+         outLines.push("=== Error ===");
+         outLines = outLines.concat(data.stderr.split('\n'));
       }
       
-      if (data.run) {
-        if (data.run.stderr) {
-          outLines.push("=== Runtime Error ===");
-          outLines = outLines.concat(data.run.stderr.split('\n'));
-        }
-        if (data.run.stdout) {
-          outLines = outLines.concat(data.run.stdout.split('\n'));
-        }
+      if (data.stdout) {
+         outLines = outLines.concat(data.stdout.split('\n'));
       }
 
       if (outLines.length === 0 || (outLines.length === 1 && outLines[0] === "")) {
