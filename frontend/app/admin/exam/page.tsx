@@ -198,8 +198,8 @@ export default function ExamListPage() {
                         </Link>
                       ) : (
                         <Link
-                          href={`/exam/${exam.id}/manage`}
-                          className="text-sm font-semibold text-blue-600 hover:text-blue-500 flex items-center gap-1"
+                          href={`/admin/exam/${exam.id}/manage`}
+                          className="text-sm font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1"
                         >
                           Manage <ArrowRight className="h-4 w-4" />
                         </Link>
