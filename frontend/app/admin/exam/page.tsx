@@ -37,7 +37,7 @@ export default function ExamListPage() {
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || (user && user.role !== "admin"))) {
-      router.push("/admin/dashboard");
+      router.push("/dashboard");
     }
   }, [isLoading, isAuthenticated, user, router]);
 

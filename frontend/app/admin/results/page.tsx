@@ -13,7 +13,7 @@ export default function ResultsPage() {
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "admin")) {
-      router.push("/admin/dashboard");
+      router.push("/dashboard");
     }
   }, [user, authLoading, router]);
 

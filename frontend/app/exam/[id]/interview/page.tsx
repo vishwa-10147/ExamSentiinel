@@ -157,7 +157,7 @@ export default function LiveInterviewExam() {
         <div className="w-px h-8 bg-slate-800 mx-2"></div>
         
         <button 
-          onClick={() => router.push("/admin/dashboard")}
+          onClick={() => router.push("/dashboard")}
           className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center transition-all shadow-lg shadow-red-600/20"
         >
           <PhoneOff className="w-5 h-5" />

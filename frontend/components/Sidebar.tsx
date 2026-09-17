@@ -25,12 +25,12 @@ export default function Sidebar() {
   const { user } = useAuth();
 
   const navItems = [
-    { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
-    { label: "Live Proctoring", href: "/admin/dashboard/live", icon: Video, roles: ["admin", "proctor"] },
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
+    { label: "Live Proctoring", href: "/dashboard/live", icon: Video, roles: ["admin", "proctor"] },
     { label: "Exam Center", href: "/admin/exam", icon: ClipboardList, roles: ["admin"] },
     { label: "Results", href: "/admin/results", icon: FileCheck2, roles: ["admin"] },
     { label: "Review Queue", href: "/admin/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
-    { label: "Appeals Center", href: "/admin/appeals", icon: Scale, roles: ["admin", "reviewer", "candidate"] },
+
     { label: "Broadcast", href: "/admin/broadcast", icon: Mail, roles: ["admin"] },
     { label: "Audit Logs", href: "/admin/audit", icon: History, roles: ["admin"] },
     { label: "User Management", href: "/admin/users", icon: Users, roles: ["admin"] },
@@ -57,7 +57,7 @@ export default function Sidebar() {
           <div className="mt-2 space-y-1">
             {filteredItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href + "/"));
+              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
               return (
                 <Link
                   key={item.href}

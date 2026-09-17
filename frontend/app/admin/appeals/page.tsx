@@ -163,7 +163,7 @@ export default function AppealsListPage() {
               The Appeals Center is strictly reserved for authorized proctors, reviewers, and administrators to ensure impartial case adjudication.
             </p>
             <button
-              onClick={() => router.push("/admin/dashboard")}
+              onClick={() => router.push("/dashboard")}
               className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition"
             >
               Return to Dashboard

@@ -185,7 +185,7 @@ export default function ManageExamPage() {
 
   useEffect(() => {
     if (!authLoading && user && !["admin", "proctor"].includes(user.role)) {
-      router.push("/admin/dashboard");
+      router.push("/dashboard");
       return;
     }
 
@@ -959,7 +959,7 @@ export default function ManageExamPage() {
                 </button>
 
                 <button
-                  onClick={() => router.push("/admin/dashboard/live")}
+                  onClick={() => router.push("/dashboard/live")}
                   className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 active:bg-blue-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
                 >
                   <div className="flex items-center gap-3">

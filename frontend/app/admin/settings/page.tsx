@@ -24,7 +24,7 @@ export default function SettingsPage() {
 
   // Protect route
   if (!authLoading && user && user.role !== "admin") {
-    router.push("/admin/dashboard");
+    router.push("/dashboard");
     return null;
   }
 

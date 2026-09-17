@@ -17,7 +17,7 @@ function SSOCallbackContent() {
       
       // Artificial delay to show the secure handoff
       setTimeout(() => {
-        router.push("/admin/dashboard");
+        router.push("/dashboard");
       }, 2000);
     } else {
       setTimeout(() => {

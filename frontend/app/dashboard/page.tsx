@@ -349,7 +349,7 @@ export default function DashboardPage() {
                     <Activity className="h-4 w-4 text-blue-600 animate-pulse" />
                     Live Active Sessions
                   </h2>
-                  <Link href="/admin/dashboard/live" className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                  <Link href="/dashboard/live" className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-500 transition-colors">
                     View All <ArrowUpRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>

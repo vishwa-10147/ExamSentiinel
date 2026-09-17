@@ -52,11 +52,11 @@ export default function Navbar() {
 
           {isAuthenticated && (
             <div className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-              <Link href="/admin/dashboard" className="transition hover:text-blue-600">
+              <Link href="/dashboard" className="transition hover:text-blue-600">
                 Dashboard
               </Link>
               {["admin", "proctor"].includes(user?.role || "") && (
-                <Link href="/admin/dashboard/live" className="transition hover:text-blue-600">
+                <Link href="/dashboard/live" className="transition hover:text-blue-600">
                   Live Monitoring
                 </Link>
               )}

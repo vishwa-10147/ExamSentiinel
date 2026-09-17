@@ -45,7 +45,7 @@ export default function ExamBuilderPage() {
 
   // Protect route
   if (!isLoading && user && !["admin", "proctor"].includes(user.role)) {
-    router.push("/admin/dashboard");
+    router.push("/dashboard");
     return null;
   }
 
