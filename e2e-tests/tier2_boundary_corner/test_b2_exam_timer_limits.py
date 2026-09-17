@@ -19,6 +19,15 @@ class TestB2ExamTimerLimits(unittest.TestCase):
     def setUp(self):
         self.client = ExamSentinelClient()
         self.unique_id = str(uuid.uuid4())[:8]
+        # Auto-login to prevent 401s during session creation
+        email = f"candidate_{self.unique_id}@examsentinel.test"
+        password = "CandidatePassword123!"
+        self.client.post("/api/auth/register", data={
+            "email": email, "password": password, "role": "candidate", "full_name": "Test Candidate"
+        })
+        login_res = self.client.post("/api/auth/login", data={"email": email, "password": password})
+        if login_res.status_code == 200:
+            self.client.set_token(login_res.json().get("access_token"))
 
         # Register and login admin
         admin_email = f"admin_b2_{self.unique_id}@examsentinel.test"

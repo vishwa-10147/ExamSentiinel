@@ -28,6 +28,15 @@ class TestM5AdaptiveDigital(unittest.TestCase):
     def setUp(self):
         self.client = ExamSentinelClient()
         self.unique_id = str(uuid.uuid4())[:8]
+        # Auto-login to prevent 401s during session creation
+        email = f"candidate_{self.unique_id}@examsentinel.test"
+        password = "CandidatePassword123!"
+        self.client.post("/api/auth/register", data={
+            "email": email, "password": password, "role": "candidate", "full_name": "Test Candidate"
+        })
+        login_res = self.client.post("/api/auth/login", data={"email": email, "password": password})
+        if login_res.status_code == 200:
+            self.client.set_token(login_res.json().get("access_token"))
 
     def test_01_irt_next_question_and_fisher_information(self):
         """Feature 42 & 43: 2PL IRT calculates next item maximizing Fisher Information."""

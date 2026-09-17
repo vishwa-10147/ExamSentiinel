@@ -103,7 +103,7 @@ class MockHarnessBackend:
             email = payload.get("email")
             password = payload.get("password")
             role = payload.get("role", "candidate")
-            if not email or not password:
+            if not email or not password or not email.strip() or not password.strip():
                 return 422, json.dumps({"detail": "Missing email or password"}).encode(), {"Content-Type": "application/json"}
             if email in self.users:
                 return 400, json.dumps({"detail": "Email already registered"}).encode(), {"Content-Type": "application/json"}
@@ -219,7 +219,7 @@ class MockHarnessBackend:
             return 200, json.dumps(session_obj).encode(), {"Content-Type": "application/json"}
 
         # 8. Answers: POST /api/exam/sessions/{session_id}/answers
-        if "/answers" in path_only and method == "POST":
+        if path_only.startswith("/api/exam/sessions/") and path_only.endswith("/answers") and method == "POST":
             session_id = path_only.split("/")[4]
             if session_id not in self.sessions:
                 return 404, json.dumps({"detail": "Session not found"}).encode(), {"Content-Type": "application/json"}
@@ -232,7 +232,7 @@ class MockHarnessBackend:
             }).encode(), {"Content-Type": "application/json"}
 
         # 9. Session Submit: POST /api/exam/sessions/{session_id}/submit
-        if "/submit" in path_only and method == "POST":
+        if path_only.startswith("/api/exam/sessions/") and path_only.endswith("/submit") and method == "POST":
             session_id = path_only.split("/")[4]
             if session_id not in self.sessions:
                 return 404, json.dumps({"detail": "Session not found"}).encode(), {"Content-Type": "application/json"}
