@@ -98,7 +98,7 @@ echo.
 echo [*] Waiting for the database to initialize (15 seconds)...
 timeout /t 15 /nobreak >nul
 
-REM 6. Run database migrations
+REM 6. Run database migrations and seeding
 echo.
 echo [*] Running database migrations...
 docker exec examsentinel-backend alembic upgrade head
@@ -106,6 +106,8 @@ if !ERRORLEVEL! NEQ 0 (
     echo [ERROR] Database migrations failed. You may need to check the backend logs.
 ) else (
     echo [OK] Database migrations completed successfully.
+    echo [*] Seeding default Admin user...
+    docker exec examsentinel-backend python seed_admin.py
 )
 
 REM 7. Setup Local Frontend (for IDE autocomplete)
