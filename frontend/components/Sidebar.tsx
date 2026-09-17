@@ -45,7 +45,7 @@ export default function Sidebar() {
           <div className="mt-2 space-y-1">
             {filteredItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href + "/"));
               return (
                 <Link
                   key={item.href}

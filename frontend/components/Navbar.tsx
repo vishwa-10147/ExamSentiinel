@@ -64,9 +64,14 @@ export default function Navbar() {
                 </Link>
               )}
               {["admin", "reviewer"].includes(user?.role || "") && (
-                <Link href="/admin/review" className="transition hover:text-blue-600">
-                  Review Center
-                </Link>
+                <>
+                  <Link href="/admin/review" className="transition hover:text-blue-600">
+                    Review Center
+                  </Link>
+                  <Link href="/admin/appeals" className="transition hover:text-blue-600">
+                    Appeals Center
+                  </Link>
+                </>
               )}
               {user?.role === "candidate" && (
                 <Link href="/admin/exam" className="transition hover:text-blue-600">

@@ -199,6 +199,62 @@ class ApiClient {
   public async getHealth(): Promise<HealthCheckResponse> {
     return this.get<HealthCheckResponse>("/api/health");
   }
+
+  // Appeals methods
+  public async getAppeals(status?: string): Promise<AppealItem[]> {
+    const query = status && status !== "ALL" ? `?status_filter=${encodeURIComponent(status)}` : "";
+    return this.get<AppealItem[]>(`/api/compliance/appeals${query}`);
+  }
+
+  public async getAppeal(id: string): Promise<AppealDetail> {
+    return this.get<AppealDetail>(`/api/compliance/appeals/${id}`);
+  }
+
+  public async resolveAppeal(id: string, payload: { status: string; resolution: string }): Promise<any> {
+    return this.post<any>(`/api/compliance/appeals/${id}/resolve`, payload);
+  }
+}
+
+export interface TelemetryEvent {
+  id: string;
+  time: string;
+  type: "CRITICAL" | "WARNING" | "INFO";
+  source: string;
+  description: string;
+  sensorDetail?: string;
+  frameTimestampSec?: number;
+}
+
+export interface AppealItem {
+  id: string;
+  case_id: string;
+  candidate_id?: string;
+  candidate_name: string;
+  candidate_email?: string;
+  exam_name: string;
+  original_finding: string;
+  risk_score: number;
+  appeal_date: string;
+  status: "PENDING" | "UNDER_REVIEW" | "RESOLVED" | "OVERTURNED" | "UPHELD" | string;
+  reason?: string;
+  resolution?: string | null;
+  original_reviewer_name?: string;
+}
+
+export interface AppealDetail extends AppealItem {
+  session_id?: string | null;
+  original_reviewer_id?: string | null;
+  proctor_notes?: string;
+  timeline?: TelemetryEvent[];
+  videoSnapshotUrl?: string;
+  telemetryMetrics?: {
+    audioSpikes: number;
+    gazeDeviations: number;
+    headRotations: number;
+    tabSwitches: number;
+    confidence: number;
+  };
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
+

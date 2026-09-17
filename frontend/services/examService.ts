@@ -1,6 +1,6 @@
 import { apiClient } from "./apiClient";
 
-export type QuestionType = "MCQ_SINGLE" | "MCQ_MULTI" | "SHORT_ANSWER" | "ESSAY";
+export type QuestionType = "MCQ_SINGLE" | "MCQ_MULTI" | "SHORT_ANSWER" | "ESSAY" | "CODING";
 export type ExamStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type SessionStatus = "READY" | "IN_PROGRESS" | "SUBMITTED" | "EXPIRED";
 
