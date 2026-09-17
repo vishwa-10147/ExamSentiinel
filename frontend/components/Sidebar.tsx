@@ -48,7 +48,7 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="w-64 border-r border-slate-200 bg-white p-4 flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)]">
+    <aside className="sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto w-64 border-r border-slate-200 bg-white p-4 flex flex-col justify-between shrink-0">
       <div className="space-y-6">
         <div>
           <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
