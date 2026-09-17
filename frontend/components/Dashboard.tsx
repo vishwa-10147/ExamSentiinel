@@ -529,13 +529,7 @@ export default function DashboardPage() {
                       </div>
                       <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
                     </Link>
-                    <Link href="/admin/appeals" className="flex items-center justify-between rounded-xl border border-slate-100 p-4 hover:border-blue-400 hover:bg-blue-50/40 transition group">
-                      <div>
-                        <p className="font-semibold text-slate-800 text-sm">Appeals Center</p>
-                        <p className="text-xs text-slate-400 mt-0.5">Manage candidate appeals</p>
-                      </div>
-                      <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
-                    </Link>
+
                     <Link href="/admin/audit" className="flex items-center justify-between rounded-xl border border-slate-100 p-4 hover:border-blue-400 hover:bg-blue-50/40 transition group">
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">Audit Log</p>
@@ -559,12 +553,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-500 mt-1">Evaluate AI-flagged sessions with video snapshots</p>
                   <p className="mt-3 text-xs font-semibold text-amber-600 group-hover:underline flex items-center gap-1">Open Queue <ArrowUpRight className="h-3 w-3" /></p>
                 </Link>
-                <Link href="/admin/appeals" className="group rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:border-blue-400 hover:shadow-md transition">
-                  <FileText className="h-7 w-7 text-blue-500 mb-3" />
-                  <p className="font-bold text-slate-900">Appeals Center</p>
-                  <p className="text-xs text-slate-500 mt-1">Manage formal candidate objections</p>
-                  <p className="mt-3 text-xs font-semibold text-blue-600 group-hover:underline flex items-center gap-1">Open Appeals <ArrowUpRight className="h-3 w-3" /></p>
-                </Link>
+
                 <Link href="/admin/audit" className="group rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:border-slate-400 hover:shadow-md transition">
                   <Clock className="h-7 w-7 text-slate-500 mb-3" />
                   <p className="font-bold text-slate-900">Audit Trail</p>
