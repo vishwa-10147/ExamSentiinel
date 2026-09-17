@@ -56,7 +56,15 @@ export default function DashboardPage() {
       socket = new WebSocket(`${wsBase}/api/ws/dashboard?token=${encodeURIComponent(token)}`);
       socket.onmessage = () => void loadStats();
     }
-    return () => socket?.close();
+    return () => {
+      if (socket) {
+        if (socket.readyState === WebSocket.CONNECTING) {
+          socket.addEventListener('open', () => socket?.close());
+        } else {
+          socket.close();
+        }
+      }
+    };
   }, [isLoading, user]);
 
   if (isLoading || !user) {

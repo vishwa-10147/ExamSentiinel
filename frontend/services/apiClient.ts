@@ -99,7 +99,15 @@ class ApiClient {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+      let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+      if (errorData.detail) {
+        if (typeof errorData.detail === 'string') {
+          errorMsg = errorData.detail;
+        } else if (Array.isArray(errorData.detail)) {
+          errorMsg = errorData.detail.map((e: any) => e.msg || 'Validation Error').join(', ');
+        }
+      }
+      throw new Error(errorMsg);
     }
 
     // Return empty object for 204 No Content

@@ -17,10 +17,10 @@ export default function LoginPage() {
 
   // Quick credentials for developer & demo testing
   const demoAccounts = [
-    { role: "Admin", email: "admin@sentinel.edu", pass: "AdminPass123!" },
-    { role: "Proctor", email: "proctor@sentinel.edu", pass: "ProctorPass123!" },
-    { role: "Reviewer", email: "reviewer@sentinel.edu", pass: "ReviewerPass123!" },
-    { role: "Candidate", email: "candidate@sentinel.edu", pass: "CandidatePass123!" },
+    { role: "Admin", email: "admin@sentinel.edu", pass: "DemoPass123!" },
+    { role: "Proctor", email: "proctor@sentinel.edu", pass: "DemoPass123!" },
+    { role: "Reviewer", email: "reviewer@sentinel.edu", pass: "DemoPass123!" },
+    { role: "Candidate", email: "candidate@sentinel.edu", pass: "DemoPass123!" },
   ];
 
   const handleDemoSelect = (account: typeof demoAccounts[0]) => {

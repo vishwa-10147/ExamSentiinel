@@ -2,6 +2,17 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 import uuid
 import jwt
+import bcrypt
+
+# Fix for passlib + bcrypt 4.0+ issue
+try:
+    if not hasattr(bcrypt, "__about__"):
+        class DummyAbout:
+            __version__ = bcrypt.__version__
+        bcrypt.__about__ = DummyAbout()
+except Exception:
+    pass
+
 from passlib.context import CryptContext
 from app.core.config import settings
 

@@ -55,10 +55,10 @@ async def seed() -> None:
             db.add(institution)
             await db.flush()
 
-        admin = await get_or_create_user(db, "admin@demo.examsentinel.local", "Demo Administrator", UserRole.ADMIN, institution.id)
-        await get_or_create_user(db, "proctor@demo.examsentinel.local", "Demo Proctor", UserRole.PROCTOR, institution.id)
-        await get_or_create_user(db, "reviewer@demo.examsentinel.local", "Demo Reviewer", UserRole.REVIEWER, institution.id)
-        candidate = await get_or_create_user(db, "candidate@demo.examsentinel.local", "Demo Candidate", UserRole.CANDIDATE, institution.id)
+        admin = await get_or_create_user(db, "admin@sentinel.edu", "Demo Administrator", UserRole.ADMIN, institution.id)
+        await get_or_create_user(db, "proctor@sentinel.edu", "Demo Proctor", UserRole.PROCTOR, institution.id)
+        await get_or_create_user(db, "reviewer@sentinel.edu", "Demo Reviewer", UserRole.REVIEWER, institution.id)
+        candidate = await get_or_create_user(db, "candidate@sentinel.edu", "Demo Candidate", UserRole.CANDIDATE, institution.id)
 
         exam = (
             await db.execute(select(Exam).where(Exam.title == "Demo Integrity Examination"))
