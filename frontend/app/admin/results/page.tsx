@@ -38,9 +38,9 @@ export default function ResultsPage() {
   const fetchExams = async () => {
     setLoading(true);
     try {
-      const data = await apiClient.get<any>("/api/exams");
+      const data = await apiClient.get<any>("/api/exams?limit=50&offset=0");
       // Fallback for mock if necessary
-      const examList = Array.isArray(data) ? data : data?.data || [];
+      const examList = Array.isArray(data) ? data : data?.exams || data?.data || [];
       setExams(examList);
       if (examList.length > 0) {
         setSelectedExam(examList[0].id);
@@ -61,7 +61,7 @@ export default function ResultsPage() {
   const fetchSessions = async (examId: string) => {
     try {
       // Trying to fetch sessions for this exam
-      const data = await apiClient.get<any>(`/api/exams/${examId}/sessions`);
+      const data = await apiClient.get<any>(`/api/results/admin/exam/${examId}/sessions`);
       setSessions(Array.isArray(data) ? data : data?.data || []);
     } catch (error) {
       // Mock sessions

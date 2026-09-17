@@ -85,3 +85,31 @@ async def publish_results(
         
     await db.commit()
     return {"status": "success", "published_count": len(sessions)}
+@router.get("/admin/exam/{exam_id}/sessions")
+async def get_exam_sessions_admin(
+    exam_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.REVIEWER, UserRole.PROCTOR])),
+):
+    query = (
+        select(ExamSession)
+        .options(selectinload(ExamSession.candidate))
+        .where(ExamSession.exam_id == exam_id)
+    )
+    result = await db.execute(query)
+    sessions = result.scalars().all()
+    
+    return [
+        {
+            "id": str(s.id),
+            "candidate_id": str(s.candidate_id),
+            "candidate_name": s.candidate.full_name if s.candidate else "Unknown",
+            "status": s.status,
+            "score": s.total_score,
+            "integrity_score": s.current_risk_score,
+            "submitted_at": s.submitted_at.isoformat() if s.submitted_at else None,
+            "results_published": s.results_published
+        }
+        for s in sessions
+    ]
+
