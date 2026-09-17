@@ -30,7 +30,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm mb-6">
             <Shield className="h-3.5 w-3.5" />
-            AI-Powered Examination Integrity Platform
+            AI-Powered Examination Platform
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-6xl">
             Integrity with <span className="text-blue-600">Human Judgment</span>

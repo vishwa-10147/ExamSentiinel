@@ -14,6 +14,10 @@ import {
   Settings,
   Scale,
   History,
+  Mail,
+  BookOpen,
+  Trophy,
+  User,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -23,12 +27,20 @@ export default function Sidebar() {
   const navItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
     { label: "Live Proctoring", href: "/admin/dashboard/live", icon: Video, roles: ["admin", "proctor"] },
-    { label: "Exam Center", href: "/admin/exam", icon: ClipboardList, roles: ["admin", "candidate"] },
+    { label: "Exam Center", href: "/admin/exam", icon: ClipboardList, roles: ["admin"] },
+    { label: "Results", href: "/admin/results", icon: FileCheck2, roles: ["admin"] },
     { label: "Review Queue", href: "/admin/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
     { label: "Appeals Center", href: "/admin/appeals", icon: Scale, roles: ["admin", "reviewer", "candidate"] },
+    { label: "Broadcast", href: "/admin/broadcast", icon: Mail, roles: ["admin"] },
     { label: "Audit Logs", href: "/admin/audit", icon: History, roles: ["admin"] },
     { label: "User Management", href: "/admin/users", icon: Users, roles: ["admin"] },
     { label: "Settings", href: "/admin/settings", icon: Settings, roles: ["admin"] },
+    
+    // Candidate routes
+    { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
+    { label: "My Results", href: "/candidate/results", icon: FileCheck2, roles: ["candidate"] },
+    { label: "Leaderboard", href: "/candidate/leaderboard", icon: Trophy, roles: ["candidate"] },
+    { label: "My Profile", href: "/candidate/profile", icon: User, roles: ["candidate"] },
   ];
 
   const filteredItems = navItems.filter((item) =>

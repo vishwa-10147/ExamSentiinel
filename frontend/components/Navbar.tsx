@@ -47,9 +47,6 @@ export default function Navbar() {
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight text-slate-900">ExamSentinel</span>
-              <span className="ml-2 hidden text-xs font-semibold uppercase tracking-wider text-blue-600 sm:inline-block">
-                Integrity Platform
-              </span>
             </div>
           </Link>
 

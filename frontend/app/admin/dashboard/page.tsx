@@ -136,7 +136,10 @@ export default function DashboardPage() {
   }, [isLoading, isAuthenticated, router]);
 
   const fetchStats = useCallback(async () => {
-    if (!user || !["admin", "proctor"].includes(user.role)) return;
+    if (!user || !["admin", "proctor"].includes(user.role)) {
+      setStatsLoading(false);
+      return;
+    }
     try {
       const data = await apiClient.get<DashboardStats>("/api/dashboard/stats");
       setStats(data);
@@ -160,7 +163,10 @@ export default function DashboardPage() {
   }, [user]);
 
   const fetchActiveSessions = useCallback(async () => {
-    if (!user || !["admin", "proctor"].includes(user.role)) return;
+    if (!user || !["admin", "proctor"].includes(user.role)) {
+      setSessionsLoading(false);
+      return;
+    }
     try {
       const data = await apiClient.get<ActiveSession[]>("/api/dashboard/active-sessions?limit=8&sort_by=risk_score");
       setActiveSessions(Array.isArray(data) ? data : []);

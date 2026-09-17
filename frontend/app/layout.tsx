@@ -5,7 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "ExamSentinel — AI-Powered Examination Integrity Platform",
+  title: "ExamSentinel — AI-Powered Examination Platform",
   description: "Secure online exams with intelligent, human-reviewed integrity monitoring.",
 };
 
