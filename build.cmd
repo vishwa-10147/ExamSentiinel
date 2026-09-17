@@ -6,33 +6,53 @@ echo     ExamSentinel - Automated Setup ^& Build
 echo ===================================================
 echo.
 
-REM 1. Check prerequisites
+REM 1. Check prerequisites and Auto-Install via Winget
 echo [*] Checking prerequisites...
+
 where git >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Git is not installed or not in PATH. Please install Git.
+if !ERRORLEVEL! NEQ 0 (
+    echo [WARNING] Git is missing. Attempting automatic installation via winget...
+    winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+    if !ERRORLEVEL! NEQ 0 (
+        echo [ERROR] Failed to install Git automatically. Please install manually: https://git-scm.com/
+        pause
+        exit /b 1
+    )
+    echo.
+    echo [SUCCESS] Git has been installed! 
+    echo [ACTION REQUIRED] Please close this window and double-click the script again to continue.
     pause
-    exit /b 1
+    exit /b 0
 )
 
 where docker >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Docker is not installed or not in PATH. Please install Docker Desktop.
+if !ERRORLEVEL! NEQ 0 (
+    echo [WARNING] Docker is missing. Attempting automatic installation via winget...
+    winget install --id Docker.DockerDesktop -e --source winget --accept-package-agreements --accept-source-agreements
+    if !ERRORLEVEL! NEQ 0 (
+        echo [ERROR] Failed to install Docker automatically. Please install manually: https://docker.com/
+        pause
+        exit /b 1
+    )
+    echo.
+    echo [SUCCESS] Docker Desktop has been installed!
+    echo [ACTION REQUIRED] Docker usually requires a system restart to enable WSL2 virtualization.
+    echo Please RESTART YOUR COMPUTER, ensure Docker is running, then double-click this script again.
     pause
-    exit /b 1
+    exit /b 0
 )
 
 where npm >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo [WARNING] npm is not installed. Local frontend IDE support will be limited, but Docker will still work.
+if !ERRORLEVEL! NEQ 0 (
+    echo [WARNING] npm is not installed locally. Docker will still work, but IDE autocomplete is limited.
 )
 
 where python >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo [WARNING] Python is not installed locally. Local backend IDE support will be limited.
+if !ERRORLEVEL! NEQ 0 (
+    echo [WARNING] Python is not installed locally. Docker will still work, but IDE autocomplete is limited.
 )
 
-echo [OK] Prerequisites met.
+echo [OK] Core Prerequisites met.
 echo.
 
 REM 2. Clone repository if we aren't already in it
@@ -67,8 +87,8 @@ REM 4. Build and start Docker containers
 echo.
 echo [*] Building and starting Docker containers...
 docker-compose up -d --build
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Docker Compose failed to start containers. Make sure Docker Desktop is running.
+if !ERRORLEVEL! NEQ 0 (
+    echo [ERROR] Docker Compose failed to start containers. Make sure Docker Desktop is running!
     pause
     exit /b 1
 )
@@ -82,7 +102,7 @@ REM 6. Run database migrations
 echo.
 echo [*] Running database migrations...
 docker exec examsentinel-backend alembic upgrade head
-if %ERRORLEVEL% NEQ 0 (
+if !ERRORLEVEL! NEQ 0 (
     echo [ERROR] Database migrations failed. You may need to check the backend logs.
 ) else (
     echo [OK] Database migrations completed successfully.
@@ -92,7 +112,7 @@ REM 7. Setup Local Frontend (for IDE autocomplete)
 echo.
 if exist "frontend\package.json" (
     where npm >nul 2>nul
-    if %ERRORLEVEL% EQU 0 (
+    if !ERRORLEVEL! EQU 0 (
         echo [*] Installing local Frontend dependencies (for VS Code/IDE support)...
         cd frontend
         call npm install
@@ -104,7 +124,7 @@ REM 8. Setup Local Backend (for IDE autocomplete)
 echo.
 if exist "backend\requirements.txt" (
     where python >nul 2>nul
-    if %ERRORLEVEL% EQU 0 (
+    if !ERRORLEVEL! EQU 0 (
         echo [*] Installing local Backend dependencies in a virtual environment...
         cd backend
         if not exist "venv" (
