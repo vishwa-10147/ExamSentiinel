@@ -5,12 +5,19 @@ import { apiClient } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { UserPlus, Loader2, ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
 export default function CreateUserPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  
+  useEffect(() => {
+    if (!authLoading && (!user || user.role !== "admin")) {
+      router.push("/admin/dashboard");
+    }
+  }, [user, authLoading, router]);
+
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",

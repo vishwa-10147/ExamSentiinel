@@ -8,6 +8,15 @@ import { Mail, Send, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function BroadcastPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  
+  useEffect(() => {
+    if (!authLoading && (!user || user.role !== "admin")) {
+      router.push("/admin/dashboard");
+    }
+  }, [user, authLoading, router]);
+
   const [recipient, setRecipient] = useState("candidates");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
