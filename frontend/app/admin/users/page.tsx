@@ -31,12 +31,12 @@ export default function UsersPage() {
       } catch (err) {
         // Fallback mock data if endpoint fails
         console.error("Failed to fetch users, using mock data", err);
-        setUsers([
-          { id: "1", email: "admin@examsentinel.com", full_name: "System Admin", role: "admin", is_active: true },
-          { id: "2", email: "proctor@examsentinel.com", full_name: "Lead Proctor", role: "proctor", is_active: true },
-          { id: "3", email: "reviewer@examsentinel.com", full_name: "Senior Reviewer", role: "reviewer", is_active: true },
-          { id: "4", email: "student@university.edu", full_name: "Alice Smith", role: "candidate", is_active: true },
-        ]);
+          setUsers([
+            { id: "1", email: "admin@examsentinel.com", full_name: "System Admin", role: "admin", is_active: true, created_at: new Date().toISOString() },
+            { id: "2", email: "proctor@examsentinel.com", full_name: "Lead Proctor", role: "proctor", is_active: true, created_at: new Date().toISOString() },
+            { id: "3", email: "reviewer@examsentinel.com", full_name: "Senior Reviewer", role: "reviewer", is_active: true, created_at: new Date().toISOString() },
+            { id: "4", email: "student@university.edu", full_name: "Alice Smith", role: "candidate", is_active: true, created_at: new Date().toISOString() },
+          ]);
         setError("Could not fetch real users. Showing mock data.");
       } finally {
         setLoading(false);

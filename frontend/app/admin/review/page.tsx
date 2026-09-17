@@ -20,9 +20,14 @@ export default function ReviewQueuePage() {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const response = await apiClient.get('/reviews');
-        if (response && response.data) {
-          setReviews(response.data);
+        const response: any = await apiClient.get('/api/reviews');
+        if (response && Array.isArray(response)) {
+          setReviews(response);
+        } else if (response && response.items) {
+          setReviews(response.items);
+        } else {
+          // fallback mock data
+          setReviews(MOCK_REVIEWS);
         }
       } catch (error) {
         console.warn('Using mock data, failed to fetch reviews:', error);

@@ -33,10 +33,11 @@ export default function ReviewDetailPage() {
   useEffect(() => {
     const fetchReview = async () => {
       try {
-        const response = await apiClient.get(`/reviews/${id}`);
-        if (response && response.data) {
-          setReview(response.data);
+        const response: any = await apiClient.get(`/api/reviews/${id}`);
+        if (response && response.id) {
+          setReview(response);
         } else {
+          // Fallback
           setReview(MOCK_REVIEW);
         }
       } catch (error) {
