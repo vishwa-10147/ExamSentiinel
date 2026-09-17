@@ -36,10 +36,10 @@ export default function ExamListPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/auth/login");
+    if (!isLoading && (!isAuthenticated || (user && user.role !== "admin"))) {
+      router.push("/admin/dashboard");
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, user, router]);
 
   useEffect(() => {
     if (isLoading || !user) return;

@@ -2,10 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import { apiClient } from "@/services/apiClient";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import { FileCheck2, Loader2, Send } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function ResultsPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && (!user || user.role !== "admin")) {
+      router.push("/admin/dashboard");
+    }
+  }, [user, authLoading, router]);
+
   const [exams, setExams] = useState<any[]>([]);
   const [selectedExam, setSelectedExam] = useState<string>("");
   const [sessions, setSessions] = useState<any[]>([]);
