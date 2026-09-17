@@ -299,10 +299,10 @@ export default function ExamTakingPage() {
           </div>
 
           <button
-            onClick={() => router.push("/admin/dashboard")}
+            onClick={() => router.push("/exam/completed")}
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/30"
           >
-            Return to Dashboard
+            Finish & Return to Dashboard
           </button>
         </div>
       </div>
