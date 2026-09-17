@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Editor from "@monaco-editor/react";
 import { QuestionCandidate } from "@/services/examService";
 
 interface QuestionCardProps {
@@ -204,6 +205,43 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 placeholder="Write your comprehensive response here..."
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-sans"
               />
+            </div>
+          )}
+
+          {question.type === "CODING" && (
+            <div className="border border-slate-700 rounded-lg overflow-hidden flex flex-col h-[400px]">
+              <div className="flex items-center justify-between bg-slate-800 px-4 py-2 border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    Code Editor
+                  </span>
+                  <select className="bg-slate-900 border border-slate-700 text-xs text-white rounded px-2 py-1 outline-none">
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                  </select>
+                </div>
+                <button className="px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/40 rounded text-xs font-semibold flex items-center gap-1 transition-colors">
+                  <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Run Code
+                </button>
+              </div>
+              <div className="flex-1">
+                <Editor
+                  height="100%"
+                  theme="vs-dark"
+                  defaultLanguage="python"
+                  value={responseData?.text || "# Write your code here\n"}
+                  onChange={(val) => onAnswerChange({ text: val || "" })}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    padding: { top: 16 },
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>

@@ -159,13 +159,27 @@ export default function ManageExamPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Question Bank Section */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-600" />
                   Question Bank
                 </h2>
-                <button className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition">
-                  <Plus className="w-4 h-4" /> Add Question
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-300 px-3 py-1.5 rounded-lg transition shadow-sm">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Upload Paper (CSV/JSON)
+                  </button>
+                  <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition">
+                    <Plus className="w-4 h-4" /> Add Question
+                  </button>
+                </div>
+              </div>
+              
+              <div className="bg-slate-50 border border-dashed border-slate-300 rounded-lg p-6 mb-6 text-center">
+                <p className="text-sm font-medium text-slate-700 mb-1">Drag and drop your question paper file here</p>
+                <p className="text-xs text-slate-500 mb-4">Supports CSV, JSON, or PDF text extraction. Must contain MCQs, Short Answers, or Coding problems.</p>
+                <button className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
+                  Browse Files
                 </button>
               </div>
               
