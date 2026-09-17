@@ -141,32 +141,41 @@ export default function DashboardPage() {
             {dashboardError && <p className="text-sm text-amber-700">{dashboardError}</p>}
 
             {/* Quick Actions */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-base font-bold text-slate-900">Quick Administrative Actions</h2>
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <button className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left hover:border-blue-500 hover:bg-blue-50/40 transition">
-                  <div>
-                    <p className="font-semibold text-slate-900 text-sm">Create New Exam</p>
-                    <p className="text-xs text-slate-500">Configure schedule, questions & proctoring</p>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-400" />
-                </button>
-                <button className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left hover:border-blue-500 hover:bg-blue-50/40 transition">
-                  <div>
-                    <p className="font-semibold text-slate-900 text-sm">Review Queue</p>
-                    <p className="text-xs text-slate-500">Adjudicate flagged proctoring signals</p>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-400" />
-                </button>
-                <button className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left hover:border-blue-500 hover:bg-blue-50/40 transition">
-                  <div>
-                    <p className="font-semibold text-slate-900 text-sm">Audit Trail</p>
-                    <p className="text-xs text-slate-500">Inspect system and reviewer activity</p>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-400" />
-                </button>
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-base font-bold text-slate-900">Quick Administrative Actions</h2>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <button 
+                    onClick={() => router.push("/exam/builder")}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left hover:border-blue-500 hover:bg-blue-50/40 transition"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">Create New Exam</p>
+                      <p className="text-xs text-slate-500">Configure schedule, questions & proctoring</p>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                  </button>
+                  <button 
+                    onClick={() => router.push("/review")}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left hover:border-blue-500 hover:bg-blue-50/40 transition"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">Review Queue</p>
+                      <p className="text-xs text-slate-500">Adjudicate flagged proctoring signals</p>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                  </button>
+                  <button 
+                    onClick={() => router.push("/audit")}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left hover:border-blue-500 hover:bg-blue-50/40 transition"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">Audit Trail</p>
+                      <p className="text-xs text-slate-500">Inspect system and reviewer activity</p>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400" />
+                  </button>
+                </div>
               </div>
-            </div>
           </div>
         )}
 
