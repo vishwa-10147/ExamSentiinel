@@ -41,7 +41,7 @@ export default function ExamCompletedPage() {
       </div>
 
       <button 
-        onClick={() => router.push("/admin/exam")}
+        onClick={() => router.push("/dashboard")}
         className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors"
       >
         Return to Dashboard
