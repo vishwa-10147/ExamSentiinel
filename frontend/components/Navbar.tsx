@@ -52,9 +52,6 @@ export default function Navbar() {
 
           {isAuthenticated && (
             <div className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-              <Link href={`/${user?.role || 'candidate'}/dashboard`} className="transition hover:text-blue-600">
-                Dashboard
-              </Link>
               {["admin", "proctor"].includes(user?.role || "") && (
                 <Link href={`/${user?.role || 'proctor'}/live`} className="transition hover:text-blue-600">
                   Live Monitoring
@@ -66,11 +63,6 @@ export default function Navbar() {
                     Review Center
                   </Link>
                 </>
-              )}
-              {user?.role === "candidate" && (
-                <Link href="/admin/exam" className="transition hover:text-blue-600">
-                  My Exams
-                </Link>
               )}
             </div>
           )}
