@@ -22,110 +22,13 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-// Mock appeals data fallback
-const MOCK_APPEALS: AppealItem[] = [
-  {
-    id: "app-101",
-    case_id: "APP-2024-001",
-    candidate_id: "cand-9283",
-    candidate_name: "Sarah Jenkins",
-    candidate_email: "s.jenkins@university.edu",
-    exam_name: "CS201: Data Structures & Algorithms",
-    original_finding: "High Risk (88) — Multiple faces detected in webcam feed",
-    risk_score: 88,
-    appeal_date: "2026-09-15T14:22:00Z",
-    status: "PENDING",
-    reason:
-      "My younger brother briefly opened the bedroom door to ask for a house key. He was visible in the background for under 3 seconds before I waved him away. I never spoke or looked away from the monitor.",
-    original_reviewer_name: "Marcus Vance (Proctor Lead)",
-  },
-  {
-    id: "app-102",
-    case_id: "APP-2024-002",
-    candidate_id: "cand-4419",
-    candidate_name: "David Chen",
-    candidate_email: "d.chen@engineering.edu",
-    exam_name: "EE302: Signals & Systems",
-    original_finding: "Escalated (92) — Continuous audio decibel spike (Talking detected)",
-    risk_score: 92,
-    appeal_date: "2026-09-16T09:10:00Z",
-    status: "UNDER_REVIEW",
-    reason:
-      "I was working through a multi-step Fourier transform derivation and was vocalizing my arithmetic calculations aloud as a thinking technique. The room was completely empty and no outside voices were present.",
-    original_reviewer_name: "Elena Rostova (Reviewer)",
-  },
-  {
-    id: "app-103",
-    case_id: "APP-2024-003",
-    candidate_id: "cand-8831",
-    candidate_name: "Amara Okafor",
-    candidate_email: "amara.o@business.ac.uk",
-    exam_name: "FIN401: Advanced Corporate Finance",
-    original_finding: "Confirmed Violation (79) — Repeated window blur & tab switching",
-    risk_score: 79,
-    appeal_date: "2026-09-14T16:45:00Z",
-    status: "RESOLVED",
-    reason:
-      "A background security tool generated an interactive notification dialog that stole window focus. I dismissed it immediately without accessing any disallowed resources.",
-    resolution:
-      "Finding Upheld: Audit logs show six distinct focus switches over 15 minutes, with clipboard paste events detected. Original penalty maintained.",
-    original_reviewer_name: "Marcus Vance (Proctor Lead)",
-  },
-  {
-    id: "app-104",
-    case_id: "APP-2024-004",
-    candidate_id: "cand-3104",
-    candidate_name: "Liam O'Connor",
-    candidate_email: "l.oconnor@college.ie",
-    exam_name: "BIO105: Cellular Biology",
-    original_finding: "Suspicious (82) — Gaze divergence & downward head tilt",
-    risk_score: 82,
-    appeal_date: "2026-09-16T18:05:00Z",
-    status: "PENDING",
-    reason:
-      "I was diagramming the citric acid cycle on the approved physical scratch paper placed beside my keyboard, as allowed by syllabus rules section 3.2.",
-    original_reviewer_name: "Elena Rostova (Reviewer)",
-  },
-  {
-    id: "app-105",
-    case_id: "APP-2024-005",
-    candidate_id: "cand-6512",
-    candidate_name: "Priya Sharma",
-    candidate_email: "priya.s@tech.edu",
-    exam_name: "MATH220: Linear Algebra",
-    original_finding: "Confirmed Violation (85) — Auxiliary display disconnect event",
-    risk_score: 85,
-    appeal_date: "2026-09-13T11:30:00Z",
-    status: "RESOLVED",
-    reason:
-      "My laptop USB-C power cord was jostled, causing the laptop to switch display modes briefly. No external monitor was ever attached.",
-    resolution:
-      "Finding Overturned: Screen recording telemetry corroborates single display output during the power reset. Student passed with original exam score restored.",
-    original_reviewer_name: "David Miller (Proctor)",
-  },
-  {
-    id: "app-106",
-    case_id: "APP-2024-006",
-    candidate_id: "cand-7721",
-    candidate_name: "James Wilson",
-    candidate_email: "j.wilson@university.edu",
-    exam_name: "CS101: Introduction to Computing",
-    original_finding: "High Risk (76) — Partial face occlusion",
-    risk_score: 76,
-    appeal_date: "2026-09-17T08:15:00Z",
-    status: "UNDER_REVIEW",
-    reason:
-      "I leaned my chin on my left hand while thinking through a recursive function problem. My face was fully in frame and nothing was obstructed maliciously.",
-    original_reviewer_name: "Marcus Vance (Proctor Lead)",
-  },
-];
-
 export default function AppealsListPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
-  const [appeals, setAppeals] = useState<AppealItem[]>(MOCK_APPEALS);
+  const [appeals, setAppeals] = useState<AppealItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -139,16 +42,13 @@ export default function AppealsListPage() {
 
   const fetchAppeals = async () => {
     setIsRefreshing(true);
+    setError(null);
     try {
       const data = await apiClient.getAppeals();
-      if (data && Array.isArray(data) && data.length > 0) {
-        setAppeals(data);
-      } else {
-        setAppeals(MOCK_APPEALS);
-      }
+      setAppeals(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.warn("Using mock appeals data due to API notice:", err);
-      setAppeals(MOCK_APPEALS);
+      setError(err instanceof Error ? err.message : "Failed to load appeals");
+      setAppeals([]);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
