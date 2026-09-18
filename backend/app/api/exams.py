@@ -22,6 +22,12 @@ from app.schemas.exam import (
     ExamUpdate,
 )
 
+from pydantic import BaseModel
+
+class AIGenerateRequest(BaseModel):
+    syllabus_text: str
+    question_count: int = 5
+
 router = APIRouter(prefix="/exams", tags=["Exams"])
 
 
