@@ -238,3 +238,102 @@ async def generate_plagiarism_report(
                 })
                 
     return all_plagiarism_flags
+
+@router.get("/{exam_id}/grading", response_model=list)
+async def get_grading_dashboard_data(
+    exam_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(_REPORT_ROLES)),
+):
+    """
+    Fetch all submitted sessions and their responses for grading.
+    """
+    from app.models.response import ExamResponse
+    from app.models.question import Question
+    from sqlalchemy.orm import joinedload
+    
+    # Verify exam
+    result = await db.execute(select(Exam).where(Exam.id == exam_id, Exam.institution_id == current_user.institution_id))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Exam not found")
+
+    # Fetch sessions
+    sessions_query = select(ExamSession).options(
+        joinedload(ExamSession.candidate)
+    ).where(
+        ExamSession.exam_id == exam_id,
+        ExamSession.status.in_(["SUBMITTED", "AUTO_SUBMITTED"])
+    )
+    
+    sessions_result = await db.execute(sessions_query)
+    sessions = sessions_result.scalars().all()
+    
+    if not sessions:
+        return []
+        
+    session_ids = [s.id for s in sessions]
+    
+    # Fetch responses with questions
+    responses_query = select(ExamResponse).options(
+        joinedload(ExamResponse.question)
+    ).where(
+        ExamResponse.session_id.in_(session_ids)
+    )
+    
+    resp_result = await db.execute(responses_query)
+    responses = resp_result.scalars().all()
+    
+    # Group by student
+    student_data = {}
+    for session in sessions:
+        student_data[session.id] = {
+            "session_id": str(session.id),
+            "candidate_name": session.candidate.full_name,
+            "candidate_email": session.candidate.email,
+            "submitted_at": session.ended_at.isoformat() if session.ended_at else None,
+            "responses": []
+        }
+        
+    for r in responses:
+        if r.session_id in student_data:
+            student_data[r.session_id]["responses"].append({
+                "response_id": str(r.id),
+                "question_id": str(r.question_id),
+                "question_title": r.question.title,
+                "question_type": r.question.type.value,
+                "question_points": r.question.points,
+                "response_data": r.response_data,
+                "marks_awarded": r.marks_awarded,
+                "is_correct": r.is_correct
+            })
+            
+    return list(student_data.values())
+
+from pydantic import BaseModel
+
+class GradeSubmit(BaseModel):
+    marks_awarded: float
+    is_correct: bool
+
+@router.post("/grade/{response_id}")
+async def submit_grade(
+    response_id: uuid.UUID,
+    payload: GradeSubmit,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.REVIEWER])),
+):
+    from app.models.response import ExamResponse
+    
+    result = await db.execute(select(ExamResponse).where(ExamResponse.id == response_id))
+    resp = result.scalar_one_or_none()
+    if not resp:
+        raise HTTPException(status_code=404, detail="Response not found")
+        
+    resp.marks_awarded = payload.marks_awarded
+    resp.is_correct = payload.is_correct
+    
+    from datetime import datetime, timezone
+    resp.graded_at = datetime.now(timezone.utc)
+    
+    await db.commit()
+    return {"status": "success", "marks_awarded": resp.marks_awarded}
