@@ -13,15 +13,23 @@ from app.models.institution import Institution
 from app.models.user import User, UserRole
 
 # Use an in-memory SQLite database with async driver for isolated tests
-TEST_DATABASE_URL = "sqlite+aiosqlite:///file:testdb?mode=memory&cache=shared&uri=true"
+import tempfile
+import os
+
+# Create a temporary file for the database
+db_fd, db_path = tempfile.mkstemp(suffix=".sqlite")
+os.close(db_fd)
+
+TEST_DATABASE_URL = f"sqlite+aiosqlite:///{db_path}"
 
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
     future=True,
-    poolclass=StaticPool,
+    # No StaticPool, use default pool so concurrent async tasks get their own connection
     connect_args={"check_same_thread": False},
 )
+
 
 test_async_session_maker = async_sessionmaker(
     bind=test_engine,
