@@ -16,6 +16,7 @@ import {
   PlayCircle,
   Settings,
   CheckCircle2,
+  Sparkles,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import CreateQuestionModal from "./CreateQuestionModal";
+import AIGenerateModal from "./AIGenerateModal";
 
 interface Question {
   id: string;
@@ -84,6 +86,7 @@ export default function ManageExamPage() {
   const [exam, setExam] = useState<ExamDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
 
   // Candidate Data & Filtering state
   const [candidates, setCandidates] = useState<CandidateEnrollment[]>([]);
@@ -785,6 +788,12 @@ export default function ManageExamPage() {
                     Upload Paper (CSV/JSON)
                   </button>
                   <button
+                    onClick={() => setShowAIModal(true)}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 active:scale-95 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4" /> Generate AI
+                  </button>
+                  <button
                     onClick={() => setShowCreateModal(true)}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 active:scale-95 px-3 py-1.5 rounded-lg transition cursor-pointer"
                   >
@@ -1139,6 +1148,18 @@ export default function ManageExamPage() {
         </div>
       )}
 
+      {showAIModal && (
+        <AIGenerateModal
+          examId={examId}
+          onClose={() => setShowAIModal(false)}
+          onSuccess={(count) => {
+            setShowAIModal(false);
+            showToast(`Successfully generated ${count} AI questions!`, "success");
+            fetchExam();
+          }}
+        />
+      )}
+      
       {showCreateModal && (
         <CreateQuestionModal
           examId={examId}

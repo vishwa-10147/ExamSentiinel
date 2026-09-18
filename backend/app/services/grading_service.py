@@ -13,6 +13,7 @@ from app.models.session import ExamSession
 from app.models.response import ExamResponse
 from app.models.question import Question, QuestionType
 from app.services.sandbox_service import sandbox_service
+from app.services.ai_service import ai_service
 
 class GradingService:
     async def grade_session(self, db: AsyncSession, session_id: uuid.UUID) -> ExamSession:
@@ -57,6 +58,20 @@ class GradingService:
                     # Optional: Add partial marks logic here
                     pass
                     
+                        elif question.type == QuestionType.ESSAY:
+                # AI Grading for Essay
+                essay_text = response.response_data.get("text", "")
+                if essay_text:
+                    rubric = question.data.get("rubric", "Grade based on general comprehension and correctness.")
+                    ai_result = await ai_service.grade_essay(
+                        question_text=question.text,
+                        student_answer=essay_text,
+                        rubric=rubric
+                    )
+                    # Normalize AI score to question points
+                    marks = (ai_result["score"] / 100.0) * float(question.points)
+                    is_correct = marks > (float(question.points) * 0.5)
+                    response.feedback = ai_result["feedback"]
             elif question.type == QuestionType.CODING:
                 code = response.response_data.get("text") or response.response_data.get("code")
                 language = response.response_data.get("language") or "python"

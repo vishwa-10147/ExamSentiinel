@@ -14,6 +14,7 @@ import { TimerBanner } from "@/components/exam/TimerBanner";
 import { QuestionPalette } from "@/components/exam/QuestionPalette";
 import { QuestionCard } from "@/components/exam/QuestionCard";
 import { SubmitModal } from "@/components/exam/SubmitModal";
+import FaceTracker from "@/components/FaceTracker";
 import { proctoringService } from "@/services/proctoringService";
 
 export default function ExamTakingPage() {

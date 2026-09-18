@@ -5,7 +5,7 @@ import jwt
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_current_user, get_db, log_audit_event
+from app.api.deps import get_current_user, get_db, log_audit_event, RateLimiter
 from app.core.config import settings
 from app.core.security import (
     create_access_token,
@@ -46,7 +46,7 @@ class LoginResponse(BaseModel):
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(RateLimiter(calls=3, period=3600))])
 async def register_user(
     user_in: UserCreate,
     request: Request,
@@ -363,7 +363,7 @@ async def get_current_user_profile(
     """Retrieve currently authenticated user profile and roles."""
     return current_user
 
-@router.post("/forgot-password")
+@router.post("/forgot-password", dependencies=[Depends(RateLimiter(calls=3, period=600))])
 async def forgot_password(
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),

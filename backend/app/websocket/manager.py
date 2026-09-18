@@ -1,87 +1,83 @@
-"""
-WebSocket connection manager for real-time exam monitoring.
-
-Manages three tiers of connections:
-- Dashboard: Global feed of all risk updates and events across all exams.
-- Exam: Scoped feed for a specific exam's sessions.
-- Session: Scoped feed for a single student's session.
-
-Usage:
-    from app.websocket.manager import manager
-    await manager.broadcast_risk_update(session_id, exam_id, data)
-"""
-
 import asyncio
 import json
-from datetime import datetime, timezone
 from typing import Dict, Set
-
+from datetime import datetime, timezone
 from fastapi import WebSocket
-from starlette.websockets import WebSocketState
+from fastapi.websockets import WebSocketState
+import redis.asyncio as redis
 
 from app.core.logging import logger
-
+from app.core.config import settings
+from app.core.redis_client import redis_client
 
 class ConnectionManager:
-    """Manages WebSocket connections for real-time exam monitoring."""
+    """Manages WebSocket connections and broadcasts events globally via Redis Pub/Sub."""
 
-    def __init__(self) -> None:
-        # Map of exam_id -> set of connected admin WebSockets
+    def __init__(self):
         self._exam_connections: Dict[str, Set[WebSocket]] = {}
-        # Map of session_id -> set of connected admin WebSockets watching that specific session
         self._session_connections: Dict[str, Set[WebSocket]] = {}
-        # All active admin connections for global dashboard
         self._dashboard_connections: Set[WebSocket] = set()
-        # Lock to protect concurrent modification of connection sets
         self._lock = asyncio.Lock()
+        
+        self.pubsub = redis_client.pubsub()
+        self.listener_task = None
+        self.channel_name = "examsentinel_live_events"
+
+    async def _start_listener(self):
+        if not self.listener_task:
+            try:
+                await self.pubsub.subscribe(self.channel_name)
+                self.listener_task = asyncio.create_task(self._listen_to_redis())
+                logger.info("Redis PubSub listener started for WebSockets.")
+            except Exception as e:
+                logger.debug(f"Failed to start Redis PubSub listener (Redis might be down): {e}")
+
+    async def _listen_to_redis(self):
+        try:
+            async for message in self.pubsub.listen():
+                if message["type"] == "message":
+                    data_str = message["data"].decode("utf-8") if isinstance(message["data"], bytes) else message["data"]
+                    try:
+                        payload = json.loads(data_str)
+                        session_id = payload.get("session_id", "")
+                        exam_id = payload.get("exam_id", "")
+                        await self._broadcast_to_all_tiers_local(session_id, exam_id, payload)
+                    except json.JSONDecodeError:
+                        logger.error("Failed to decode Redis message")
+        except Exception as e:
+            logger.error(f"Redis PubSub listener error: {e}")
+            self.listener_task = None
 
     # ------------------------------------------------------------------
     # Connection lifecycle
     # ------------------------------------------------------------------
 
     async def connect_dashboard(self, websocket: WebSocket) -> None:
-        """Connect an admin to the global dashboard feed."""
         await websocket.accept()
         async with self._lock:
             self._dashboard_connections.add(websocket)
-        logger.info(
-            "dashboard_ws_connected",
-            total=len(self._dashboard_connections),
-        )
+        await self._start_listener()
 
     async def connect_exam(self, websocket: WebSocket, exam_id: str) -> None:
-        """Connect an admin to monitor a specific exam."""
         await websocket.accept()
         async with self._lock:
             if exam_id not in self._exam_connections:
                 self._exam_connections[exam_id] = set()
             self._exam_connections[exam_id].add(websocket)
-        logger.info(
-            "exam_ws_connected",
-            exam_id=exam_id,
-            total=len(self._exam_connections[exam_id]),
-        )
+        await self._start_listener()
 
     async def connect_session(self, websocket: WebSocket, session_id: str) -> None:
-        """Connect an admin to monitor a specific student session."""
         await websocket.accept()
         async with self._lock:
             if session_id not in self._session_connections:
                 self._session_connections[session_id] = set()
             self._session_connections[session_id].add(websocket)
-        logger.info(
-            "session_ws_connected",
-            session_id=session_id,
-            total=len(self._session_connections[session_id]),
-        )
+        await self._start_listener()
 
     async def disconnect(self, websocket: WebSocket) -> None:
-        """Remove a WebSocket from all connection pools."""
         async with self._lock:
-            # Remove from dashboard pool
             self._dashboard_connections.discard(websocket)
 
-            # Remove from exam-scoped pools, clean up empty sets
             empty_exam_keys: list[str] = []
             for exam_id, connections in self._exam_connections.items():
                 connections.discard(websocket)
@@ -90,7 +86,6 @@ class ConnectionManager:
             for key in empty_exam_keys:
                 del self._exam_connections[key]
 
-            # Remove from session-scoped pools, clean up empty sets
             empty_session_keys: list[str] = []
             for session_id, connections in self._session_connections.items():
                 connections.discard(websocket)
@@ -99,22 +94,18 @@ class ConnectionManager:
             for key in empty_session_keys:
                 del self._session_connections[key]
 
-        logger.info("ws_disconnected")
-
     # ------------------------------------------------------------------
-    # Broadcasting helpers
+    # Broadcasting
     # ------------------------------------------------------------------
 
-    async def broadcast_risk_update(
-        self, session_id: str, exam_id: str, data: dict
-    ) -> None:
-        """Broadcast a risk score update to all relevant listeners.
+    async def _publish(self, session_id: str, exam_id: str, message: dict):
+        try:
+            await redis_client.publish(self.channel_name, json.dumps(message))
+        except Exception as e:
+            # Fallback to local if Redis is down
+            await self._broadcast_to_all_tiers_local(session_id, exam_id, message)
 
-        The message is sent to:
-        - All global dashboard connections
-        - All connections monitoring the specific exam
-        - All connections monitoring the specific session
-        """
+    async def broadcast_risk_update(self, session_id: str, exam_id: str, data: dict) -> None:
         message = {
             "type": "risk_update",
             "session_id": session_id,
@@ -122,12 +113,9 @@ class ConnectionManager:
             "data": data,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        await self._broadcast_to_all_tiers(session_id, exam_id, message)
+        await self._publish(session_id, exam_id, message)
 
-    async def broadcast_event(
-        self, session_id: str, exam_id: str, event_data: dict
-    ) -> None:
-        """Broadcast a new proctoring event to all relevant listeners."""
+    async def broadcast_event(self, session_id: str, exam_id: str, event_data: dict) -> None:
         message = {
             "type": "proctoring_event",
             "session_id": session_id,
@@ -135,98 +123,52 @@ class ConnectionManager:
             "data": event_data,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        await self._broadcast_to_all_tiers(session_id, exam_id, message)
+        await self._publish(session_id, exam_id, message)
 
-    async def broadcast_session_update(
-        self, exam_id: str, session_data: dict
-    ) -> None:
-        """Broadcast session status changes (started, submitted, etc.)."""
+    async def broadcast_session_update(self, exam_id: str, session_data: dict) -> None:
+        session_id = session_data.get("session_id", "")
         message = {
             "type": "session_update",
             "exam_id": exam_id,
+            "session_id": session_id,
             "data": session_data,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+        await self._publish(session_id, exam_id, message)
 
+    # ------------------------------------------------------------------
+    # Local Broadcaster
+    # ------------------------------------------------------------------
+
+    async def _broadcast_to_all_tiers_local(self, session_id: str, exam_id: str, message: dict) -> None:
         stale: list[WebSocket] = []
 
-        # Dashboard connections
         for ws in list(self._dashboard_connections):
             if not await self._safe_send(ws, message):
                 stale.append(ws)
 
-        # Exam-specific connections
-        exam_conns = self._exam_connections.get(exam_id, set())
-        for ws in list(exam_conns):
-            if not await self._safe_send(ws, message):
-                stale.append(ws)
+        if exam_id:
+            exam_conns = self._exam_connections.get(exam_id, set())
+            for ws in list(exam_conns):
+                if not await self._safe_send(ws, message):
+                    stale.append(ws)
 
-        # Clean up any dead connections discovered during broadcast
-        for ws in stale:
-            await self.disconnect(ws)
+        if session_id:
+            session_conns = self._session_connections.get(session_id, set())
+            for ws in list(session_conns):
+                if not await self._safe_send(ws, message):
+                    stale.append(ws)
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    async def _broadcast_to_all_tiers(
-        self, session_id: str, exam_id: str, message: dict
-    ) -> None:
-        """Send a message to dashboard, exam-scoped, and session-scoped listeners."""
-        stale: list[WebSocket] = []
-
-        # Dashboard connections
-        for ws in list(self._dashboard_connections):
-            if not await self._safe_send(ws, message):
-                stale.append(ws)
-
-        # Exam-specific connections
-        exam_conns = self._exam_connections.get(exam_id, set())
-        for ws in list(exam_conns):
-            if not await self._safe_send(ws, message):
-                stale.append(ws)
-
-        # Session-specific connections
-        session_conns = self._session_connections.get(session_id, set())
-        for ws in list(session_conns):
-            if not await self._safe_send(ws, message):
-                stale.append(ws)
-
-        # Clean up any dead connections discovered during broadcast
         for ws in stale:
             await self.disconnect(ws)
 
     async def _safe_send(self, websocket: WebSocket, message: dict) -> bool:
-        """Send a JSON message to a WebSocket, returning False if the connection is closed.
-
-        Stale connections are detected so callers can remove them.
-        """
         try:
             if websocket.application_state == WebSocketState.DISCONNECTED:
                 return False
             await websocket.send_json(message)
             return True
         except Exception:
-            logger.debug("ws_send_failed", exc_info=True)
             return False
 
-    # ------------------------------------------------------------------
-    # Diagnostic helpers
-    # ------------------------------------------------------------------
-
-    @property
-    def dashboard_count(self) -> int:
-        """Number of active dashboard connections."""
-        return len(self._dashboard_connections)
-
-    def exam_count(self, exam_id: str) -> int:
-        """Number of active connections for a specific exam."""
-        return len(self._exam_connections.get(exam_id, set()))
-
-    def session_count(self, session_id: str) -> int:
-        """Number of active connections for a specific session."""
-        return len(self._session_connections.get(session_id, set()))
-
-
-# Module-level singleton — import this wherever broadcasts are needed.
 manager = ConnectionManager()
