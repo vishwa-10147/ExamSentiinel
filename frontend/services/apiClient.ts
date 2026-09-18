@@ -65,7 +65,6 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
     };
 
@@ -74,10 +73,9 @@ class ApiClient {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    
     // Do not set Content-Type to application/json for FormData
-    if (!(options.body instanceof FormData) && !headers.has("Content-Type") && options.method !== "GET") {
-        headers.set("Content-Type", "application/json");
+    if (!(options.body instanceof FormData) && !headers["Content-Type"] && options.method !== "GET") {
+        headers["Content-Type"] = "application/json";
     }
 
     const response = await fetch(url, {

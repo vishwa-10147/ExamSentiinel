@@ -377,7 +377,6 @@ async def assign_question_to_exam(
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
 ):
     # Verify exam exists
-    print("HEADERS:", request.headers)
     exam_res = await db.execute(select(Exam).where(Exam.id == exam_id))
     exam = exam_res.scalar_one_or_none()
     if not exam:
@@ -444,7 +443,6 @@ async def enroll_candidates(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    print("HEADERS:", request.headers)
     exam_res = await db.execute(select(Exam).where(Exam.id == exam_id))
     exam = exam_res.scalar_one_or_none()
     if not exam:
@@ -511,15 +509,12 @@ from app.models.question import ExamQuestion
 
 @router.post("/{exam_id}/questions/bulk-import")
 async def bulk_import_questions(
-    request: Request,
-
-    exam_id: uuid.UUID,
+        exam_id: uuid.UUID,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
 ):
     # Verify exam exists
-    print("HEADERS:", request.headers)
     exam_res = await db.execute(select(Exam).where(Exam.id == exam_id))
     exam = exam_res.scalar_one_or_none()
     if not exam:
