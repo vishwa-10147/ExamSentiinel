@@ -3,6 +3,7 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.database import Base, get_db
@@ -18,6 +19,8 @@ test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
     future=True,
+    poolclass=StaticPool,
+    connect_args={"check_same_thread": False},
 )
 
 test_async_session_maker = async_sessionmaker(

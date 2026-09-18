@@ -58,15 +58,15 @@ class GradingService:
                     # Optional: Add partial marks logic here
                     pass
                     
-                        elif question.type == QuestionType.ESSAY:
+            elif question.type == QuestionType.ESSAY:
                 # AI Grading for Essay
                 essay_text = response.response_data.get("text", "")
                 if essay_text:
                     rubric = question.data.get("rubric", "Grade based on general comprehension and correctness.")
                     ai_result = await ai_service.grade_essay(
-                        question_text=question.text,
-                        student_answer=essay_text,
-                        rubric=rubric
+            question_text=question.text,
+            student_answer=essay_text,
+            rubric=rubric
                     )
                     # Normalize AI score to question points
                     marks = (ai_result["score"] / 100.0) * float(question.points)

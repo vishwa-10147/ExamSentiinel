@@ -110,7 +110,7 @@ async def register_user(
     return user
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(RateLimiter(calls=5, period=60))])
 async def login(
     credentials: UserLogin,
     request: Request,

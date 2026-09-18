@@ -6,6 +6,7 @@ import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
+from app.core.logging import logger
 from app.core.database import get_db
 from app.core.security import decode_token
 from app.models.user import User, UserRole
@@ -160,9 +161,8 @@ from fastapi import Request
 
 def RateLimiter(calls: int, period: int):
     """
-    Sliding window rate limiter using Redis.
-    calls: max number of requests allowed.
-    period: time window in seconds.
+    Returns a FastAPI dependency that implements a sliding window rate limit using Redis.
+    Uses MULTI/EXEC pipeline to ensure atomicity.
     """
     async def rate_limit_dependency(request: Request):
         client_ip = request.client.host if request.client else "127.0.0.1"
@@ -174,25 +174,31 @@ def RateLimiter(calls: int, period: int):
         key = f"rate_limit:{request.url.path}:{client_ip}"
         now = time.time()
         
-        # Redis MULTI/EXEC block for sliding window
-        async with redis_client.pipeline(transaction=True) as pipe:
-            # Remove scores older than (now - period)
-            pipe.zremrangebyscore(key, 0, now - period)
-            # Add current request timestamp
-            pipe.zadd(key, {str(now): now})
-            # Count requests in window
-            pipe.zcard(key)
-            # Set expiry to prevent lingering keys
-            pipe.expire(key, period)
+        try:
+            # Redis MULTI/EXEC block for sliding window
+            async with redis_client.pipeline(transaction=True) as pipe:
+                # Remove scores older than (now - period)
+                pipe.zremrangebyscore(key, 0, now - period)
+                # Add current request timestamp
+                pipe.zadd(key, {str(now): now})
+                # Count requests in window
+                pipe.zcard(key)
+                # Set TTL to prevent stale keys
+                pipe.expire(key, period)
+                
+                results = await pipe.execute()
+                
+            request_count = results[2]
             
-            results = await pipe.execute()
-            
-        request_count = results[2]
-        
-        if request_count > calls:
-            raise HTTPException(
-                status_code=429,
-                detail="Too Many Requests. Please try again later."
-            )
+            if request_count > calls:
+                logger.warning("rate_limit_exceeded", ip=client_ip, path=request.url.path)
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Too Many Requests"
+                )
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                raise e
+            logger.debug(f"Redis rate limiter failed, bypassing: {e}")
             
     return rate_limit_dependency

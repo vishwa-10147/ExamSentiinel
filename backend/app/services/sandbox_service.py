@@ -5,6 +5,8 @@ import os
 import shutil
 import subprocess
 import time
+import tempfile
+import uuid
 
 
 @dataclass
@@ -28,16 +30,11 @@ class SandboxService:
         if shutil.which("docker") is None:
             raise SandboxUnavailableError("Sandbox runtime is unavailable: Docker CLI is not installed")
         
-        # If stdin is provided, we should probably pass it. But currently the docker command takes source_code via stdin.
-        # Wait, if we use `cat > main.cpp && ...`, we consume the entire stdin for source_code. 
-        # How does the user's program read stdin?
-        # A better approach: pass source_code via environment variable or wrap it.
-        # Actually, since we need to pass both source_code and stdin, let's use a bash wrapper:
-        
         import base64
         source_b64 = base64.b64encode(source_code.encode('utf-8')).decode('utf-8')
         stdin_b64 = base64.b64encode(stdin.encode('utf-8')).decode('utf-8') if stdin else ""
 
+        # Use `head -c 1M` if possible to prevent stdout flooding, or limit it externally.
         wrapper_script = f"""
 echo "{source_b64}" | base64 -d > source_file
 echo "{stdin_b64}" | base64 -d > stdin_file
@@ -53,8 +50,6 @@ echo "{stdin_b64}" | base64 -d > stdin_file
             compile_run = "ruby source_file < stdin_file"
             image = os.getenv("SANDBOX_RUBY_IMAGE", "ruby:3.3-slim")
         elif language == "java":
-            # For Java, the class name must match the file name if it's public.
-            # We'll assume the public class is Main, or we just don't make it public.
             compile_run = "mv source_file Main.java && javac Main.java && java Main < stdin_file"
             image = os.getenv("SANDBOX_JAVA_IMAGE", "openjdk:21-slim")
         elif language in ("c++", "cpp"):
@@ -74,40 +69,69 @@ echo "{stdin_b64}" | base64 -d > stdin_file
 
         full_script = wrapper_script + compile_run
 
+        container_name = f"sandbox_{uuid.uuid4().hex}"
+
         docker_command = [
-            "docker", "run", "--rm", "--network", "none", "--read-only",
-            "--tmpfs", "/tmp:exec", "--workdir", "/tmp",
+            "docker", "run", "--name", container_name,
+            "--rm", "--network", "none", "--read-only",
+            "--tmpfs", "/tmp:exec,size=20m,mode=1777", "--workdir", "/tmp",
             "--cpus", "1.0", "--memory", f"{memory_mb}m", "--pids-limit", "64",
             "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
+            "--user", "1000:1000",
             "-i", image, "sh", "-c", full_script
         ]
 
         started = time.perf_counter()
-        try:
-            process = subprocess.run(
-                docker_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=timeout_sec,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
+        
+        # Limit output sizes by writing to TemporaryFiles
+        with tempfile.TemporaryFile() as stdout_f, tempfile.TemporaryFile() as stderr_f:
+            try:
+                process = subprocess.run(
+                    docker_command,
+                    stdout=stdout_f,
+                    stderr=stderr_f,
+                    timeout=timeout_sec,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired:
+                # Force kill the runaway container to prevent resource leaks
+                subprocess.run(["docker", "kill", container_name], capture_output=True)
+                subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
+                
+                wall_time_ms = int((time.perf_counter() - started) * 1000)
+                
+                # Retrieve whatever was outputted before timeout (up to limit)
+                stdout_f.seek(0)
+                partial_out = stdout_f.read(1024 * 1024).decode(errors="replace")
+                
+                return SandboxResult(
+                    "TIME_LIMIT_EXCEEDED",
+                    partial_out,
+                    "Execution timed out",
+                    None,
+                    wall_time_ms,
+                )
+
+            # Ensure cleanup just in case
+            subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
+
+            wall_time_ms = int((time.perf_counter() - started) * 1000)
+            status = "SUCCESS" if process.returncode == 0 else "RUNTIME_ERROR"
+            
+            stdout_f.seek(0)
+            stderr_f.seek(0)
+            
+            # Read up to 1MB to prevent memory exhaustion on backend
+            out_str = stdout_f.read(1024 * 1024).decode(errors="replace")
+            err_str = stderr_f.read(1024 * 1024).decode(errors="replace")
+
             return SandboxResult(
-                "TIME_LIMIT_EXCEEDED",
-                (exc.stdout or b"").decode(errors="replace"),
-                "Execution timed out",
-                None,
-                int((time.perf_counter() - started) * 1000),
+                status,
+                out_str,
+                err_str,
+                process.returncode,
+                wall_time_ms,
             )
-        wall_time_ms = int((time.perf_counter() - started) * 1000)
-        status = "SUCCESS" if process.returncode == 0 else "RUNTIME_ERROR"
-        return SandboxResult(
-            status,
-            process.stdout.decode(errors="replace"),
-            process.stderr.decode(errors="replace"),
-            process.returncode,
-            wall_time_ms,
-        )
 
 
 sandbox_service = SandboxService()
