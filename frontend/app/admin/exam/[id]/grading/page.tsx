@@ -55,7 +55,7 @@ export default function GradingDashboard() {
           };
         }
         return s;
-      });
+      }));
       
       // Update selected session
       setSelectedSession((prev: any) => ({
@@ -72,7 +72,7 @@ export default function GradingDashboard() {
   const autoGrade = async (responseId: string) => {
     try {
       const toastId = toast.loading("AI is analyzing the answer...");
-      const res = await apiClient.post(`/api/reports/autograde/${responseId}`, {});
+      const res = await apiClient.post<any>(`/api/reports/autograde/${responseId}`, {});
       toast.dismiss(toastId);
       
       const form = document.getElementById(`form-${responseId}`) as HTMLFormElement;

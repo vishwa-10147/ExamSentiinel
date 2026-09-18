@@ -4,8 +4,8 @@ with open(r'frontend\components\exam\QuestionCard.tsx', 'r', encoding='utf-8') a
     text = f.read()
 
 text = text.replace(
-    'value={responseData?.text || "-- Write your SQL query here\n"}',
-    'value={responseData?.text || "-- Write your SQL query here\\n"}'
+    'const data = await apiClient.post("/api/code/execute", {',
+    'const data = await apiClient.post<any>("/api/code/execute", {'
 )
 
 with open(r'frontend\components\exam\QuestionCard.tsx', 'w', encoding='utf-8') as f:

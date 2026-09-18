@@ -54,7 +54,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       // Actually, QuestionCard doesn't know session_id. Let's just pull it from pathname.
       const sessionId = window.location.pathname.split("/").pop();
       
-      const data = await apiClient.post("/api/code/execute", {
+      const data = await apiClient.post<any>("/api/code/execute", {
         session_id: sessionId,
         question_id: question.id,
         language: activeLang,
@@ -287,8 +287,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   height="100%"
                   theme="vs-dark"
                   language="sql"
-                  value={responseData?.text || "-- Write your SQL query here
-"}
+                  value={responseData?.text || "-- Write your SQL query here\n"}
                   onChange={(val) => onAnswerChange({ text: val || "" })}
                   options={{
                     minimap: { enabled: false },
