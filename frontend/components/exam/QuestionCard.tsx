@@ -285,7 +285,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   {isExecuting ? "Running..." : "Run Code"}
                 </button>
               </div>
-              <div className="flex-1 min-h-[300px]">
+              <div className="w-full h-[350px] md:h-[500px] border-b border-slate-700">
                 <Editor
                   height="100%"
                   theme="vs-dark"

@@ -38,7 +38,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-900 dark:text-slate-50 antialiased font-sans transition-colors duration-200">
+      <body className="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-900 dark:text-slate-50 antialiased font-sans transition-colors duration-200 overflow-x-hidden">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
           <div className="flex min-h-screen flex-col">
