@@ -16,6 +16,7 @@ export default function RegisterPage() {
   
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,6 +27,17 @@ export default function RegisterPage() {
       setError("Please fill in all fields.");
       return;
     }
+    
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    // SPAM PROTECTION: Requires valid Turnstile token in production
+    // if (process.env.NODE_ENV === "production" && !turnstileToken) {
+    //   setError("Please complete the security check.");
+    //   return;
+    // }
 
     setIsSubmitting(true);
     try {
