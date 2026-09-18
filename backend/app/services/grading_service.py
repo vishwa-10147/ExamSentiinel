@@ -38,13 +38,15 @@ class GradingService:
             marks = 0.0
             is_correct = False
             
-            if question.question_type == QuestionType.MCQ_SINGLE:
-                selected = response.response_data.get("selected")
-                if selected and question.correct_answer and selected == question.correct_answer:
+            if question.type == QuestionType.MCQ_SINGLE:
+                # Handle both direct string matches and dict structures like {"secret_key": "opt_a"}
+                selected = response.response_data.get("selected_option_id") or response.response_data.get("selected")
+                correct = question.correct_answer.get("secret_key") if isinstance(question.correct_answer, dict) else question.correct_answer
+                if selected and correct and str(selected) == str(correct):
                     marks = float(question.points)
                     is_correct = True
                     
-            elif question.question_type == QuestionType.MCQ_MULTI:
+            elif question.type == QuestionType.MCQ_MULTI:
                 selected_list = response.response_data.get("selected", [])
                 correct_list = question.correct_answer if isinstance(question.correct_answer, list) else []
                 # Exact match required for full points
@@ -55,7 +57,7 @@ class GradingService:
                     # Optional: Add partial marks logic here
                     pass
                     
-            elif question.question_type == QuestionType.CODING:
+            elif question.type == QuestionType.CODING:
                 code = response.response_data.get("text") or response.response_data.get("code")
                 language = response.response_data.get("language") or "python"
                 if code and language:
@@ -98,7 +100,7 @@ class GradingService:
                     finally:
                         await r.aclose()
             
-            elif question.question_type in (QuestionType.ESSAY, QuestionType.SHORT_ANSWER):
+            elif question.type in (QuestionType.ESSAY, QuestionType.SHORT_ANSWER):
                 # Manual grading required
                 marks = 0.0
                 is_correct = None
