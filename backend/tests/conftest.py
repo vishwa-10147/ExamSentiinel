@@ -13,7 +13,7 @@ from app.models.institution import Institution
 from app.models.user import User, UserRole
 
 # Use an in-memory SQLite database with async driver for isolated tests
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+TEST_DATABASE_URL = "sqlite+aiosqlite:///file:testdb?mode=memory&cache=shared&uri=true"
 
 test_engine = create_async_engine(
     TEST_DATABASE_URL,

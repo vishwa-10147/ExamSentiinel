@@ -17,6 +17,11 @@ class Institution(TimeStampedUUIDModel):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     settings: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
 
+    # Monetization & Billing
+    stripe_customer_id: Mapped[str] = mapped_column(String(255), nullable=True, unique=True, index=True)
+    subscription_tier: Mapped[str] = mapped_column(String(64), default="free", nullable=False)
+    subscription_status: Mapped[str] = mapped_column(String(64), default="active", nullable=False)
+
     # Relationships
     users: Mapped[List["User"]] = relationship("User", back_populates="institution", cascade="all, delete-orphan")
     audit_logs: Mapped[List["AuditLog"]] = relationship("AuditLog", back_populates="institution")

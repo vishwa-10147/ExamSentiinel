@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.api import auth, calendar, code_execution, compliance, dashboard, exams, health, interviews, monitoring, proctoring, questions, reports, reviews, sessions, results, broadcast, usage, users
+from app.api import webhooks, auth, calendar, code_execution, compliance, dashboard, exams, health, interviews, monitoring, proctoring, questions, reports, reviews, sessions, results, broadcast, usage, users
 from app.api.deps import get_current_user, require_roles
 from app.models.user import User, UserRole
 
@@ -69,5 +69,6 @@ async def candidate_only_endpoint(current_user: User = Depends(require_roles([Us
 
 api_router.include_router(rbac_test_router)
 
-from app.api import sandbox
+from app.api import webhooks, sandbox
 api_router.include_router(sandbox.router, prefix="/sandbox", tags=["Sandbox Execution"])
+\napi_router.include_router(webhooks.router)\n
