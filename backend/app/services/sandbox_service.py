@@ -26,7 +26,7 @@ class SandboxService:
     def __init__(self) -> None:
         pass
 
-    def execute(self, language: str, source_code: str, stdin: str, timeout_sec: float, memory_mb: int) -> SandboxResult:
+    def execute(self, language: str, source_code: str, stdin: str, timeout_sec: float, memory_mb: int, database_setup: str = None) -> SandboxResult:
         if shutil.which("docker") is None:
             raise SandboxUnavailableError("Sandbox runtime is unavailable: Docker CLI is not installed")
         
@@ -35,10 +35,14 @@ class SandboxService:
         stdin_b64 = base64.b64encode(stdin.encode('utf-8')).decode('utf-8') if stdin else ""
 
         # Use `head -c 1M` if possible to prevent stdout flooding, or limit it externally.
+
+        setup_b64 = base64.b64encode((database_setup or "").encode('utf-8')).decode('utf-8')
         wrapper_script = f"""
 echo "{source_b64}" | base64 -d > source_file
 echo "{stdin_b64}" | base64 -d > stdin_file
+echo "{setup_b64}" | base64 -d > setup_sql
 """
+
         
         if language == "python":
             compile_run = "python source_file < stdin_file"
@@ -55,9 +59,16 @@ echo "{stdin_b64}" | base64 -d > stdin_file
         elif language in ("c++", "cpp"):
             compile_run = "mv source_file main.cpp && g++ -O2 main.cpp && ./a.out < stdin_file"
             image = os.getenv("SANDBOX_CPP_IMAGE", "gcc:13")
-        elif language == "c":
+                elif language == "c":
             compile_run = "mv source_file main.c && gcc -O2 main.c && ./a.out < stdin_file"
             image = os.getenv("SANDBOX_C_IMAGE", "gcc:13")
+        elif language == "sql":
+            # For SQL, we write the schema/seed to a setup file, create sqlite db, and run the query
+            # We enforce sqlite3 output in markdown/box format for clean reading
+            compile_run = "cat setup_sql > run.sql && echo '
+.mode box' >> run.sql && echo '.headers on' >> run.sql && cat source_file >> run.sql && sqlite3 db.sqlite < run.sql"
+            image = os.getenv("SANDBOX_SQLITE_IMAGE", "nouchka/sqlite3:latest")
+
         elif language == "go":
             compile_run = "mv source_file main.go && go run main.go < stdin_file"
             image = os.getenv("SANDBOX_GO_IMAGE", "golang:1.22-alpine")

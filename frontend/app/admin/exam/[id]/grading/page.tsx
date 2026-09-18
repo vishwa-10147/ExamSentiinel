@@ -69,6 +69,23 @@ export default function GradingDashboard() {
     }
   };
 
+  const autoGrade = async (responseId: string) => {
+    try {
+      const toastId = toast.loading("AI is analyzing the answer...");
+      const res = await apiClient.post(`/api/reports/autograde/${responseId}`, {});
+      toast.dismiss(toastId);
+      
+      const form = document.getElementById(`form-${responseId}`) as HTMLFormElement;
+      if (form) {
+        const marksInput = form.elements.namedItem("marks") as HTMLInputElement;
+        if (marksInput) marksInput.value = res.suggested_marks;
+        toast.success("AI suggested " + res.suggested_marks + " points!\n" + res.feedback, { duration: 5000 });
+      }
+    } catch (err) {
+      toast.error("AI Grading failed.");
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-slate-500">Loading submissions...</div>;
 
   return (
@@ -144,6 +161,14 @@ export default function GradingDashboard() {
                             <div className="text-xs text-slate-500 mt-1">Type: {r.question_type} | Max Points: {r.question_points}</div>
                           </div>
                           <div className="flex flex-col items-end gap-2 shrink-0">
+                            <button 
+                              type="button"
+                              onClick={() => autoGrade(r.response_id)}
+                              className="px-3 py-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white text-xs font-bold rounded shadow-sm transition-all flex items-center gap-1"
+                            >
+                              ✨ Auto-Grade
+                            </button>
+
                             {r.marks_awarded !== null ? (
                               <span className="px-2 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs font-bold rounded shadow-sm">
                                 Graded: {r.marks_awarded} / {r.question_points}
@@ -170,6 +195,7 @@ export default function GradingDashboard() {
                         
                         <div className="bg-slate-50 dark:bg-slate-900/50 p-4 border-t border-slate-200 dark:border-slate-700">
                           <form 
+                            id={`form-${r.response_id}`}
                             onSubmit={(e) => {
                               e.preventDefault();
                               const formData = new FormData(e.currentTarget as HTMLFormElement);

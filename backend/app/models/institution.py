@@ -19,4 +19,5 @@ class Institution(TimeStampedUUIDModel):
 
     # Relationships
     users: Mapped[List["User"]] = relationship("User", back_populates="institution", cascade="all, delete-orphan")
+    batches: Mapped[List["Batch"]] = relationship("Batch", back_populates="institution", cascade="all, delete-orphan")
     audit_logs: Mapped[List["AuditLog"]] = relationship("AuditLog", back_populates="institution")

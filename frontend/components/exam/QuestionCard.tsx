@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { QuestionCandidate } from "@/services/examService";
+import { apiClient } from "@/services/apiClient";
 
 // Lazy load Monaco Editor (massive bundle) only when needed, disable SSR
 const Editor = dynamic(() => import("@monaco-editor/react"), { 
@@ -48,22 +49,17 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     setIsExecuting(true);
     setOutput(["Executing code..."]);
     try {
-      const res = await fetch("http://localhost:8000/api/sandbox/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          language: activeLang,
-          code: responseData.text
-        }),
-      });
-
-      if (!res.ok) {
-        setOutput([`Error: Server returned ${res.status}`]);
-        setIsExecuting(false);
-        return;
-      }
+      // Ensure we extract session_id from URL or pass it down. 
+      // For now, we assume window.location parsing or it's fetched. 
+      // Actually, QuestionCard doesn't know session_id. Let's just pull it from pathname.
+      const sessionId = window.location.pathname.split("/").pop();
       
-      const data = await res.json();
+      const data = await apiClient.post("/api/code/execute", {
+        session_id: sessionId,
+        question_id: question.id,
+        language: activeLang,
+        source_code: responseData.text
+      });
       let outLines: string[] = [];
       if (data.stderr) {
          outLines.push("=== Error ===");
@@ -256,6 +252,67 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               />
             </div>
           )}
+          {question.type === "SQL" && (
+            <div className="border border-slate-700 rounded-lg overflow-hidden flex flex-col h-[600px] mb-4">
+              <div className="flex items-center justify-between bg-slate-800 px-4 py-2 border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    SQL Editor (SQLite)
+                  </span>
+                </div>
+                <button 
+                  onClick={() => {
+                     const old = activeLang;
+                     setActiveLang("sql");
+                     runCode().then(() => setActiveLang(old));
+                  }}
+                  disabled={isExecuting}
+                  className="px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/40 rounded text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
+                >
+                  <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 
+                  {isExecuting ? "Executing..." : "Run Query"}
+                </button>
+              </div>
+              
+              {/* Schema Viewer */}
+              {(question as any).database_schema && (
+                <div className="bg-slate-900 border-b border-slate-700 p-3 overflow-x-auto text-xs text-slate-400 font-mono">
+                  <div className="text-[10px] uppercase text-slate-500 mb-1 font-bold">Database Schema</div>
+                  <pre>{(question as any).database_schema}</pre>
+                </div>
+              )}
+
+              <div className="w-full h-[350px] md:h-[500px] border-b border-slate-700">
+                <Editor
+                  height="100%"
+                  theme="vs-dark"
+                  language="sql"
+                  value={responseData?.text || "-- Write your SQL query here
+"}
+                  onChange={(val) => onAnswerChange({ text: val || "" })}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    lineHeight: 24,
+                    padding: { top: 16, bottom: 16 },
+                  }}
+                />
+              </div>
+              {/* Output Panel */}
+              <div className="h-48 border-t border-slate-700 bg-slate-900 text-slate-300 font-mono text-sm overflow-y-auto p-4 flex flex-col">
+                <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 font-semibold">Query Result</div>
+                {output.length > 0 ? (
+                  output.map((line, i) => (
+                    <div key={i} className="whitespace-pre-wrap">{line}</div>
+                  ))
+                ) : (
+                  <div className="text-slate-600 italic">No output yet. Click 'Run Query' to execute.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+
 
           {question.type === "CODING" && (
             <div className="border border-slate-700 rounded-lg overflow-hidden flex flex-col h-[600px] mb-4">

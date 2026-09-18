@@ -57,3 +57,5 @@ __all__ = [
     "Seat",
     "ExamSeat",
 ]
+
+from app.models.batch import Batch

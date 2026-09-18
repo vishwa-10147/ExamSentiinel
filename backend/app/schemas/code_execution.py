@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 
 class CodeExecutionRequest(BaseModel):
     session_id: uuid.UUID
-    language: Literal["python", "javascript"]
+    question_id: Optional[uuid.UUID] = None
+    language: str
     source_code: str = Field(..., min_length=1, max_length=100_000)
     stdin: str = Field(default="", max_length=20_000)
     time_limit_sec: float = Field(default=5.0, ge=0.1, le=10.0)
@@ -39,6 +40,7 @@ class CodeGradeRequest(CodeExecutionRequest):
 
 class CodeIntegrityRequest(BaseModel):
     session_id: uuid.UUID
+    question_id: Optional[uuid.UUID] = None
     previous_code: str = ""
     current_code: str = ""
     keystroke_intervals_ms: list[float] = Field(default_factory=list, max_length=10_000)

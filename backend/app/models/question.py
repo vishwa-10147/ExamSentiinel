@@ -16,6 +16,7 @@ class QuestionType(str, enum.Enum):
     SHORT_ANSWER = "SHORT_ANSWER"
     ESSAY = "ESSAY"
     CODING = "CODING"
+    SQL = "SQL"
 
 
 class Question(TimeStampedUUIDModel):
@@ -46,6 +47,10 @@ class Question(TimeStampedUUIDModel):
     difficulty: Mapped[str] = mapped_column(String(32), default="MEDIUM", nullable=False, index=True)
     tags: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     rubric: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
+
+    # SQL Execution Engine specific fields
+    database_schema: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    database_seed: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
     institution: Mapped[Optional["Institution"]] = relationship("Institution")
