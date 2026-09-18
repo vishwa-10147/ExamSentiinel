@@ -16,11 +16,13 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
+    request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Dependency that authenticates JWT access token and returns current active User."""
     if not credentials or not credentials.credentials:
+        print("MISSING CREDENTIALS! Headers:", request.headers)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication credentials were not provided",

@@ -52,31 +52,9 @@ export default function ExamListPage() {
         const data = await apiClient.get<Exam[]>("/api/exams");
         setExams(Array.isArray(data) ? data : []);
       } catch (err: any) {
-        console.warn("Failed to fetch exams, using mock data", err);
-        // Graceful mock fallback
-        setExams([
-          {
-            id: "exam-1",
-            title: "Midterm Examination - CS101",
-            description: "Introduction to Computer Science Midterm.",
-            start_window: new Date(Date.now() - 86400000).toISOString(),
-            end_window: new Date(Date.now() + 86400000 * 2).toISOString(),
-            duration_minutes: 120,
-            status: "active",
-            created_at: new Date().toISOString()
-          },
-          {
-            id: "exam-2",
-            title: "Final Examination - MATH201",
-            description: "Advanced Calculus Final Assessment.",
-            start_window: new Date(Date.now() + 86400000 * 5).toISOString(),
-            end_window: new Date(Date.now() + 86400000 * 10).toISOString(),
-            duration_minutes: 180,
-            status: "draft",
-            created_at: new Date().toISOString()
-          }
-        ]);
-        setError(null);
+        console.error("Failed to fetch exams", err);
+        setExams([]);
+        setError("Failed to load exams. Please try again later.");
       } finally {
         setLoading(false);
       }

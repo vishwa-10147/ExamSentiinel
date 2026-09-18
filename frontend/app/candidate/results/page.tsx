@@ -28,10 +28,7 @@ export default function CandidateResultsPage() {
         setResults(data);
       } catch (err) {
         console.error("Failed to fetch results", err);
-        setResults([
-          { id: "1", exam_title: "Midterm Examination", date: new Date().toISOString(), score: 85, percentage: 85, status: "passed" },
-          { id: "2", exam_title: "Quiz 1", date: new Date(Date.now() - 86400000).toISOString(), score: 60, percentage: 60, status: "failed" },
-        ]);
+        setResults([]);
       } finally {
         setLoading(false);
       }

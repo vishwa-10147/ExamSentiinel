@@ -1,3 +1,4 @@
 redis>=5.0.0
 pydantic>=2.5.0
 structlog>=24.1.0
+docker>=7.0.0

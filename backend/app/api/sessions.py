@@ -492,6 +492,9 @@ async def submit_session(
     )
     await db.commit()
 
+    
+    await grading_service.grade_session(db, session.id)
+    
     return SessionSubmitResponse(
         status="submitted",
         submitted_at=session.submitted_at,

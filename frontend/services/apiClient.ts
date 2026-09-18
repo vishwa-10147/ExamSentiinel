@@ -74,6 +74,12 @@ class ApiClient {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
+    
+    // Do not set Content-Type to application/json for FormData
+    if (!(options.body instanceof FormData) && !headers.has("Content-Type") && options.method !== "GET") {
+        headers.set("Content-Type", "application/json");
+    }
+
     const response = await fetch(url, {
       ...options,
       headers,
@@ -152,19 +158,24 @@ class ApiClient {
     return this.request<T>(endpoint, { method: "GET", headers });
   }
 
-  public post<T>(endpoint: string, body: any, headers?: Record<string, string>): Promise<T> {
+  async post<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: "POST",
-      headers,
-      body: JSON.stringify(body),
+      body: data ? (data instanceof FormData ? data : JSON.stringify(data)) : undefined,
     });
   }
 
-  public put<T>(endpoint: string, body: any, headers?: Record<string, string>): Promise<T> {
+  async upload<T>(endpoint: string, formData: FormData): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: "POST",
+      body: formData,
+    });
+  }
+
+  async put<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: "PUT",
-      headers,
-      body: JSON.stringify(body),
+      body: data ? (data instanceof FormData ? data : JSON.stringify(data)) : undefined,
     });
   }
 
@@ -173,8 +184,20 @@ class ApiClient {
   }
 
   // Auth specific methods
-  public async login(email: string, password: string): Promise<TokenResponse> {
-    const data = await this.post<TokenResponse>("/api/auth/login", { email, password });
+  public async login(email: string, password: string): Promise<any> {
+    const data = await this.post<any>("/api/auth/login", { email, password });
+    if (data.requires_2fa) {
+      return data;
+    }
+    this.setTokens(data.access_token, data.refresh_token);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user_profile", JSON.stringify(data.user));
+    }
+    return data;
+  }
+
+  public async verifyOTP(userId: string, otpCode: string): Promise<TokenResponse> {
+    const data = await this.post<TokenResponse>("/api/auth/verify-otp", { user_id: userId, otp_code: otpCode });
     this.setTokens(data.access_token, data.refresh_token);
     if (typeof window !== "undefined") {
       localStorage.setItem("user_profile", JSON.stringify(data.user));

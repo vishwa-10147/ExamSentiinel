@@ -39,61 +39,9 @@ export default function AuditPage() {
         const data = await apiClient.get<AuditLog[]>("/api/users/audit");
         setLogs(data);
       } catch (err) {
-        console.error("Failed to fetch audit logs, using mock data", err);
-        // Robust mock UI as requested
-        setLogs([
-          {
-            id: "evt_101",
-            timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-            action: "User Login",
-            user: "admin@examsentinel.com",
-            role: "admin",
-            ip_address: "192.168.1.42",
-            status: "success",
-            details: "Successful authentication via password",
-          },
-          {
-            id: "evt_102",
-            timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-            action: "Reviewer Assigned",
-            user: "proctor@examsentinel.com",
-            role: "proctor",
-            ip_address: "10.0.0.15",
-            status: "success",
-            details: "Assigned session sess_789 to reviewer@examsentinel.com",
-          },
-          {
-            id: "evt_103",
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-            action: "Failed Login Attempt",
-            user: "unknown",
-            role: "unknown",
-            ip_address: "45.22.19.88",
-            status: "error",
-            details: "Invalid credentials provided 3 times",
-          },
-          {
-            id: "evt_104",
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-            action: "High Risk Flag Triggered",
-            user: "system",
-            role: "system",
-            ip_address: "N/A",
-            status: "warning",
-            details: "Multiple faces detected in session sess_789",
-          },
-          {
-            id: "evt_105",
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-            action: "Exam Created",
-            user: "admin@examsentinel.com",
-            role: "admin",
-            ip_address: "192.168.1.42",
-            status: "success",
-            details: "Created exam 'Midterm CS101'",
-          },
-        ]);
-        setError("Audit API endpoint unavailable. Showing mock data for demonstration.");
+        console.error("Failed to fetch audit logs", err);
+        setLogs([]);
+        setError("Failed to load audit logs. Please try again later.");
       } finally {
         setLoading(false);
       }

@@ -112,6 +112,7 @@ export default function PracticeCodingPage() {
   const [output, setOutput] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [activeTab, setActiveTab] = useState("console");
+  const [customInput, setCustomInput] = useState("");
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value;
@@ -131,7 +132,8 @@ export default function PracticeCodingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           language: language,
-          code: code
+          code: code,
+          stdin: customInput || undefined
         }),
       });
 

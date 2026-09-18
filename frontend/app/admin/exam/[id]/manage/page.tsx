@@ -32,6 +32,16 @@ import {
   RefreshCw,
   ExternalLink
 } from "lucide-react";
+import CreateQuestionModal from "./CreateQuestionModal";
+
+interface Question {
+  id: string;
+  type: string;
+  title: string;
+  points: number;
+  difficulty?: string;
+  order_index?: number;
+}
 
 interface ExamDetails {
   id: string;
@@ -42,6 +52,7 @@ interface ExamDetails {
   duration_minutes: number;
   status: string;
   created_at: string;
+  questions?: Question[];
 }
 
 interface CandidateEnrollment {
@@ -62,87 +73,7 @@ interface ToastNotification {
   type: "info" | "success" | "warning";
 }
 
-function generateMockCandidates(count: number = 1000): CandidateEnrollment[] {
-  const firstNames = [
-    "Alex", "Jordan", "Taylor", "Morgan", "Sam", "Chris", "Pat", "Riley", "Casey", "Avery",
-    "Cameron", "Jamie", "Logan", "Reese", "Quinn", "Skyler", "Dakota", "Jesse", "Kendall", "Harper",
-    "Rowan", "Peyton", "Finley", "Emerson", "River", "Hayden", "Kai", "Dallas", "Adrian", "Eden",
-    "Priya", "Rahul", "Aarav", "Ananya", "Rohan", "Sneha", "Vikram", "Neha", "Arjun", "Kavya",
-    "Siddharth", "Pooja", "Amit", "Meera", "Karan", "Tanvi", "Aditya", "Riya", "Nikhil", "Divya",
-    "Marcus", "Elena", "Dmitri", "Chloe", "Lucas", "Maya", "Mateo", "Sophia", "Ethan", "Zoe"
-  ];
 
-  const lastNames = [
-    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez",
-    "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin",
-    "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson",
-    "Sharma", "Patel", "Verma", "Gupta", "Mehta", "Singh", "Reddy", "Choudhury", "Nair", "Iyer",
-    "Chen", "Wang", "Kim", "Tanaka", "Yamamoto", "Muller", "Dubois", "Santos", "Costa", "Rossi"
-  ];
-
-  const flagReasons = [
-    "Multiple faces detected in frame",
-    "Suspicious audio / background voice detected",
-    "Tab switch and focus loss threshold exceeded",
-    "Virtual machine or remote desktop detected",
-    "Secondary monitor connection identified"
-  ];
-
-  const list: CandidateEnrollment[] = [];
-  for (let i = 1; i <= count; i++) {
-    const fName = firstNames[(i * 7 + 13) % firstNames.length];
-    const lName = lastNames[(i * 11 + 37) % lastNames.length];
-    const fullName = `${fName} ${lName}`;
-    const email = `${fName.toLowerCase()}.${lName.toLowerCase()}${i % 12 === 0 ? i : ""}@university.edu`;
-    const rollNumber = `ES-2026-${String(i).padStart(4, "0")}`;
-
-    const seed = (i * 37) % 100;
-    let status: CandidateEnrollment["status"];
-    let systemCheck: CandidateEnrollment["systemCheck"];
-    let flagReason: string | undefined = undefined;
-
-    if (seed < 55) {
-      status = "Ready";
-      systemCheck = "Verified";
-    } else if (seed < 78) {
-      status = "In Progress";
-      systemCheck = "Verified";
-    } else if (seed < 90) {
-      status = "Completed";
-      systemCheck = "Verified";
-    } else if (seed < 96) {
-      status = "Flagged";
-      systemCheck = seed % 2 === 0 ? "Failed" : "Pending";
-      flagReason = flagReasons[i % flagReasons.length];
-    } else {
-      status = "Registered";
-      systemCheck = "Pending";
-    }
-
-    const dateOffsetHours = (i % 96);
-    const date = new Date(Date.now() - dateOffsetHours * 3600000);
-    const enrolledAt = date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-
-    list.push({
-      id: `cand-${i}`,
-      candidateNumber: i,
-      fullName,
-      email,
-      rollNumber,
-      status,
-      systemCheck,
-      enrolledAt,
-      flagReason
-    });
-  }
-
-  return list;
-}
 
 export default function ManageExamPage() {
   const params = useParams();
@@ -152,6 +83,7 @@ export default function ManageExamPage() {
 
   const [exam, setExam] = useState<ExamDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Candidate Data & Filtering state
   const [candidates, setCandidates] = useState<CandidateEnrollment[]>([]);
@@ -177,36 +109,19 @@ export default function ManageExamPage() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Generate 1,000 candidates on load
+  // Candidates list left empty for now
   useEffect(() => {
-    const data = generateMockCandidates(1000);
-    setCandidates(data);
+    // In a real app, fetch candidates from the DB
+    setCandidates([]);
   }, []);
 
-  useEffect(() => {
-    if (!authLoading && user && !["admin", "proctor"].includes(user.role)) {
-      router.push("/dashboard");
-      return;
-    }
-
-    const fetchExam = async () => {
-      try {
-        const response: any = await apiClient.get(`/api/exams/${examId}`);
-        if (response && response.id) {
-          setExam(response);
-        } else {
-          setExam({
-            id: examId,
-            title: "Demo Integrity Examination",
-            description: "A comprehensive assessment testing candidate knowledge while enforcing strict proctoring integrity rules.",
-            start_window: new Date().toISOString(),
-            end_window: new Date(Date.now() + 86400000 * 7).toISOString(),
-            duration_minutes: 120,
-            status: "PUBLISHED",
-            created_at: new Date().toISOString()
-          });
-        }
-      } catch (err) {
+  const fetchExam = async () => {
+    try {
+      const response: any = await apiClient.get(`/api/exams/${examId}`);
+      if (response && response.id) {
+        setExam(response);
+      } else {
+        // Fallback for demo
         setExam({
           id: examId,
           title: "Demo Integrity Examination",
@@ -215,12 +130,32 @@ export default function ManageExamPage() {
           end_window: new Date(Date.now() + 86400000 * 7).toISOString(),
           duration_minutes: 120,
           status: "PUBLISHED",
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          questions: []
         });
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      setExam({
+        id: examId,
+        title: "Demo Integrity Examination",
+        description: "A comprehensive assessment testing candidate knowledge while enforcing strict proctoring integrity rules.",
+        start_window: new Date().toISOString(),
+        end_window: new Date(Date.now() + 86400000 * 7).toISOString(),
+        duration_minutes: 120,
+        status: "PUBLISHED",
+        created_at: new Date().toISOString(),
+        questions: []
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!authLoading && user && !["admin", "proctor"].includes(user.role)) {
+      router.push("/dashboard");
+      return;
+    }
 
     if (examId) {
       fetchExam();
@@ -305,10 +240,29 @@ export default function ManageExamPage() {
     }
   };
 
+  const processFile = async (file: File) => {
+    if (!file.name.endsWith('.csv')) {
+      showToast("Only CSV files are supported currently.", "warning");
+      return;
+    }
+    
+    showToast(`Uploading ${file.name}...`, "success");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      await apiClient.upload(`/api/exams/${examId}/questions/bulk-import`, formData);
+      
+      showToast("Questions imported successfully! Refreshing...", "success");
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err: any) {
+      showToast(err.message || "Failed to parse and upload CSV.", "warning");
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files[0]) {
-      showToast(`Uploaded "${files[0].name}" successfully! Questions extracted.`, "success");
+    if (e.target.files && e.target.files[0]) {
+      processFile(e.target.files[0]);
     }
   };
 
@@ -831,9 +785,7 @@ export default function ManageExamPage() {
                     Upload Paper (CSV/JSON)
                   </button>
                   <button
-                    onClick={() =>
-                      showToast("Interactive Question Builder modal is coming soon.", "info")
-                    }
+                    onClick={() => setShowCreateModal(true)}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 active:scale-95 px-3 py-1.5 rounded-lg transition cursor-pointer"
                   >
                     <Plus className="w-4 h-4" /> Add Question
@@ -881,52 +833,39 @@ export default function ManageExamPage() {
 
               {/* Question List */}
               <div className="border border-slate-200 rounded-xl divide-y divide-slate-100">
-                {[
-                  {
-                    num: 1,
-                    type: "MULTIPLE CHOICE",
-                    pts: 5,
-                    title: "What is the time complexity of binary search in a sorted array?"
-                  },
-                  {
-                    num: 2,
-                    type: "ALGORITHMIC CODE",
-                    pts: 15,
-                    title: "Implement LRU Cache with O(1) get and put operations."
-                  },
-                  {
-                    num: 3,
-                    type: "SHORT ANSWER",
-                    pts: 10,
-                    title: "Explain the difference between optimistic and pessimistic concurrency control."
-                  }
-                ].map((q) => (
-                  <div
-                    key={q.num}
-                    className="p-4 hover:bg-slate-50 transition flex justify-between items-start"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                          Q{q.num} &bull; {q.type}
-                        </span>
-                        <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                          {q.pts} pts
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium text-slate-900">{q.title}</p>
-                    </div>
-                    <button
-                      onClick={() =>
-                        showToast(`Question ${q.num} configuration settings coming soon.`, "info")
-                      }
-                      className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 rounded-lg transition cursor-pointer"
-                      title={`Configure Q${q.num}`}
-                    >
-                      <Settings className="w-4 h-4" />
-                    </button>
+                {(!exam?.questions || exam.questions.length === 0) ? (
+                  <div className="p-6 text-center text-sm text-slate-500">
+                    No questions added yet.
                   </div>
-                ))}
+                ) : (
+                  exam.questions.map((q, idx) => (
+                    <div
+                      key={q.id || idx}
+                      className="p-4 hover:bg-slate-50 transition flex justify-between items-start"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            Q{idx + 1} &bull; {q.type.replace("_", " ")}
+                          </span>
+                          <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                            {q.points} pts
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium text-slate-900">{q.title}</p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          showToast(`Question ${idx + 1} configuration settings coming soon.`, "info")
+                        }
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 rounded-lg transition cursor-pointer"
+                        title={`Configure Q${idx + 1}`}
+                      >
+                        <Settings className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -1198,6 +1137,19 @@ export default function ManageExamPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {showCreateModal && (
+        <CreateQuestionModal
+          examId={examId}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            showToast("Question added successfully!", "success");
+            fetchExam();
+          }}
+          nextOrderIndex={exam?.questions?.length || 0}
+        />
       )}
     </div>
   );

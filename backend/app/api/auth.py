@@ -19,6 +19,29 @@ from app.models.refresh_token import RefreshToken
 from app.models.user import User, UserRole
 from app.schemas.auth import TokenRefreshRequest, TokenResponse
 from app.schemas.user import UserCreate, UserLogin, UserResponse
+import random
+import redis.asyncio as redis
+from pydantic import BaseModel
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp_code: str
+    new_password: str
+
+class OTPVerifyRequest(BaseModel):
+    user_id: uuid.UUID
+    otp_code: str
+
+class LoginResponse(BaseModel):
+    requires_2fa: bool
+    user_id: uuid.UUID
+    email: str
+    message: str = "OTP sent to email"
+
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -87,7 +110,7 @@ async def register_user(
     return user
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 async def login(
     credentials: UserLogin,
     request: Request,
@@ -339,3 +362,59 @@ async def get_current_user_profile(
 ):
     """Retrieve currently authenticated user profile and roles."""
     return current_user
+
+@router.post("/forgot-password")
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    user = result.scalar_one_or_none()
+    if not user:
+        # Silently succeed to prevent email enumeration
+        return {"status": "success", "message": "If an account exists, an OTP has been sent."}
+        
+    otp_code = str(random.randint(100000, 999999))
+    r = redis.from_url(str(settings.REDIS_URL))
+    await r.setex(f"auth:forgot:{user.id}", 300, otp_code)
+    await r.aclose()
+    
+    print(f"\n{'='*50}")
+    print(f"MOCK EMAIL: To {user.email}")
+    print(f"Subject: Password Reset Request")
+    print(f"Your OTP is: {otp_code}. It expires in 5 minutes.")
+    print(f"{'='*50}\n")
+    
+    return {"status": "success", "message": "If an account exists, an OTP has been sent."}
+
+@router.post("/reset-password")
+async def reset_password(
+    payload: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+        
+    r = redis.from_url(str(settings.REDIS_URL))
+    cached_otp = await r.get(f"auth:forgot:{user.id}")
+    await r.aclose()
+    
+    if not cached_otp or cached_otp.decode() != payload.otp_code:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired OTP"
+        )
+        
+    # Reset password
+    user.hashed_password = get_password_hash(payload.new_password)
+    db.add(user)
+    await db.commit()
+    
+    # Delete OTP
+    r = redis.from_url(str(settings.REDIS_URL))
+    await r.delete(f"auth:forgot:{user.id}")
+    await r.aclose()
+    
+    return {"status": "success", "message": "Password reset successfully."}

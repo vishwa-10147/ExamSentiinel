@@ -15,6 +15,7 @@ class QuestionType(str, enum.Enum):
     MCQ_MULTI = "MCQ_MULTI"
     SHORT_ANSWER = "SHORT_ANSWER"
     ESSAY = "ESSAY"
+    CODING = "CODING"
 
 
 class Question(TimeStampedUUIDModel):

@@ -377,6 +377,7 @@ async def assign_question_to_exam(
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
 ):
     # Verify exam exists
+    print("HEADERS:", request.headers)
     exam_res = await db.execute(select(Exam).where(Exam.id == exam_id))
     exam = exam_res.scalar_one_or_none()
     if not exam:
@@ -443,6 +444,7 @@ async def enroll_candidates(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    print("HEADERS:", request.headers)
     exam_res = await db.execute(select(Exam).where(Exam.id == exam_id))
     exam = exam_res.scalar_one_or_none()
     if not exam:
@@ -500,3 +502,81 @@ async def list_exam_enrollments(
     query = select(ExamEnrollment).where(ExamEnrollment.exam_id == exam_id)
     result = await db.execute(query)
     return result.scalars().all()
+
+from fastapi import UploadFile, File
+import csv
+import io
+from app.models.question import Question, QuestionType
+from app.models.question import ExamQuestion
+
+@router.post("/{exam_id}/questions/bulk-import")
+async def bulk_import_questions(
+    request: Request,
+
+    exam_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
+):
+    # Verify exam exists
+    print("HEADERS:", request.headers)
+    exam_res = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = exam_res.scalar_one_or_none()
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+        
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are supported for bulk import")
+        
+    content = await file.read()
+    try:
+        text_content = content.decode('utf-8')
+    except:
+        text_content = content.decode('latin-1')
+        
+    csv_reader = csv.DictReader(io.StringIO(text_content))
+    
+    questions_added = 0
+    for row in csv_reader:
+        # Expected columns: type, title, description, points, difficulty
+        q_type_str = row.get("type", "MCQ_SINGLE").strip().upper()
+        try:
+            q_type = QuestionType(q_type_str)
+        except ValueError:
+            q_type = QuestionType.MCQ_SINGLE
+            
+        title = row.get("title", "Untitled Question").strip()
+        desc = row.get("description", "").strip()
+        points_str = row.get("points", "1.0").strip()
+        try:
+            points = float(points_str)
+        except:
+            points = 1.0
+            
+        difficulty = row.get("difficulty", "MEDIUM").strip().upper()
+        
+        # Create Question
+        q = Question(
+            id=uuid.uuid4(),
+            institution_id=current_user.institution_id,
+            type=q_type,
+            title=title,
+            content_rich_text=desc,
+            points=points,
+            difficulty=difficulty,
+        )
+        db.add(q)
+        
+        # Create ExamQuestion link
+        eq = ExamQuestion(
+            exam_id=exam_id,
+            question_id=q.id,
+            order_index=questions_added
+        )
+        db.add(eq)
+        
+        questions_added += 1
+        
+    await db.commit()
+    
+    return {"status": "success", "message": f"Successfully imported {questions_added} questions."}

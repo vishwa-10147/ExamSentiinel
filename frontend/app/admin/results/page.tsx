@@ -48,11 +48,7 @@ export default function ResultsPage() {
     } catch (error) {
       toast.error("Failed to fetch exams");
       console.error(error);
-      // Mock exams
-      setExams([
-        { id: "exam-1", title: "Midterm Examination" },
-        { id: "exam-2", title: "Final Examination" }
-      ]);
+      setExams([]);
     } finally {
       setLoading(false);
     }
@@ -64,12 +60,8 @@ export default function ResultsPage() {
       const data = await apiClient.get<any>(`/api/results/admin/exam/${examId}/sessions`);
       setSessions(Array.isArray(data) ? data : data?.data || []);
     } catch (error) {
-      // Mock sessions
-      setSessions([
-        { id: "sess-1", candidate_id: "cand-123", status: "completed", score: 85, integrity_score: 95 },
-        { id: "sess-2", candidate_id: "cand-124", status: "completed", score: 92, integrity_score: 88 },
-        { id: "sess-3", candidate_id: "cand-125", status: "under_review", score: null, integrity_score: 40 },
-      ]);
+      setSessions([]);
+      toast.error("Failed to fetch sessions");
     }
   };
 

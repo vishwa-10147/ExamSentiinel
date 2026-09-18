@@ -1,3 +1,8 @@
+import json
+import uuid
+import asyncio
+import redis.asyncio as redis
+from app.core.config import settings
 import datetime
 import uuid
 from typing import Optional
@@ -51,16 +56,47 @@ class GradingService:
                     pass
                     
             elif question.question_type == QuestionType.CODING:
-                # Compile & run in sandbox if code exists
-                code = response.response_data.get("code")
-                language = response.response_data.get("language")
+                code = response.response_data.get("text") or response.response_data.get("code")
+                language = response.response_data.get("language") or "python"
                 if code and language:
-                    # Very simple grading: check if it runs without error.
-                    # In a real scenario, you would run test cases.
-                    res = sandbox_service.execute(language, code, "", 5.0, 128)
-                    if res.status == "SUCCESS":
-                        marks = float(question.points)
-                        is_correct = True
+                    # Async grading via Redis Sandbox Worker
+                    test_cases = []
+                    if isinstance(question.correct_answer, dict) and "test_cases" in question.correct_answer:
+                        test_cases = question.correct_answer["test_cases"]
+                        
+                    job_id = str(uuid.uuid4())
+                    r = redis.from_url(str(settings.REDIS_URL))
+                    try:
+                        payload = json.dumps({
+                            "job_id": job_id,
+                            "language": language.lower(),
+                            "code": code,
+                            "test_cases": test_cases if test_cases else None
+                        })
+                        await r.rpush("examsentinel:sandbox:queue", payload)
+                        
+                        # Wait for execution to complete
+                        for _ in range(75):
+                            result_bytes = await r.get(f"examsentinel:sandbox:result:{job_id}")
+                            if result_bytes:
+                                res = json.loads(result_bytes)
+                                
+                                if res.get("status") == "success" and "test_results" in res:
+                                    passed = sum(1 for tr in res["test_results"] if tr.get("status") == "success")
+                                    total_tc = len(res["test_results"])
+                                    if total_tc > 0:
+                                        marks = float(question.points) * (passed / total_tc)
+                                        is_correct = (passed == total_tc)
+                                    else:
+                                        marks = float(question.points)
+                                        is_correct = True
+                                elif res.get("status") == "success":
+                                    marks = float(question.points)
+                                    is_correct = True
+                                break
+                            await asyncio.sleep(0.2)
+                    finally:
+                        await r.aclose()
             
             elif question.question_type in (QuestionType.ESSAY, QuestionType.SHORT_ANSWER):
                 # Manual grading required

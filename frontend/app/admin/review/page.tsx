@@ -5,16 +5,10 @@ import { apiClient } from "@/services/apiClient";
 import Link from "next/link";
 import { Search, Filter, AlertTriangle, Clock } from "lucide-react";
 
-// Mock data as fallback
-const MOCK_REVIEWS = [
-  { id: '1', candidateName: 'Alice Smith', examName: 'Midterm CS101', status: 'PENDING', date: '2023-10-27T10:00:00Z', riskScore: 85 },
-  { id: '2', candidateName: 'Bob Johnson', examName: 'Final CS101', status: 'ESCALATED', date: '2023-10-28T14:30:00Z', riskScore: 92 },
-  { id: '3', candidateName: 'Charlie Brown', examName: 'Midterm CS101', status: 'PENDING', date: '2023-10-29T09:15:00Z', riskScore: 45 },
-];
-
 export default function ReviewQueuePage() {
-  const [reviews, setReviews] = useState(MOCK_REVIEWS);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('ALL');
 
   useEffect(() => {
@@ -26,11 +20,12 @@ export default function ReviewQueuePage() {
         } else if (response && response.items) {
           setReviews(response.items);
         } else {
-          // fallback mock data
-          setReviews(MOCK_REVIEWS);
+          setReviews([]);
         }
-      } catch (error) {
-        console.warn('Using mock data, failed to fetch reviews:', error);
+      } catch (err) {
+        console.error('Failed to fetch reviews:', err);
+        setReviews([]);
+        setError('Failed to load reviews. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -48,6 +43,12 @@ export default function ReviewQueuePage() {
           <p className="text-slate-500 mt-1">Manage pending and escalated exam sessions.</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-700 border border-red-200">
+          {error}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">

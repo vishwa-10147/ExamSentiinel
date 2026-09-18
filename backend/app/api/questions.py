@@ -15,6 +15,30 @@ from app.schemas.question import (
     QuestionUpdate,
 )
 
+
+import json
+import redis.asyncio as redis
+from pydantic import BaseModel
+from app.core.config import settings
+
+class CodeSubmitRequest(BaseModel):
+    code: str
+    language: str
+
+class TestResult(BaseModel):
+    input: str
+    expected: str
+    actual: str
+    passed: bool
+    status: str
+    wall_time_ms: float
+    error: str = ""
+
+class CodeSubmitResponse(BaseModel):
+    status: str
+    overall_passed: bool
+    test_results: List[TestResult]
+
 router = APIRouter(prefix="/questions", tags=["Questions"])
 
 
@@ -61,7 +85,7 @@ async def list_questions(
     difficulty: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
+    current_user: User = Depends(get_current_user),
 ):
     query = select(Question)
 
@@ -85,14 +109,18 @@ async def list_questions(
 
     query = query.order_by(Question.created_at.desc())
     result = await db.execute(query)
-    return result.scalars().all()
+    questions = result.scalars().all()
+    if current_user.role == UserRole.CANDIDATE:
+        for q in questions:
+            q.correct_answer = None
+    return questions
 
 
 @router.get("/{question_id}", response_model=QuestionAdminResponse)
 async def get_question(
     question_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
+    current_user: User = Depends(get_current_user),
 ):
     query = select(Question).where(Question.id == question_id)
     result = await db.execute(query)
@@ -167,3 +195,97 @@ async def delete_question(
     await db.delete(question)
     await db.commit()
     return None
+
+@router.post("/{question_id}/submit", response_model=CodeSubmitResponse)
+async def submit_question_code(
+    question_id: uuid.UUID,
+    req: CodeSubmitRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Fetch question and get correct_answer
+    result = await db.execute(select(Question).where(Question.id == question_id))
+    question = result.scalar_one_or_none()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+        
+    correct_answer = question.correct_answer or {}
+    test_cases = correct_answer.get("test_cases", [])
+    
+    if not test_cases:
+        return CodeSubmitResponse(status="success", overall_passed=True, test_results=[])
+
+    inputs = [tc.get("input", "") for tc in test_cases]
+    expected_outputs = [tc.get("output", "") for tc in test_cases]
+
+    # Queue to execution engine
+    job_id = str(uuid.uuid4())
+    queue_name = "examsentinel:sandbox:queue"
+    result_key = f"examsentinel:sandbox:result:{job_id}"
+    
+    r = redis.from_url(str(settings.REDIS_URL))
+    payload = json.dumps({
+        "job_id": job_id,
+        "language": req.language.lower(),
+        "code": req.code,
+        "test_cases": inputs
+    })
+    await r.rpush(queue_name, payload)
+    
+    # Wait for execution worker to process and write to result_key
+    worker_result = None
+    import asyncio
+    for _ in range(150):
+        res_bytes = await r.get(result_key)
+        if res_bytes:
+            worker_result = json.loads(res_bytes)
+            break
+        await asyncio.sleep(0.1)
+    await r.aclose()
+        
+    if not worker_result:
+        raise HTTPException(status_code=500, detail="Execution engine timeout")
+
+    # Evaluate results
+    test_results = []
+    overall_passed = True
+    
+    worker_tc_results = worker_result.get("test_results", [])
+    
+    for i, tc in enumerate(test_cases):
+        if i < len(worker_tc_results):
+            wtc = worker_tc_results[i]
+            actual = wtc.get("stdout", "").strip()
+            expected = str(tc.get("output", "")).strip()
+            passed = (wtc.get("status") == "success" and actual == expected)
+            if not passed:
+                overall_passed = False
+                
+            test_results.append(TestResult(
+                input=str(tc.get("input", "")),
+                expected=expected,
+                actual=actual,
+                passed=passed,
+                status=wtc.get("status", "error"),
+                wall_time_ms=wtc.get("wall_time_ms", 0.0),
+                error=wtc.get("stderr", "")
+            ))
+        else:
+            overall_passed = False
+            test_results.append(TestResult(
+                input=str(tc.get("input", "")),
+                expected=str(tc.get("output", "")),
+                actual="",
+                passed=False,
+                status="missing",
+                wall_time_ms=0.0,
+                error="Test case execution failed to return"
+            ))
+
+    # Here we would normally record the submission in the database for the Heatmap!
+    
+    return CodeSubmitResponse(
+        status="success",
+        overall_passed=overall_passed,
+        test_results=test_results
+    )

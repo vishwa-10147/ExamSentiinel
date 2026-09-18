@@ -1,15 +1,18 @@
 from typing import List, Optional
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import select, func, cast, Date
+from datetime import datetime, timedelta
+from app.models.code_submission import CodeSubmission
+from app.api.deps import get_current_user
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, log_audit_event, require_roles
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
 from app.models.institution import Institution
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, UserPasswordUpdate
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -145,3 +148,98 @@ async def bulk_import_users(
         
     await db.commit()
     return {"status": "success", "imported_count": count}
+
+@router.get("/me/activity")
+async def get_my_activity(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Get submissions per day for the last 15 weeks
+    cutoff_date = datetime.utcnow() - timedelta(days=105)
+    
+    query = (
+        select(
+            cast(CodeSubmission.created_at, Date).label("date"),
+            func.count(CodeSubmission.id).label("count")
+        )
+        .where(CodeSubmission.candidate_id == current_user.id)
+        .where(CodeSubmission.created_at >= cutoff_date)
+        .group_by(cast(CodeSubmission.created_at, Date))
+    )
+    result = await db.execute(query)
+    rows = result.all()
+    
+    # Calculate stats
+    stats_query = select(func.count(func.distinct(CodeSubmission.session_id))).where(CodeSubmission.candidate_id == current_user.id)
+    problems_solved = (await db.execute(stats_query)).scalar() or 0
+    
+    return {
+        "problems_solved": problems_solved,
+        "current_streak": 0,
+        "max_streak": 0,
+        "daily_counts": {str(row.date): row.count for row in rows}
+    }
+
+@router.put("/me", response_model=UserResponse)
+async def update_user_me(
+    user_in: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if user_in.full_name is not None:
+        current_user.full_name = user_in.full_name
+    if user_in.phone is not None:
+        current_user.phone = user_in.phone
+    if user_in.email is not None:
+        current_user.email = user_in.email
+
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+@router.put("/me/password", response_model=dict)
+async def update_password_me(
+    user_in: UserPasswordUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(user_in.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password"
+        )
+    
+    current_user.hashed_password = get_password_hash(user_in.new_password)
+    db.add(current_user)
+    await db.commit()
+    return {"status": "success", "message": "Password updated successfully"}
+
+@router.put("/{user_id}", response_model=UserResponse)
+async def admin_update_user(
+    user_id: uuid.UUID,
+    user_in: dict,  # Using dict directly to bypass strict schema for now since we just defined it inline
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN])),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if "full_name" in user_in and user_in["full_name"]:
+        user.full_name = user_in["full_name"]
+    if "email" in user_in and user_in["email"]:
+        user.email = user_in["email"]
+    if "role" in user_in and user_in["role"]:
+        try:
+            user.role = UserRole(user_in["role"])
+        except ValueError:
+            pass
+    if "password" in user_in and user_in["password"]:
+        user.hashed_password = get_password_hash(user_in["password"])
+        
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user

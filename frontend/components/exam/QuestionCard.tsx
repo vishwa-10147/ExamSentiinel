@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { QuestionCandidate } from "@/services/examService";
 
@@ -39,6 +39,49 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   isFirst,
   isLast,
 }) => {
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [output, setOutput] = useState<string[]>([]);
+  const [activeLang, setActiveLang] = useState("python");
+
+  const runCode = async () => {
+    if (!responseData?.text) return;
+    setIsExecuting(true);
+    setOutput(["Executing code..."]);
+    try {
+      const res = await fetch("http://localhost:8000/api/sandbox/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          language: activeLang,
+          code: responseData.text
+        }),
+      });
+
+      if (!res.ok) {
+        setOutput([`Error: Server returned ${res.status}`]);
+        setIsExecuting(false);
+        return;
+      }
+      
+      const data = await res.json();
+      let outLines: string[] = [];
+      if (data.stderr) {
+         outLines.push("=== Error ===");
+         outLines = outLines.concat(data.stderr.split('\\n'));
+      }
+      if (data.stdout) {
+         outLines = outLines.concat(data.stdout.split('\\n'));
+      }
+      if (outLines.length === 0 || (outLines.length === 1 && outLines[0] === "")) {
+        outLines = ["(Program exited successfully with no output)"];
+      }
+      setOutput(outLines.filter((line: string) => line.trim() !== ""));
+    } catch (e: any) {
+      setOutput([`Execution failed: ${e.message}`]);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
   const handleSingleOption = (optId: string) => {
     onAnswerChange({ selected_option_id: optId });
   };
@@ -215,38 +258,58 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           )}
 
           {question.type === "CODING" && (
-            <div className="border border-slate-700 rounded-lg overflow-hidden flex flex-col h-[400px]">
+            <div className="border border-slate-700 rounded-lg overflow-hidden flex flex-col h-[600px] mb-4">
               <div className="flex items-center justify-between bg-slate-800 px-4 py-2 border-b border-slate-700">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     Code Editor
                   </span>
-                  <select className="bg-slate-900 border border-slate-700 text-xs text-white rounded px-2 py-1 outline-none">
+                  <select 
+                    value={activeLang}
+                    onChange={(e) => setActiveLang(e.target.value)}
+                    className="bg-slate-900 border border-slate-700 text-xs text-white rounded px-2 py-1 outline-none"
+                  >
                     <option value="python">Python</option>
                     <option value="javascript">JavaScript</option>
-                    <option value="typescript">TypeScript</option>
                     <option value="java">Java</option>
+                    <option value="c">C</option>
                     <option value="cpp">C++</option>
                   </select>
                 </div>
-                <button className="px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/40 rounded text-xs font-semibold flex items-center gap-1 transition-colors">
-                  <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Run Code
+                <button 
+                  onClick={runCode}
+                  disabled={isExecuting}
+                  className="px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/40 rounded text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
+                >
+                  <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 
+                  {isExecuting ? "Running..." : "Run Code"}
                 </button>
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-h-[300px]">
                 <Editor
                   height="100%"
                   theme="vs-dark"
-                  defaultLanguage="python"
-                  value={responseData?.text || "# Write your code here\n"}
+                  language={activeLang}
+                  value={responseData?.text || "# Write your code here\\n"}
                   onChange={(val) => onAnswerChange({ text: val || "" })}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 14,
-                    padding: { top: 16 },
-                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    lineHeight: 24,
+                    padding: { top: 16, bottom: 16 },
                   }}
                 />
+              </div>
+              {/* Output Panel */}
+              <div className="h-48 border-t border-slate-700 bg-slate-900 text-slate-300 font-mono text-sm overflow-y-auto p-4 flex flex-col">
+                <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 font-semibold">Console Output</div>
+                {output.length > 0 ? (
+                  output.map((line, i) => (
+                    <div key={i} className="whitespace-pre-wrap">{line}</div>
+                  ))
+                ) : (
+                  <div className="text-slate-600 italic">No output yet. Click 'Run Code' to test your solution.</div>
+                )}
               </div>
             </div>
           )}

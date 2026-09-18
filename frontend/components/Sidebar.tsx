@@ -19,6 +19,7 @@ import {
   Trophy,
   User,
   Code2,
+  Library,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -29,6 +30,7 @@ export default function Sidebar() {
     { label: "Dashboard", href: `/${user?.role || 'candidate'}/dashboard`, icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
     { label: "Live Proctoring", href: `/${user?.role || 'proctor'}/live`, icon: Video, roles: ["admin", "proctor"] },
     { label: "Exam Center", href: "/admin/exam", icon: ClipboardList, roles: ["admin"] },
+    { label: "Question Bank", href: "/admin/questions", icon: Library, roles: ["admin"] },
     { label: "Results", href: "/admin/results", icon: FileCheck2, roles: ["admin"] },
     { label: "Review Queue", href: "/admin/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
 
@@ -39,6 +41,7 @@ export default function Sidebar() {
     
     // Candidate routes
     { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
+    { label: "Practice Problems", href: "/candidate/problems", icon: Code2, roles: ["candidate"] },
     { label: "My Results", href: "/candidate/results", icon: FileCheck2, roles: ["candidate"] },
     { label: "Leaderboard", href: "/candidate/leaderboard", icon: Trophy, roles: ["candidate"] },
     { label: "Code Sandbox", href: "/candidate/practice", icon: Code2, roles: ["candidate", "admin"] },

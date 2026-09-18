@@ -6,22 +6,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, User, BookOpen, AlertTriangle, Clock, CheckCircle, XCircle } from "lucide-react";
 
-const MOCK_REVIEW = {
-  id: '1',
-  candidateName: 'Alice Smith',
-  candidateId: 'CAND-9283',
-  examName: 'Midterm CS101',
-  status: 'PENDING',
-  date: '2023-10-27T10:00:00Z',
-  riskScore: 85,
-  duration: '1h 45m',
-  timeline: [
-    { id: 't1', time: '10:15:00', type: 'WARNING', description: 'Multiple faces detected in frame.' },
-    { id: 't2', time: '10:45:00', type: 'INFO', description: 'Candidate left full-screen mode.' },
-    { id: 't3', time: '11:20:00', type: 'CRITICAL', description: 'Audio decibel level exceeded threshold (Talking detected).' }
-  ]
-};
-
 export default function ReviewDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -29,6 +13,7 @@ export default function ReviewDetailPage() {
   const [review, setReview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchReview = async () => {
@@ -37,12 +22,11 @@ export default function ReviewDetailPage() {
         if (response && response.id) {
           setReview(response);
         } else {
-          // Fallback
-          setReview(MOCK_REVIEW);
+          setError('Review not found.');
         }
-      } catch (error) {
-        console.warn('Using mock data, failed to fetch review:', error);
-        setReview({ ...MOCK_REVIEW, id: id as string });
+      } catch (err) {
+        console.error('Failed to fetch review:', err);
+        setError('Failed to load review. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -58,11 +42,9 @@ export default function ReviewDetailPage() {
       await apiClient.post(`/reviews/${id}/action`, { action });
       // Simulate success and redirect
       router.push('/review');
-    } catch (error) {
-      console.warn('Mocking action submission:', error);
-      setTimeout(() => {
-        router.push('/review');
-      }, 500);
+    } catch (err) {
+      console.error('Failed to submit action:', err);
+      setError('Failed to submit action. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -72,6 +54,14 @@ export default function ReviewDetailPage() {
     return (
       <div className="p-8 max-w-5xl mx-auto flex justify-center items-center h-64">
         <p className="text-slate-500">Loading review details...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 max-w-5xl mx-auto flex justify-center items-center h-64">
+        <p className="text-red-500">{error}</p>
       </div>
     );
   }

@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
 import Sidebar from "@/components/Sidebar";
 import { User, Mail, Save, Lock, Phone } from "lucide-react";
+import { ActivityHeatmap } from "@/components/ActivityHeatmap";
+import { toast } from "react-hot-toast";
 
 export default function CandidateProfilePage() {
   const router = useRouter();
@@ -23,6 +25,7 @@ export default function CandidateProfilePage() {
   });
   
   const [saving, setSaving] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -48,11 +51,15 @@ export default function CandidateProfilePage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await new Promise(r => setTimeout(r, 500));
-      alert("Profile updated successfully (mock)!");
-    } catch (err) {
+      await apiClient.put('/api/users/me', {
+        full_name: profileData.full_name,
+        email: profileData.email,
+        phone: profileData.phone
+      });
+      toast.success("Profile updated successfully!");
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to update profile.");
+      toast.error(err.response?.data?.message || err.message || "Failed to update profile.");
     } finally {
       setSaving(false);
     }
@@ -61,17 +68,22 @@ export default function CandidateProfilePage() {
   const handlePasswordSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordData.new_password !== passwordData.confirm_password) {
-      alert("Passwords do not match!");
+      toast.error("Passwords do not match!");
       return;
     }
     setSaving(true);
     try {
-      await new Promise(r => setTimeout(r, 500));
-      alert("Password updated successfully (mock)!");
+      await apiClient.put('/api/users/me/password', {
+        current_password: passwordData.current_password,
+        new_password: passwordData.new_password
+      });
+      toast.success("Password updated successfully!");
       setPasswordData({ current_password: "", new_password: "", confirm_password: "" });
-    } catch (err) {
+      setPasswordSuccess(true);
+      setTimeout(() => setPasswordSuccess(false), 5000);
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to update password.");
+      toast.error(err.response?.data?.message || err.message || "Failed to update password.");
     } finally {
       setSaving(false);
     }
@@ -231,6 +243,10 @@ export default function CandidateProfilePage() {
                 </div>
               </form>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <ActivityHeatmap />
           </div>
         </div>
       </main>

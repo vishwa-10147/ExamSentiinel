@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "ExamSentinel — AI-Powered Examination Platform",
@@ -23,6 +24,7 @@ export default function RootLayout({
             <main className="flex-1 flex flex-col">{children}</main>
           </div>
         </AuthProvider>
+        <Toaster position="top-right" />
       </body>
     </html>
   );

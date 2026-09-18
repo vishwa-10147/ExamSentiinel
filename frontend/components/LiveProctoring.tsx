@@ -39,34 +39,9 @@ export default function LiveProctoringDashboard() {
         const data = await apiClient.get<ActiveSession[]>("/api/dashboard/active-sessions");
         setSessions(data || []);
       } catch (err) {
-        // Gracefully mock if endpoint doesn't exist yet
-        console.warn("Could not fetch active sessions, using mock data", err);
-        setSessions([
-          {
-            id: "session-1",
-            candidate_name: "Alice Johnson",
-            exam_name: "CS101 Midterm",
-            risk_level: "low",
-            status: "active",
-            started_at: new Date().toISOString(),
-          },
-          {
-            id: "session-2",
-            candidate_name: "Bob Smith",
-            exam_name: "CS101 Midterm",
-            risk_level: "medium",
-            status: "active",
-            started_at: new Date(Date.now() - 15 * 60000).toISOString(),
-          },
-          {
-            id: "session-3",
-            candidate_name: "Charlie Davis",
-            exam_name: "CS101 Midterm",
-            risk_level: "high",
-            status: "active",
-            started_at: new Date(Date.now() - 30 * 60000).toISOString(),
-          },
-        ]);
+        console.error("Could not fetch active sessions", err);
+        setSessions([]);
+        setError("Failed to load active sessions. Please try again later.");
       } finally {
         setLoadingSessions(false);
       }

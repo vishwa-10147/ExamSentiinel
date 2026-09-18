@@ -28,10 +28,7 @@ export default function CandidateExamsPage() {
         setExams(data);
       } catch (err) {
         console.error("Failed to fetch exams", err);
-        setExams([
-          { id: "1", title: "Midterm Examination", duration_minutes: 120, status: "published", start_time: new Date().toISOString() },
-          { id: "2", title: "Final Certification", duration_minutes: 180, status: "published", start_time: new Date(Date.now() + 86400000).toISOString() },
-        ]);
+        setExams([]);
       } finally {
         setLoading(false);
       }

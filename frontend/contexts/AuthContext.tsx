@@ -7,7 +7,8 @@ interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<UserProfile>;
+  login: (email: string, password: string) => Promise<any>;
+  verifyOTP: (userId: string, otpCode: string) => Promise<UserProfile>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -41,10 +42,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<UserProfile> => {
+  const login = async (email: string, password: string): Promise<any> => {
     setIsLoading(true);
     try {
       const response = await apiClient.login(email, password);
+      if (response.requires_2fa) {
+        return response;
+      }
+      setUser(response.user);
+      return response;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyOTP = async (userId: string, otpCode: string): Promise<UserProfile> => {
+    setIsLoading(true);
+    try {
+      const response = await apiClient.verifyOTP(userId, otpCode);
       setUser(response.user);
       return response.user;
     } finally {
@@ -76,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         login,
+        verifyOTP,
         logout,
         refreshUser,
       }}
