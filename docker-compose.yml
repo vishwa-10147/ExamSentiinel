@@ -95,12 +95,8 @@ services:
     - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}
     ports:
-    - ${FRONTEND_PORT:-3000}:3000
-    volumes:
-    - ./frontend:/app
-    - /app/node_modules
-    - /app/.next
-    depends_on:
+    - ${FRONTEND_PORT:-3000}:3000#
+depends_on:
     - backend
     networks:
     - examsentinel-network
