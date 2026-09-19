@@ -5,35 +5,29 @@ echo      ExamSentinel Local Development Launcher
 echo ====================================================
 echo.
 
-echo [1/3] Cleaning up ghost processes on Port 3000 and 8000...
-for /f "tokens=5" %%a in ('netstat -aon ^| find ":3000 " ^| find "LISTENING"') do taskkill /F /PID %%a 2>nul
-for /f "tokens=5" %%a in ('netstat -aon ^| find ":8000 " ^| find "LISTENING"') do taskkill /F /PID %%a 2>nul
+echo [1/3] Forcefully clearing Ports 3000 and 8000...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000') do taskkill /F /PID %%a 2>nul
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8000') do taskkill /F /PID %%a 2>nul
 echo.
 
-echo [2/3] Starting Database and Redis (Docker)...
-:: docker compose up -d postgres redis   (Disabled temporarily to prevent Docker Desktop from crashing)
-echo.
+echo [2/3] Launching Backend Server (FastAPI)...
+start "ExamSentinel - Backend API" cmd /k "cd backend && title Backend - FastAPI && if exist .venv\Scripts\activate (call .venv\Scripts\activate) && pip install -r requirements.txt && echo Starting API on Port 8000... && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
 
-echo [3/3] Launching Backend and Frontend Servers...
-:: Open a new window for the Python Backend (auto-activates venv and installs dependencies)
-start "ExamSentinel - Backend API" cmd /k "cd backend && title Backend - FastAPI && if exist .venv\Scripts\activate (call .venv\Scripts\activate) else (echo WARNING: No .venv found. Using global python.) && echo Installing backend dependencies... && pip install -r requirements.txt && echo Starting FastAPI Server... && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
-
-:: Wait 3 seconds to give the backend a head start
+:: Wait 3 seconds to let backend start
 timeout /t 3 /nobreak >nul
 
-:: Open a new window for the Next.js Frontend (auto-installs dependencies)
-start "ExamSentinel - Frontend UI" cmd /k "cd frontend && title Frontend - Next.js && echo Installing frontend dependencies... && npm install && echo Starting Next.js Server... && npm run dev -- -p 3000"
+echo [3/3] Launching Frontend Server (Next.js)...
+start "ExamSentinel - Frontend UI" cmd /k "cd frontend && title Frontend - Next.js && npm install && echo Starting Frontend on Port 3000... && npm run dev -- -p 3000"
+
+:: Wait 3 seconds to let frontend start before opening browser
+timeout /t 3 /nobreak >nul
 
 echo.
 echo ====================================================
-echo SUCCESS: All services have been launched!
+echo SUCCESS: ExamSentinel has been launched!
 echo.
-echo You should see two new terminal windows open:
-echo 1. Backend Server (FastAPI)
-echo 2. Frontend Server (Next.js)
-echo.
-echo - Backend API Docs: http://localhost:8000/docs
-echo - Frontend App:     http://localhost:3000
+echo Opening your browser to the correct links automatically...
+start "" "http://localhost:3000/auth/login"
+start "" "http://localhost:8000/docs"
 echo ====================================================
-echo.
 pause
