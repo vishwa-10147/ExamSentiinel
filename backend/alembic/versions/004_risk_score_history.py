@@ -1,7 +1,7 @@
 """Persist risk-score snapshots for reviewer timelines.
 
 Revision ID: 004_risk_score_history
-Revises: 003_proctoring_risk_review_schema
+Revises: 003_proctor_schema
 """
 
 from typing import Sequence, Union
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 
 revision: str = "004_risk_score_history"
-down_revision: Union[str, None] = "003_proctoring_risk_review_schema"
+down_revision: Union[str, None] = "003_proctor_schema"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

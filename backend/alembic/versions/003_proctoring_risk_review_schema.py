@@ -1,6 +1,6 @@
 """Proctoring events, risk weights, and human review cases.
 
-Revision ID: 003_proctoring_risk_review_schema
+Revision ID: 003_proctor_schema
 Revises: 002_exam_engine_schema
 """
 
@@ -10,7 +10,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "003_proctoring_risk_review_schema"
+revision: str = "003_proctor_schema"
 down_revision: Union[str, None] = "002_exam_engine_schema"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
