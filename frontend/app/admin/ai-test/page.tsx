@@ -62,9 +62,7 @@ export default function AITestDashboard() {
         
         try {
           // Send to dev endpoint
-          const response = await apiClient.post<any>("/api/proctoring/dev/analyze-frame", formData, {
-            headers: { "Content-Type": "multipart/form-data" }
-          });
+          const response = await apiClient.post<any>("/api/proctoring/dev/analyze-frame", formData);
           setResults(response.detections);
         } catch(e: any) {
           setError(e.message || "Failed to analyze frame");
