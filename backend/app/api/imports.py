@@ -20,7 +20,7 @@ async def import_questions(
     exam_id: uuid.UUID,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROFESSOR])),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
 ):
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported")

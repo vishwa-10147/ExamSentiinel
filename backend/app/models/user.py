@@ -8,6 +8,7 @@ from app.models.base import TimeStampedUUIDModel
 if TYPE_CHECKING:
     from app.models.institution import Institution
     from app.models.audit_log import AuditLog
+    from app.models.batch import Batch
 
 
 class UserRole(str, enum.Enum):
@@ -51,6 +52,15 @@ class User(TimeStampedUUIDModel):
     phone: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     display_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+
+    # Batch Relationship
+    batch_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("batches.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    batch: Mapped[Optional["Batch"]] = relationship("Batch", back_populates="users")
 
     # Relationships
     institution: Mapped[Optional["Institution"]] = relationship("Institution", back_populates="users")
