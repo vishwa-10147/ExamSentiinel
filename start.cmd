@@ -11,7 +11,7 @@ for /f "tokens=5" %%a in ('netstat -aon ^| find ":8000 " ^| find "LISTENING"') d
 echo.
 
 echo [2/3] Starting Database and Redis (Docker)...
-docker compose up -d postgres redis
+:: docker compose up -d postgres redis   (Disabled temporarily to prevent Docker Desktop from crashing)
 echo.
 
 echo [3/3] Launching Backend and Frontend Servers...
