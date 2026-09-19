@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: examsentinel-backend:latest
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - SYNC_DATABASE_URL=${SYNC_DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    volumes:
+      # CRITICAL: This allows the backend to spawn sandbox containers on the AWS EC2 host
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - db
+      - redis
+    # The sandbox spawns temporary containers. If this container crashes, we need to ensure zombie containers don't leak, 
+    # but the application logic already handles timeout kills.
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: examsentinel-frontend:latest
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-examsentinel}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
