@@ -15,14 +15,14 @@ docker compose up -d postgres redis
 echo.
 
 echo [3/3] Launching Backend and Frontend Servers...
-:: Open a new window for the Python Backend
-start "ExamSentinel - Backend API" cmd /k "cd backend && title Backend - FastAPI && echo Starting FastAPI Server... && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
+:: Open a new window for the Python Backend (auto-activates venv and installs dependencies)
+start "ExamSentinel - Backend API" cmd /k "cd backend && title Backend - FastAPI && if exist .venv\Scripts\activate (call .venv\Scripts\activate) else (echo WARNING: No .venv found. Using global python.) && echo Installing backend dependencies... && pip install -r requirements.txt && echo Starting FastAPI Server... && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
 
 :: Wait 3 seconds to give the backend a head start
 timeout /t 3 /nobreak >nul
 
-:: Open a new window for the Next.js Frontend
-start "ExamSentinel - Frontend UI" cmd /k "cd frontend && title Frontend - Next.js && echo Starting Next.js Server... && npm run dev -- -p 3000"
+:: Open a new window for the Next.js Frontend (auto-installs dependencies)
+start "ExamSentinel - Frontend UI" cmd /k "cd frontend && title Frontend - Next.js && echo Installing frontend dependencies... && npm install && echo Starting Next.js Server... && npm run dev -- -p 3000"
 
 echo.
 echo ====================================================
