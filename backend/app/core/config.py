@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/examsentinel"
-    SYNC_DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/examsentinel"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5440/examsentinel"
+    SYNC_DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5440/examsentinel"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
