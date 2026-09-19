@@ -22,7 +22,7 @@ start "ExamSentinel - Backend API" cmd /k "cd backend && title Backend - FastAPI
 timeout /t 3 /nobreak >nul
 
 :: Open a new window for the Next.js Frontend
-start "ExamSentinel - Frontend UI" cmd /k "cd frontend && title Frontend - Next.js && echo Starting Next.js Server... && npm run dev -p 3000"
+start "ExamSentinel - Frontend UI" cmd /k "cd frontend && title Frontend - Next.js && echo Starting Next.js Server... && npm run dev -- -p 3000"
 
 echo.
 echo ====================================================
