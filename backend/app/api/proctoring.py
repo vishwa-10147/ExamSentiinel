@@ -447,3 +447,16 @@ async def get_risk_weights(
     rows = result.scalars().all()
 
     return [RiskWeightConfig.model_validate(r) for r in rows]
+
+@router.post("/dev/analyze-frame")
+async def dev_analyze_webcam_frame(
+    frame: UploadFile = File(...),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
+):
+    """DEV TOOL: Test the AI Computer Vision engine raw output without a session."""
+    try:
+        content = await frame.read()
+        detections = computer_vision_service.analyze_frame(content)
+        return {"success": True, "detections": detections}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

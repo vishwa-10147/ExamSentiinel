@@ -12,6 +12,7 @@ import {
   FileCheck2,
   Users,
   Settings,
+  ScanFace,
   Scale,
   History,
   Mail,
@@ -37,7 +38,8 @@ export default function Sidebar() {
     { label: "Broadcast", href: "/admin/broadcast", icon: Mail, roles: ["admin"] },
     { label: "Audit Logs", href: "/admin/audit", icon: History, roles: ["admin"] },
     { label: "User Management", href: "/admin/users", icon: Users, roles: ["admin"] },
-    { label: "Settings", href: "/admin/settings", icon: Settings, roles: ["admin"] },
+    { label: "Settings", href: "/admin/settings", icon: Settings,
+  ScanFace, roles: ["admin"] },
     
     // Candidate routes
     { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
