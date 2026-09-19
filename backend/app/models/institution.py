@@ -5,6 +5,7 @@ from app.models.base import TimeStampedUUIDModel
 
 if TYPE_CHECKING:
     from app.models.user import User
+    from app.models.batch import Batch
     from app.models.audit_log import AuditLog
 
 

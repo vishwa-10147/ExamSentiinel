@@ -1,10 +1,9 @@
 import boto3
 from botocore.exceptions import ClientError
-import logging
 import os
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from app.core.logging import logger
 
 class EmailService:
     def __init__(self):

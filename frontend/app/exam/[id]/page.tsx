@@ -113,8 +113,33 @@ export default function ExamTakingPage() {
     const handleResize = () => {
       submitTelemetry("RESIZE", { width: window.innerWidth, height: window.innerHeight });
     };
-    const handleOffline = () => submitTelemetry("NETWORK_DISCONNECT");
-    const handleOnline = () => submitTelemetry("NETWORK_RECONNECT");
+    
+    const handleOffline = () => {
+      setSaveStatus("offline");
+      submitTelemetry("NETWORK_DISCONNECT");
+    };
+    
+    const handleOnline = async () => {
+      submitTelemetry("NETWORK_RECONNECT");
+      // Attempt to sync offline queue
+      const queueKey = `offline_answers_${session?.session_id}`;
+      const cached = localStorage.getItem(queueKey);
+      if (cached) {
+        setSaveStatus("saving");
+        try {
+          const queue = JSON.parse(cached);
+          for (const item of queue) {
+            await examService.saveAnswer(session!.session_id, item);
+          }
+          localStorage.removeItem(queueKey);
+          setSaveStatus("saved");
+        } catch(e) {
+          console.error("Failed to sync offline answers", e);
+          setSaveStatus("offline");
+        }
+      }
+    };
+
 
     window.addEventListener("blur", handleBlur);
     window.addEventListener("focus", handleFocus);
@@ -180,6 +205,18 @@ export default function ExamTakingPage() {
         } catch (err: any) {
           console.error("Auto-save error:", err);
           setSaveStatus("offline");
+          // Queue offline
+          if (session?.session_id) {
+            const queueKey = `offline_answers_${session.session_id}`;
+            const existing = JSON.parse(localStorage.getItem(queueKey) || "[]");
+            existing.push({
+              question_id: questionId,
+              response_data: responseData,
+              sequence_id: nextSeq,
+              is_flagged: isFlagged,
+            });
+            localStorage.setItem(queueKey, JSON.stringify(existing));
+          }
         }
       }, 600); // 600ms debounce
     },
