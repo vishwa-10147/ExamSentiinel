@@ -104,10 +104,12 @@ export default function RegisterPage() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
         <div className="text-center">
-          <Image src="/logo.png" alt="ExamSentinel Logo" width={48} height={48} style={{ width: "auto", height: "auto" }} className="mx-auto drop-shadow-sm" />
-          <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
-            Create an Account
-          </h2>
+          <div className="flex items-center justify-center gap-3">
+            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="h-10 w-auto object-contain drop-shadow-sm" />
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+              Create an Account
+            </h2>
+          </div>
           <p className="mt-1 text-sm text-slate-500">
             Sign up to take your exams securely
           </p>
