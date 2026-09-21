@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "http://localhost:8000",
+        "http://localhost:8000", "https://examsentinel-frontend.onrender.com", 
     ]
 
     @field_validator("CORS_ORIGINS", mode="before")
