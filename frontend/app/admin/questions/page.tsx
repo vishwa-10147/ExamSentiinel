@@ -128,8 +128,7 @@ export default function QuestionsPage() {
   }
 
   return (
-    <div className="flex-1 w-full">
-<main className="flex-1 flex flex-col overflow-y-auto">
+    <main className="flex-1 flex flex-col overflow-y-auto">
         <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-8">
