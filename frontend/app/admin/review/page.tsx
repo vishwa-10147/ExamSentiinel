@@ -39,8 +39,8 @@ export default function ReviewQueuePage() {
     <div className="p-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Review Queue</h1>
-          <p className="text-slate-500 mt-1">Manage pending and escalated exam sessions.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Review Queue</h1>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Manage pending and escalated exam sessions.</p>
         </div>
       </div>
 
@@ -50,14 +50,14 @@ export default function ReviewQueuePage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+      <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
           <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-slate-400" />
+            <Filter className="w-5 h-5 text-slate-400 dark:text-slate-500" />
             <select 
               value={filter} 
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-white border border-slate-300 text-slate-700 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">All Statuses</option>
               <option value="PENDING">Pending</option>
@@ -65,11 +65,11 @@ export default function ReviewQueuePage() {
             </select>
           </div>
           <div className="relative">
-            <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text" 
               placeholder="Search candidate..." 
-              className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+              className="pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
             />
           </div>
         </div>
@@ -77,7 +77,7 @@ export default function ReviewQueuePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white text-slate-500 text-sm border-b border-slate-200">
+              <tr className="bg-white dark:bg-slate-800 dark:border-slate-700 text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm border-b border-slate-200 dark:border-slate-700">
                 <th className="p-4 font-medium">Candidate</th>
                 <th className="p-4 font-medium">Exam</th>
                 <th className="p-4 font-medium">Date</th>
@@ -89,23 +89,23 @@ export default function ReviewQueuePage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">Loading reviews...</td>
+                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">Loading reviews...</td>
                 </tr>
               ) : filteredReviews.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">No reviews found.</td>
+                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">No reviews found.</td>
                 </tr>
               ) : (
                 filteredReviews.map((review) => (
-                  <tr key={review.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-4 font-medium text-slate-900">{review.candidateName}</td>
-                    <td className="p-4 text-slate-600">{review.examName}</td>
-                    <td className="p-4 text-slate-500 text-sm">
+                  <tr key={review.id} className="hover:bg-slate-50 dark:bg-slate-900 transition-colors">
+                    <td className="p-4 font-medium text-slate-900 dark:text-white">{review.candidateName}</td>
+                    <td className="p-4 text-slate-600 dark:text-slate-300">{review.examName}</td>
+                    <td className="p-4 text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm">
                       {new Date(review.date).toLocaleDateString()} {new Date(review.date).toLocaleTimeString()}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center space-x-2">
-                        <div className="w-16 h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="w-16 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${review.riskScore > 80 ? 'bg-red-500' : review.riskScore > 50 ? 'bg-amber-500' : 'bg-green-500'}`}
                             style={{ width: `${review.riskScore}%` }}

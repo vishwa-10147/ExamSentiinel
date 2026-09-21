@@ -88,15 +88,15 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 p-6 sm:p-8 shadow-sm">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3">
             <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="h-10 w-auto object-contain drop-shadow-sm" />
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               {requires2fa ? "Two-Factor Auth" : "Sign in"}
             </h2>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {requires2fa 
               ? "Enter the 6-digit code sent to your authenticator app" 
               : "Access secure examination & integrity review portal"}
@@ -114,7 +114,7 @@ export default function LoginPage() {
           <>
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                   Email Address
                 </label>
                 <div className="relative mt-1">
@@ -127,14 +127,14 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@institution.edu"
-                    className="block w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Password
                   </label>
                   <Link href="/auth/forgot-password" className="text-xs font-semibold text-blue-600 hover:text-blue-500 transition">
@@ -151,7 +151,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="block w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
                   />
                 </div>
               </div>
@@ -190,7 +190,7 @@ export default function LoginPage() {
                     key={acc.role}
                     type="button"
                     onClick={() => handleDemoSelect(acc)}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition text-left"
+                    className="rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:focus:border-blue-500 dark:focus:ring-blue-500/20 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 hover:border-slate-300 dark:border-slate-700 transition text-left"
                   >
                     <span className="font-semibold text-blue-600">{acc.role}:</span> {acc.email.split("@")[0]}
                   </button>
@@ -201,7 +201,7 @@ export default function LoginPage() {
         ) : (
           <form onSubmit={handleVerifyOTP} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 6-Digit OTP Code
               </label>
               <div className="relative mt-1">
@@ -215,7 +215,7 @@ export default function LoginPage() {
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="123456"
-                  className="block w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 text-center tracking-widest text-lg font-mono"
+                  className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 text-center tracking-widest text-lg font-mono"
                 />
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function LoginPage() {
                 setOtpCode("");
               }}
               disabled={isSubmitting}
-              className="w-full mt-2 text-sm text-slate-500 hover:text-slate-700 transition"
+              className="w-full mt-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300 transition"
             >
               Back to Login
             </button>

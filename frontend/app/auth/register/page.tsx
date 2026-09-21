@@ -83,16 +83,16 @@ export default function RegisterPage() {
   if (success) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-8">
-        <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm text-center">
+        <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 p-6 sm:p-8 shadow-sm text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
             <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
+          <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             Registration Successful
           </h2>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Your account has been created successfully. Redirecting to login...
           </p>
         </div>
@@ -102,15 +102,15 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 p-6 sm:p-8 shadow-sm">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3">
             <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="h-10 w-auto object-contain drop-shadow-sm" />
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               Create an Account
             </h2>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Sign up to take your exams securely
           </p>
         </div>
@@ -125,7 +125,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 First Name
               </label>
               <div className="relative mt-1">
@@ -138,13 +138,13 @@ export default function RegisterPage() {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="John"
-                  className="block w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 Last Name
               </label>
               <div className="relative mt-1">
@@ -157,14 +157,14 @@ export default function RegisterPage() {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Doe"
-                  className="block w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Email Address
             </label>
             <div className="relative mt-1">
@@ -177,13 +177,13 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@institution.edu"
-                className="block w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Password
             </label>
             <div className="relative mt-1">
@@ -196,7 +196,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="block w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
             </div>
           </div>

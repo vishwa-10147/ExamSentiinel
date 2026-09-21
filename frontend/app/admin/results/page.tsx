@@ -83,15 +83,15 @@ export default function ResultsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <FileCheck2 className="h-6 w-6 text-blue-600" />
             Results & Grading
           </h1>
-          <p className="text-slate-500 text-sm mt-1">Review and publish exam results.</p>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm mt-1">Review and publish exam results.</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -100,9 +100,9 @@ export default function ResultsPage() {
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4 items-end">
               <div className="flex-1 w-full">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Select Exam</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Select Exam</label>
                 <select
-                  className="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   value={selectedExam}
                   onChange={(e) => setSelectedExam(e.target.value)}
                 >
@@ -124,30 +124,30 @@ export default function ResultsPage() {
 
             {selectedExam && (
               <div className="mt-8">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Exam Sessions</h3>
-                <div className="overflow-x-auto rounded-lg border border-slate-200">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Exam Sessions</h3>
+                <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                  <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                    <thead className="bg-slate-50 dark:bg-slate-900">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Session ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Candidate ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Score</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Integrity</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Session ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Candidate ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Score</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Integrity</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-slate-200">
+                    <tbody className="bg-white dark:bg-slate-800 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700">
                       {sessions.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-6 py-4 text-center text-sm text-slate-500">
+                          <td colSpan={5} className="px-6 py-4 text-center text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                             No sessions found for this exam.
                           </td>
                         </tr>
                       ) : (
                         sessions.map((session) => (
                           <tr key={session.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{session.id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{session.candidate_id}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">{session.id}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">{session.candidate_id}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                 session.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
@@ -155,8 +155,8 @@ export default function ResultsPage() {
                                 {session.status}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{session.score ?? 'N/A'}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">{session.score ?? 'N/A'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                               <span className={`font-medium ${
                                 session.integrity_score >= 80 ? 'text-green-600' : session.integrity_score >= 50 ? 'text-yellow-600' : 'text-red-600'
                               }`}>
