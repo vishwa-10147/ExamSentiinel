@@ -11,6 +11,7 @@ import { Shield, Activity, User, LogOut, CheckCircle2, AlertTriangle, Menu } fro
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { isSidebarOpen, toggleSidebar } = useSidebar();
   const [health, setHealth] = useState<HealthCheckResponse | null>(null);
 
   useEffect(() => {
