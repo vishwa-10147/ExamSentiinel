@@ -7,7 +7,7 @@ import Image from "next/image";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient, HealthCheckResponse } from "@/services/apiClient";
-import { Shield, Activity, User, LogOut, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Shield, Activity, User, LogOut, CheckCircle2, AlertTriangle, Menu } from "lucide-react";
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -107,6 +107,7 @@ export default function Navbar() {
               Sign In
             </Link>
           )}
+        </div>
         </div>
       </div>
     </header>

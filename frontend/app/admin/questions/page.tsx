@@ -128,6 +128,7 @@ export default function QuestionsPage() {
   }
 
   return (
+    <div className="flex-1 w-full">
     <main className="flex-1 flex flex-col overflow-y-auto">
         <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full">
           {/* Header */}
@@ -160,6 +161,7 @@ export default function QuestionsPage() {
               <Plus className="h-4 w-4" />
               Create Question
             </button>
+          </div>
           </div>
 
           {error && (
