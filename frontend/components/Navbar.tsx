@@ -1,4 +1,4 @@
-import ThemeToggle from "./ThemeToggle";
+﻿import ThemeToggle from "./ThemeToggle";
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -40,13 +40,13 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-700 dark:border-slate-700 bg-white dark:bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40}  className="h-10 w-auto object-contain drop-shadow-sm" />
             <div>
-              <span className="text-xl font-bold tracking-tight text-slate-900">ExamSentinel</span>
+              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">ExamSentinel</span>
             </div>
           </Link>
 
@@ -55,7 +55,7 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           {/* Health status indicator */}
-          <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
             {health?.status === "healthy" ? (
               <>
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
@@ -69,10 +69,10 @@ export default function Navbar() {
             )}
           </div>
 
-          {isAuthenticated && user ? (
+          <ThemeToggle />{isAuthenticated && user ? (
             <div className="flex items-center gap-3">
               <div className="flex flex-col text-right">
-                <span className="text-sm font-semibold text-slate-900 leading-tight">{user.full_name}</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">{user.full_name}</span>
                 <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border self-end ${getRoleBadgeClass(user.role)}`}>
                   {user.role}
                 </span>
@@ -80,7 +80,7 @@ export default function Navbar() {
               <button
                 onClick={logout}
                 title="Sign out"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-red-600 transition"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-100 hover:text-red-600 transition"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -99,3 +99,4 @@ export default function Navbar() {
     </header>
   );
 }
+

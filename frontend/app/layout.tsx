@@ -1,4 +1,4 @@
-import { ThemeProvider } from "@/components/ThemeProvider";
+﻿import { ThemeProvider } from "@/components/ThemeProvider";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -10,7 +10,7 @@ import { Toaster } from "react-hot-toast";
 export const metadata: Metadata = {
   title: {
     template: "%s | ExamSentinel",
-    default: "ExamSentinel — AI-Powered Examination Platform",
+    default: "ExamSentinel â€” AI-Powered Examination Platform",
   },
   description: "Secure online exams with intelligent, human-reviewed integrity monitoring.",
   keywords: ["ExamSentinel", "Online Exams", "Proctoring", "AI Proctoring", "Secure Exams", "Education"],
@@ -20,13 +20,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://examsentinel.com/",
-    title: "ExamSentinel — AI-Powered Examination Platform",
+    title: "ExamSentinel â€” AI-Powered Examination Platform",
     description: "Secure online exams with intelligent, human-reviewed integrity monitoring.",
     siteName: "ExamSentinel",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ExamSentinel — AI-Powered Examination Platform",
+    title: "ExamSentinel â€” AI-Powered Examination Platform",
     description: "Secure online exams with intelligent, human-reviewed integrity monitoring.",
   },
 };
@@ -39,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-900 dark:text-slate-50 antialiased font-sans transition-colors duration-200 overflow-x-hidden">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
           <div className="flex min-h-screen flex-col">
             <Navbar />
@@ -53,3 +53,4 @@ export default function RootLayout({
     </html>
   );
 }
+

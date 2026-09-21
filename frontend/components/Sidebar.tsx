@@ -55,10 +55,10 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto w-64 border-r border-slate-200 bg-white p-4 flex flex-col justify-between shrink-0">
+    <aside className="sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto w-64 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex flex-col justify-between shrink-0">
       <div className="space-y-6">
         <div>
-          <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 dark:text-slate-400">
             Navigation
           </h3>
           <div className="mt-2 space-y-1">
@@ -71,11 +71,11 @@ export default function Sidebar() {
                   href={item.href}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
                     isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-800 hover:text-slate-900"
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+                  <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-slate-400 dark:text-slate-500 dark:text-slate-400"}`} />
                   {item.label}
                 </Link>
               );
@@ -84,8 +84,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-        <p className="font-semibold text-slate-700">ExamSentinel v1.0</p>
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-xs text-slate-500 dark:text-slate-400">
+        <p className="font-semibold text-slate-700 dark:text-slate-200">ExamSentinel v1.0</p>
         <p className="mt-1">Human-in-the-Loop Integrity Engine</p>
       </div>
     </aside>
