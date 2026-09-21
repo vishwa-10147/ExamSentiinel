@@ -4,7 +4,9 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import { Plus, Library, Trash2, Edit, AlertCircle, Type, BarChart } from "lucide-react";
+import { Plus, Library, Trash2, Edit, AlertCircle, Type, BarChart, Upload } from "lucide-react";
+import { useRef } from "react";
+import toast from "react-hot-toast";
 
 interface Question {
   id: string;
@@ -26,6 +28,38 @@ export default function QuestionsPage() {
   const [newDifficulty, setNewDifficulty] = useState("Medium");
   const [newType, setNewType] = useState("Multiple Choice");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingCSV, setIsUploadingCSV] = useState(false);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingCSV(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/questions/bulk, {
+        method: "POST",
+        headers: { "Authorization": Bearer  },
+        body: formData,
+      });
+      if (res.ok) {
+        toast.success("Questions imported successfully!");
+        const data = await apiClient.get("/api/questions");
+        setQuestions(data);
+      } else {
+        toast.error("Failed to import CSV.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error uploading CSV.");
+    } finally {
+      setIsUploadingCSV(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -108,8 +142,20 @@ export default function QuestionsPage() {
                 Manage and organize all questions for exams.
               </p>
             </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
+            
+            <div className="flex items-center gap-3">
+              <input type="file" accept=".csv" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingCSV}
+                className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                <Upload className="h-4 w-4" />
+                {isUploadingCSV ? "Importing..." : "Import CSV"}
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
             >
               <Plus className="h-4 w-4" />

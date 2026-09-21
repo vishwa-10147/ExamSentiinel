@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
@@ -26,6 +27,7 @@ import {
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { isSidebarOpen } = useSidebar();
 
   const navItems = [
     { label: "Dashboard", href: `/${user?.role || 'candidate'}/dashboard`, icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },

@@ -14,7 +14,7 @@ from app.models.proctoring_event import EventCategory, EventSeverity, Proctoring
 from app.models.session import ExamSession, SessionStatus
 from app.models.user import User, UserRole
 from app.schemas.code_execution import CodeExecutionRequest, CodeExecutionResponse, CodeGradeResponse, CodeIntegrityRequest, CodeTestCaseCreate
-from app.services.sandbox_service import SandboxUnavailableError, sandbox_service
+from app.services.sandbox_service import sandbox_service
 from app.services.risk_engine import risk_engine
 
 router = APIRouter(prefix="/code", tags=["Code Execution"])
@@ -54,7 +54,7 @@ async def execute_code(
                 database_setup += "\n" + q.database_seed
 
     try:
-        result = sandbox_service.execute(
+        result = await sandbox_service.execute_async(
             payload.language, 
             payload.source_code, 
             payload.stdin, 
@@ -123,7 +123,7 @@ async def grade_code(
     case_results = []
     for case in cases:
         try:
-            result = sandbox_service.execute(payload.language, payload.source_code, case.input_data, payload.time_limit_sec, payload.memory_limit_mb)
+            result = await sandbox_service.execute_async(payload.language, payload.source_code, case.input_data, payload.time_limit_sec, payload.memory_limit_mb)
         except SandboxUnavailableError as exc:
             submission.status = "UNAVAILABLE"
             submission.result = {"reason": str(exc)}

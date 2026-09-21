@@ -1,13 +1,7 @@
-"""Docker-isolated code execution for controlled development workers."""
-
-from dataclasses import dataclass
-import os
-import shutil
-import subprocess
+﻿import httpx
 import time
-import tempfile
-import uuid
-
+from dataclasses import dataclass
+from app.core.logging import logger
 
 @dataclass
 class SandboxResult:
@@ -17,131 +11,85 @@ class SandboxResult:
     exit_code: int | None
     wall_time_ms: int
 
-
-class SandboxUnavailableError(RuntimeError):
-    pass
-
-
 class SandboxService:
     def __init__(self) -> None:
-        pass
+        self.piston_url = "https://emkc.org/api/v2/piston/execute"
+        self.language_map = {
+            "python": {"language": "python", "version": "3.10.0"},
+            "javascript": {"language": "javascript", "version": "18.15.0"},
+            "ruby": {"language": "ruby", "version": "3.0.1"},
+            "java": {"language": "java", "version": "15.0.2"},
+            "c++": {"language": "c++", "version": "10.2.0"},
+            "cpp": {"language": "c++", "version": "10.2.0"},
+            "c": {"language": "c", "version": "10.2.0"},
+            "go": {"language": "go", "version": "1.16.2"},
+            "rust": {"language": "rust", "version": "1.68.2"},
+            "sql": {"language": "sqlite3", "version": "3.36.0"}
+        }
 
-    def execute(self, language: str, source_code: str, stdin: str, timeout_sec: float, memory_mb: int, database_setup: str = None) -> SandboxResult:
-        if shutil.which("docker") is None:
-            raise SandboxUnavailableError("Sandbox runtime is unavailable: Docker CLI is not installed")
-        
-        import base64
-        source_b64 = base64.b64encode(source_code.encode('utf-8')).decode('utf-8')
-        stdin_b64 = base64.b64encode(stdin.encode('utf-8')).decode('utf-8') if stdin else ""
-
-        # Use `head -c 1M` if possible to prevent stdout flooding, or limit it externally.
-
-        setup_b64 = base64.b64encode((database_setup or "").encode('utf-8')).decode('utf-8')
-        wrapper_script = f"""
-echo "{source_b64}" | base64 -d > source_file
-echo "{stdin_b64}" | base64 -d > stdin_file
-echo "{setup_b64}" | base64 -d > setup_sql
-"""
-
-        
-        if language == "python":
-            compile_run = "python source_file < stdin_file"
-            image = os.getenv("SANDBOX_PYTHON_IMAGE", "python:3.11-slim")
-        elif language == "javascript":
-            compile_run = "node source_file < stdin_file"
-            image = os.getenv("SANDBOX_NODE_IMAGE", "node:20-alpine")
-        elif language == "ruby":
-            compile_run = "ruby source_file < stdin_file"
-            image = os.getenv("SANDBOX_RUBY_IMAGE", "ruby:3.3-slim")
-        elif language == "java":
-            compile_run = "mv source_file Main.java && javac Main.java && java Main < stdin_file"
-            image = os.getenv("SANDBOX_JAVA_IMAGE", "openjdk:21-slim")
-        elif language in ("c++", "cpp"):
-            compile_run = "mv source_file main.cpp && g++ -O2 main.cpp && ./a.out < stdin_file"
-            image = os.getenv("SANDBOX_CPP_IMAGE", "gcc:13")
-        elif language == "c":
-            compile_run = "mv source_file main.c && gcc -O2 main.c && ./a.out < stdin_file"
-            image = os.getenv("SANDBOX_C_IMAGE", "gcc:13")
-        elif language == "sql":
-            # For SQL, we write the schema/seed to a setup file, create sqlite db, and run the query
-            # We enforce sqlite3 output in markdown/box format for clean reading
-            compile_run = "cat setup_sql > run.sql && echo '\\n.mode box' >> run.sql && echo '.headers on' >> run.sql && cat source_file >> run.sql && sqlite3 db.sqlite < run.sql"
-            image = os.getenv("SANDBOX_SQLITE_IMAGE", "nouchka/sqlite3:latest")
-
-        elif language == "go":
-            compile_run = "mv source_file main.go && go run main.go < stdin_file"
-            image = os.getenv("SANDBOX_GO_IMAGE", "golang:1.22-alpine")
-        elif language == "rust":
-            compile_run = "mv source_file main.rs && rustc main.rs && ./main < stdin_file"
-            image = os.getenv("SANDBOX_RUST_IMAGE", "rust:1.76-slim")
-        else:
+    async def execute_async(self, language: str, source_code: str, stdin: str, timeout_sec: float, memory_mb: int) -> SandboxResult:
+        if language not in self.language_map:
             raise ValueError(f"Unsupported language: {language}")
 
-        full_script = wrapper_script + compile_run
-
-        container_name = f"sandbox_{uuid.uuid4().hex}"
-
-        docker_command = [
-            "docker", "run", "--name", container_name,
-            "--rm", "--network", "none", "--read-only",
-            "--tmpfs", "/tmp:exec,size=20m,mode=1777", "--workdir", "/tmp",
-            "--cpus", "1.0", "--memory", f"{memory_mb}m", "--pids-limit", "64",
-            "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
-            "--user", "1000:1000",
-            "-i", image, "sh", "-c", full_script
-        ]
-
+        lang_config = self.language_map[language]
+        
+        payload = {
+            "language": lang_config["language"],
+            "version": lang_config["version"],
+            "files": [
+                {
+                    "name": f"main.{language}",
+                    "content": source_code
+                }
+            ],
+            "stdin": stdin,
+            "compile_timeout": int(timeout_sec * 1000),
+            "run_timeout": int(timeout_sec * 1000),
+            "compile_memory_limit": memory_mb * 1024 * 1024,
+            "run_memory_limit": memory_mb * 1024 * 1024
+        }
+        
         started = time.perf_counter()
         
-        # Limit output sizes by writing to TemporaryFiles
-        with tempfile.TemporaryFile() as stdout_f, tempfile.TemporaryFile() as stderr_f:
-            try:
-                process = subprocess.run(
-                    docker_command,
-                    stdout=stdout_f,
-                    stderr=stderr_f,
-                    timeout=timeout_sec,
-                    check=False,
-                )
-            except subprocess.TimeoutExpired:
-                # Force kill the runaway container to prevent resource leaks
-                subprocess.run(["docker", "kill", container_name], capture_output=True)
-                subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
+        try:
+            async with httpx.AsyncClient(timeout=timeout_sec + 2.0) as client:
+                response = await client.post(self.piston_url, json=payload)
+                response.raise_for_status()
+                data = response.json()
                 
                 wall_time_ms = int((time.perf_counter() - started) * 1000)
                 
-                # Retrieve whatever was outputted before timeout (up to limit)
-                stdout_f.seek(0)
-                partial_out = stdout_f.read(1024 * 1024).decode(errors="replace")
+                run_data = data.get("run", {})
+                compile_data = data.get("compile", {})
+                
+                stderr = run_data.get("stderr", "")
+                if compile_data.get("stderr"):
+                    stderr = compile_data["stderr"] + "\n" + stderr
+                    
+                stdout = run_data.get("stdout", "")
+                exit_code = run_data.get("code", compile_data.get("code", 1))
+                
+                status = "success" if exit_code == 0 else "error"
+                if run_data.get("signal") == "SIGKILL" or compile_data.get("signal") == "SIGKILL":
+                    status = "timeout"
                 
                 return SandboxResult(
-                    "TIME_LIMIT_EXCEEDED",
-                    partial_out,
-                    "Execution timed out",
-                    None,
-                    wall_time_ms,
+                    status=status,
+                    stdout=stdout,
+                    stderr=stderr,
+                    exit_code=exit_code,
+                    wall_time_ms=wall_time_ms
                 )
-
-            # Ensure cleanup just in case
-            subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
-
+                
+        except Exception as e:
+            logger.error(f"Piston execution failed: {str(e)}")
             wall_time_ms = int((time.perf_counter() - started) * 1000)
-            status = "SUCCESS" if process.returncode == 0 else "RUNTIME_ERROR"
-            
-            stdout_f.seek(0)
-            stderr_f.seek(0)
-            
-            # Read up to 1MB to prevent memory exhaustion on backend
-            out_str = stdout_f.read(1024 * 1024).decode(errors="replace")
-            err_str = stderr_f.read(1024 * 1024).decode(errors="replace")
-
             return SandboxResult(
-                status,
-                out_str,
-                err_str,
-                process.returncode,
-                wall_time_ms,
+                status="system_error",
+                stdout="",
+                stderr=str(e),
+                exit_code=-1,
+                wall_time_ms=wall_time_ms
             )
-
 
 sandbox_service = SandboxService()

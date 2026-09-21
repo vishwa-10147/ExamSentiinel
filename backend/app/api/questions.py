@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks
+import csv
+import io, Depends, HTTPException, Query, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -289,3 +291,48 @@ async def submit_question_code(
         overall_passed=overall_passed,
         test_results=test_results
     )
+
+
+@router.post("/bulk", response_model=dict)
+async def bulk_upload_questions(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN]))
+):
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
+    
+    contents = await file.read()
+    try:
+        text = contents.decode('utf-8')
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="CSV must be UTF-8 encoded.")
+        
+    reader = csv.DictReader(io.StringIO(text))
+    questions_to_insert = []
+    
+    for row in reader:
+        # Expected CSV columns: title, content, type, difficulty, points, options, correct_answer
+        try:
+            q = Question(
+                id=uuid.uuid4(),
+                title=row.get('title', '').strip(),
+                content=row.get('content', '').strip(),
+                type=QuestionType(row.get('type', 'multiple_choice')),
+                difficulty=QuestionDifficulty(row.get('difficulty', 'medium')),
+                points=int(row.get('points', 10)),
+                options=row.get('options', '').split('|') if row.get('options') else [],
+                correct_answer=row.get('correct_answer', '').strip(),
+                rubric=row.get('rubric', None)
+            )
+            questions_to_insert.append(q)
+        except Exception as e:
+            continue # skip invalid rows
+            
+    if not questions_to_insert:
+        raise HTTPException(status_code=400, detail="No valid questions found in CSV.")
+        
+    db.add_all(questions_to_insert)
+    await db.commit()
+    
+    return {"status": "success", "inserted": len(questions_to_insert)}

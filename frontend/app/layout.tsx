@@ -2,6 +2,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import CookieBanner from "@/components/CookieBanner";
@@ -41,10 +42,12 @@ export default function RootLayout({
       <body className="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-900 dark:text-slate-50 antialiased font-sans transition-colors duration-200 overflow-x-hidden">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
+          <SidebarProvider>
           <div className="flex min-h-screen flex-col">
             <Navbar />
             <main className="flex-1 flex flex-col">{children}</main>
           </div>
+        </SidebarProvider>
         </AuthProvider>
         <CookieBanner />
         <Toaster position="top-right" />

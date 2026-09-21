@@ -4,6 +4,7 @@ import ThemeToggle from "./ThemeToggle";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient, HealthCheckResponse } from "@/services/apiClient";
 import { Shield, Activity, User, LogOut, CheckCircle2, AlertTriangle } from "lucide-react";
@@ -43,7 +44,19 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-700 dark:border-slate-700 bg-white dark:bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
+          
+        <div className="flex items-center gap-4">
+          {isAuthenticated && (
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
+              aria-label="Toggle Sidebar"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+          )}
           <Link href="/" className="flex items-center gap-2">
+
             <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40}  className="h-10 w-auto object-contain drop-shadow-sm" />
             <div>
               <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">ExamSentinel</span>
