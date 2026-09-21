@@ -46,7 +46,7 @@ export default function QuestionsPage() {
       });
       if (res.ok) {
         toast.success("Questions imported successfully!");
-        const data = await apiClient.get("/api/questions");
+        const data = await apiClient.get<Question[]>("/api/questions");
         setQuestions(data);
       } else {
         toast.error("Failed to import CSV.");
