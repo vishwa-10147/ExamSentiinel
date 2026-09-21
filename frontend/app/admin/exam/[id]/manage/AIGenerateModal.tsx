@@ -45,16 +45,16 @@ export default function AIGenerateModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={!isSubmitting ? onClose : undefined} />
       
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center gap-2 text-slate-800">
+      <div className="relative bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 dark:bg-slate-900/50">
+          <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
             <Sparkles className="w-5 h-5 text-indigo-500" />
             <h2 className="text-lg font-bold">Generate with AI</h2>
           </div>
           <button 
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+            className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -69,22 +69,22 @@ export default function AIGenerateModal({
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Syllabus / Source Text
             </label>
-            <p className="text-xs text-slate-500 mb-2">Paste lecture notes, syllabus, or raw text to generate questions from.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2">Paste lecture notes, syllabus, or raw text to generate questions from.</p>
             <textarea
               value={syllabus}
               onChange={(e) => setSyllabus(e.target.value)}
               rows={8}
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-shadow resize-y"
+              className="w-full px-3 py-2 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-shadow resize-y"
               placeholder="e.g. Introduction to Data Structures: Arrays, Linked Lists, Trees..."
               disabled={isSubmitting}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Number of Questions
             </label>
             <input
@@ -93,7 +93,7 @@ export default function AIGenerateModal({
               max={20}
               value={questionCount}
               onChange={(e) => setQuestionCount(parseInt(e.target.value) || 1)}
-              className="w-full sm:w-1/3 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-shadow"
+              className="w-full sm:w-1/3 px-3 py-2 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-shadow"
               disabled={isSubmitting}
             />
           </div>
@@ -103,7 +103,7 @@ export default function AIGenerateModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white hover:bg-slate-50 dark:bg-slate-900 rounded-lg transition-colors"
             >
               Cancel
             </button>

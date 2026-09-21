@@ -107,7 +107,7 @@ export default function ExamBuilderPage() {
   if (isLoading || !user) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="text-center text-slate-500">Loading builder...</div>
+        <div className="text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">Loading builder...</div>
       </div>
     );
   }
@@ -116,24 +116,24 @@ export default function ExamBuilderPage() {
     <div className="flex flex-1">
       <Sidebar />
       <div className="flex-1 p-6 sm:p-8 max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 border-b border-slate-200 pb-5">
+        <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-700 pb-5">
           <Link
             href="/exam"
-            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+            className="p-2 rounded-lg hover:bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 dark:text-slate-500 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               Exam Builder
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">
               Configure parameters for a new assessment.
             </p>
           </div>
         </div>
 
-        <div className="mt-8 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="mt-8 bg-white dark:bg-slate-800 dark:border-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <form onSubmit={handleSubmit} className="p-6 sm:p-8">
             {error && (
               <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3 text-red-700">
@@ -152,10 +152,10 @@ export default function ExamBuilderPage() {
               </div>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
               {/* Title */}
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-slate-700 mb-1">
+                <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                   Exam Title <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -165,14 +165,14 @@ export default function ExamBuilderPage() {
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="e.g. Midterm Examination - CS101"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                   required
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">
+                <label htmlFor="description" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                   Description
                 </label>
                 <textarea
@@ -182,13 +182,13 @@ export default function ExamBuilderPage() {
                   onChange={handleChange}
                   rows={3}
                   placeholder="Briefly describe the contents and rules of this exam..."
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm resize-y"
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm resize-y"
                 />
               </div>
 
               {/* Duration */}
               <div>
-                <label htmlFor="duration_minutes" className="block text-sm font-medium text-slate-700 mb-1">
+                <label htmlFor="duration_minutes" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                   Duration (Minutes) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -198,16 +198,16 @@ export default function ExamBuilderPage() {
                   value={formData.duration_minutes}
                   onChange={handleChange}
                   min="1"
-                  className="w-full sm:w-1/3 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className="w-full sm:w-1/3 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                   required
                 />
-                <p className="text-xs text-slate-500 mt-1">Maximum time candidates have to complete the exam once started.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Maximum time candidates have to complete the exam once started.</p>
               </div>
 
               {/* Windows */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="start_window" className="block text-sm font-medium text-slate-700 mb-1">
+                  <label htmlFor="start_window" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                     Start Window <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -216,13 +216,13 @@ export default function ExamBuilderPage() {
                     name="start_window"
                     value={formData.start_window}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                     required
                   />
-                  <p className="text-xs text-slate-500 mt-1">When candidates can begin.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">When candidates can begin.</p>
                 </div>
                 <div>
-                  <label htmlFor="end_window" className="block text-sm font-medium text-slate-700 mb-1">
+                  <label htmlFor="end_window" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                     End Window <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -231,18 +231,18 @@ export default function ExamBuilderPage() {
                     name="end_window"
                     value={formData.end_window}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                     required
                   />
-                  <p className="text-xs text-slate-500 mt-1">Absolute deadline for submissions.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Absolute deadline for submissions.</p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end gap-3">
+            <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
               <Link
                 href="/exam"
-                className="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+                className="px-5 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:bg-slate-900 transition-colors"
               >
                 Cancel
               </Link>

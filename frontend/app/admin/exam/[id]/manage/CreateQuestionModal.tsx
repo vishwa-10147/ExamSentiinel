@@ -55,10 +55,10 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
+      <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-lg w-full overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-900 text-white">
           <h3 className="font-bold text-base">Add New Question</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-white hover:bg-white dark:bg-slate-800 dark:border-slate-700/10 transition cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -67,11 +67,11 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
           {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
           
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Question Type</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Question Type</label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="MCQ_SINGLE">Single Choice (MCQ)</option>
               <option value="MCQ_MULTI">Multiple Choice (MCQ)</option>
@@ -82,35 +82,35 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Title / Prompt</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Title / Prompt</label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g. What is the time complexity of binary search?"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Points</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Points</label>
               <input
                 type="number"
                 required
                 min={1}
                 value={points}
                 onChange={(e) => setPoints(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Difficulty</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Difficulty</label>
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="EASY">Easy</option>
                 <option value="MEDIUM">Medium</option>
@@ -123,7 +123,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:bg-slate-900"
             >
               Cancel
             </button>

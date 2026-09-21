@@ -55,7 +55,7 @@ export default function BroadcastPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <Mail className="h-6 w-6 text-blue-600" />

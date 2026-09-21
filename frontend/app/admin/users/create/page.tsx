@@ -59,7 +59,7 @@ export default function CreateUserPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
       <div className="flex items-center gap-4">
         <Link href="/admin/users" className="p-2 hover:bg-slate-100 rounded-full transition text-slate-500">
           <ArrowLeft className="h-5 w-5" />

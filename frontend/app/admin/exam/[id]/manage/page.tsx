@@ -278,7 +278,7 @@ export default function ManageExamPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 min-h-screen bg-slate-50">
+      <div className="flex flex-1 min-h-screen bg-slate-50 dark:bg-slate-900">
         <Sidebar />
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -288,7 +288,7 @@ export default function ManageExamPage() {
   }
 
   return (
-    <div className="flex flex-1 min-h-screen bg-slate-50">
+    <div className="flex flex-1 min-h-screen bg-slate-50 dark:bg-slate-900">
       <Sidebar />
 
       <div className="flex-1 p-6 sm:p-8 max-w-6xl mx-auto w-full">
@@ -296,16 +296,16 @@ export default function ManageExamPage() {
         <div className="mb-6 flex items-center justify-between">
           <Link
             href="/admin/exam"
-            className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+            className="inline-flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:text-white transition-colors"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Exam Center
           </Link>
-          <span className="text-xs text-slate-500">Exam ID: {examId}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Exam ID: {examId}</span>
         </div>
 
         {/* Exam Overview Header Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+        <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
           <div className="bg-slate-900 px-6 py-8 sm:p-10 text-white">
             <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
               <div>
@@ -324,10 +324,10 @@ export default function ManageExamPage() {
                     ></span>
                     {exam?.status}
                   </span>
-                  <span className="text-sm font-medium text-slate-400 flex items-center gap-1">
+                  <span className="text-sm font-medium text-slate-400 dark:text-slate-500 flex items-center gap-1">
                     <Clock className="w-4 h-4" /> {exam?.duration_minutes} mins
                   </span>
-                  <span className="text-xs text-slate-400 bg-white/10 px-2.5 py-0.5 rounded-md font-mono">
+                  <span className="text-xs text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 dark:border-slate-700/10 px-2.5 py-0.5 rounded-md font-mono">
                     ID: {examId.slice(0, 8)}...
                   </span>
                 </div>
@@ -338,7 +338,7 @@ export default function ManageExamPage() {
               <div className="flex gap-3 mt-2 sm:mt-0">
                 <button
                   onClick={() => showToast("Edit Exam Details is coming soon in the next update.", "info")}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg text-sm font-semibold transition cursor-pointer active:scale-95 shadow-sm"
+                  className="px-4 py-2 bg-white dark:bg-slate-800 dark:border-slate-700/10 hover:bg-white dark:bg-slate-800 dark:border-slate-700/20 active:bg-white dark:bg-slate-800 dark:border-slate-700/30 text-white rounded-lg text-sm font-semibold transition cursor-pointer active:scale-95 shadow-sm"
                 >
                   Edit Details
                 </button>
@@ -347,22 +347,22 @@ export default function ManageExamPage() {
           </div>
 
           {/* Exam Summary Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 border-t border-slate-200 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 border-t border-slate-200 dark:border-slate-700 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-slate-700">
             <div className="p-6">
-              <h3 className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-blue-600" /> Start Window
               </h3>
-              <p className="text-slate-600 text-sm">{new Date(exam?.start_window || "").toLocaleString()}</p>
+              <p className="text-slate-600 dark:text-slate-300 text-sm">{new Date(exam?.start_window || "").toLocaleString()}</p>
             </div>
             <div className="p-6">
-              <h3 className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-blue-600" /> End Window
               </h3>
-              <p className="text-slate-600 text-sm">{new Date(exam?.end_window || "").toLocaleString()}</p>
+              <p className="text-slate-600 dark:text-slate-300 text-sm">{new Date(exam?.end_window || "").toLocaleString()}</p>
             </div>
             <div className="p-6">
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Users className="w-4 h-4 text-blue-600" /> Enrolled Candidates
                 </h3>
                 <button
@@ -373,9 +373,9 @@ export default function ManageExamPage() {
                 </button>
               </div>
               <div className="flex items-baseline justify-between mt-1">
-                <p className="text-slate-900 text-lg font-bold">
+                <p className="text-slate-900 dark:text-white text-lg font-bold">
                   {candidates.length.toLocaleString()}{" "}
-                  <span className="text-xs font-normal text-slate-500">Total Enrolled</span>
+                  <span className="text-xs font-normal text-slate-500 dark:text-slate-400 dark:text-slate-500">Total Enrolled</span>
                 </p>
                 <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                   {counts.ready + counts.inProgress} Active
@@ -388,14 +388,14 @@ export default function ManageExamPage() {
         {/* ENROLLED CANDIDATES DATA TABLE SECTION */}
         <div
           id="enrolled-candidates-section"
-          className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8"
+          className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-8"
         >
           {/* Section Header */}
-          <div className="p-6 border-b border-slate-200">
+          <div className="p-6 border-b border-slate-200 dark:border-slate-700">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Users className="w-5 h-5 text-blue-600" />
                     Enrolled Candidates
                   </h2>
@@ -403,7 +403,7 @@ export default function ManageExamPage() {
                     {candidates.length.toLocaleString()} Roster
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">
                   Real-time candidate telemetry, hardware checks, and proctoring status across all 1,000 enrollments.
                 </p>
               </div>
@@ -412,9 +412,9 @@ export default function ManageExamPage() {
               <div className="flex items-center gap-2.5 flex-wrap">
                 <button
                   onClick={handleExportCSV}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-100 active:scale-95 rounded-lg transition shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-900 active:bg-slate-100 dark:bg-slate-700 active:scale-95 rounded-lg transition shadow-sm cursor-pointer"
                 >
-                  <Download className="w-4 h-4 text-slate-500" />
+                  <Download className="w-4 h-4 text-slate-500 dark:text-slate-400 dark:text-slate-500" />
                   Export CSV
                 </button>
                 <button
@@ -431,7 +431,7 @@ export default function ManageExamPage() {
             <div className="mt-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
               {/* Search Bar */}
               <div className="relative flex-1 max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                   <Search className="w-4 h-4" />
                 </div>
                 <input
@@ -439,7 +439,7 @@ export default function ManageExamPage() {
                   value={searchQuery}
                   onChange={handleSearchChange}
                   placeholder="Search by name, email, or roll number..."
-                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                  className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:bg-slate-800 dark:border-slate-700 transition"
                 />
                 {searchQuery && (
                   <button
@@ -447,7 +447,7 @@ export default function ManageExamPage() {
                       setSearchQuery("");
                       setCurrentPage(1);
                     }}
-                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 cursor-pointer"
                     title="Clear Search"
                   >
                     <X className="w-4 h-4" />
@@ -471,13 +471,13 @@ export default function ManageExamPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                       statusFilter === tab.key
                         ? "bg-slate-900 text-white shadow-sm"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 active:bg-slate-300"
                     }`}
                   >
                     {tab.label}{" "}
                     <span
                       className={`ml-1 text-[11px] font-normal ${
-                        statusFilter === tab.key ? "text-slate-300" : "text-slate-400"
+                        statusFilter === tab.key ? "text-slate-300" : "text-slate-400 dark:text-slate-500"
                       }`}
                     >
                       ({tab.count})
@@ -490,55 +490,55 @@ export default function ManageExamPage() {
 
           {/* Candidates Table */}
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50/80">
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+              <thead className="bg-slate-50 dark:bg-slate-900/80">
                 <tr>
                   <th
                     scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
                   >
                     Candidate
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
                   >
                     Contact Email
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
                   >
                     Status
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
                   >
                     System Check
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
                   >
                     Enrolled
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    className="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
                   >
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-slate-100 bg-white dark:bg-slate-800 dark:border-slate-700">
                 {paginatedCandidates.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
                         <Search className="w-10 h-10 text-slate-300 mb-3" />
-                        <p className="text-sm font-semibold text-slate-900">No candidates found</p>
-                        <p className="text-xs text-slate-500 mt-1 mb-4">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">No candidates found</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 mb-4">
                           No candidate records match your search criteria &quot;{searchQuery}&quot;.
                         </p>
                         <button
@@ -558,7 +558,7 @@ export default function ManageExamPage() {
                   paginatedCandidates.map((cand) => (
                     <tr
                       key={cand.id}
-                      className="hover:bg-slate-50/75 transition-colors group cursor-pointer"
+                      className="hover:bg-slate-50 dark:bg-slate-900/75 transition-colors group cursor-pointer"
                       onClick={() => setSelectedCandidate(cand)}
                     >
                       {/* Candidate Avatar & Name */}
@@ -572,10 +572,10 @@ export default function ManageExamPage() {
                               .slice(0, 2)}
                           </div>
                           <div className="ml-3">
-                            <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
                               {cand.fullName}
                             </div>
-                            <div className="text-xs font-mono text-slate-400 flex items-center gap-1">
+                            <div className="text-xs font-mono text-slate-400 dark:text-slate-500 flex items-center gap-1">
                               {cand.rollNumber}
                             </div>
                           </div>
@@ -583,7 +583,7 @@ export default function ManageExamPage() {
                       </td>
 
                       {/* Email */}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
                         {cand.email}
                       </td>
 
@@ -617,7 +617,7 @@ export default function ManageExamPage() {
                           </span>
                         )}
                         {cand.status === "Registered" && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                             <span className="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
                             Registered
                           </span>
@@ -644,7 +644,7 @@ export default function ManageExamPage() {
                       </td>
 
                       {/* Enrolled Timestamp */}
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
                         {cand.enrolledAt}
                       </td>
 
@@ -656,7 +656,7 @@ export default function ManageExamPage() {
                         >
                           <button
                             onClick={() => setSelectedCandidate(cand)}
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition cursor-pointer"
+                            className="p-1.5 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-600 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition cursor-pointer"
                             title="Inspect Candidate"
                           >
                             <Eye className="w-4 h-4" />
@@ -668,7 +668,7 @@ export default function ManageExamPage() {
                                 "info"
                               )
                             }
-                            className="px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200 rounded-lg transition cursor-pointer"
+                            className="px-2 py-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-700 active:bg-slate-200 rounded-lg transition cursor-pointer"
                           >
                             Inspect
                           </button>
@@ -682,21 +682,21 @@ export default function ManageExamPage() {
           </div>
 
           {/* PAGINATION FOOTER */}
-          <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Left: Summary text */}
-            <div className="text-xs text-slate-600 font-medium">
+            <div className="text-xs text-slate-600 dark:text-slate-300 font-medium">
               Showing{" "}
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-slate-900 dark:text-white">
                 {filteredCandidates.length === 0
                   ? 0
                   : (currentPage - 1) * itemsPerPage + 1}
               </span>{" "}
               to{" "}
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-slate-900 dark:text-white">
                 {Math.min(currentPage * itemsPerPage, filteredCandidates.length)}
               </span>{" "}
               of{" "}
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-slate-900 dark:text-white">
                 {filteredCandidates.length.toLocaleString()}
               </span>{" "}
               candidates
@@ -705,7 +705,7 @@ export default function ManageExamPage() {
             {/* Right: Items per page & Pagination Controls */}
             <div className="flex items-center gap-3 flex-wrap">
               {/* Rows per page selector */}
-              <div className="flex items-center gap-1.5 text-xs text-slate-600">
+              <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                 <span>Rows per page:</span>
                 <select
                   value={itemsPerPage}
@@ -713,7 +713,7 @@ export default function ManageExamPage() {
                     setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="bg-white border border-slate-300 rounded-lg px-2 py-1 text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
+                  className="bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-slate-800 dark:text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -727,7 +727,7 @@ export default function ManageExamPage() {
                 <button
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
-                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200 active:bg-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition cursor-pointer"
+                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white hover:bg-slate-200 active:bg-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition cursor-pointer"
                   title="First Page"
                 >
                   First
@@ -736,21 +736,21 @@ export default function ManageExamPage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:bg-slate-700 active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition shadow-sm cursor-pointer"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                   Previous
                 </button>
 
                 {/* Exact "Page 1 of 50" Display */}
-                <div className="px-3 py-1.5 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg shadow-sm">
+                <div className="px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm">
                   Page {currentPage} of {totalPages}
                 </div>
 
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:bg-slate-700 active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition shadow-sm cursor-pointer"
                 >
                   Next
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -759,7 +759,7 @@ export default function ManageExamPage() {
                 <button
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage >= totalPages}
-                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200 active:bg-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition cursor-pointer"
+                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white hover:bg-slate-200 active:bg-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition cursor-pointer"
                   title="Last Page"
                 >
                   Last
@@ -773,18 +773,18 @@ export default function ManageExamPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Question Bank Column (2 cols) */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-600" />
                   Question Bank
                 </h2>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-100 active:scale-95 px-3 py-1.5 rounded-lg transition shadow-sm cursor-pointer"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:text-white bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-900 active:bg-slate-100 dark:bg-slate-700 active:scale-95 px-3 py-1.5 rounded-lg transition shadow-sm cursor-pointer"
                   >
-                    <Upload className="w-4 h-4 text-slate-500" />
+                    <Upload className="w-4 h-4 text-slate-500 dark:text-slate-400 dark:text-slate-500" />
                     Upload Paper (CSV/JSON)
                   </button>
                   <button
@@ -823,51 +823,51 @@ export default function ManageExamPage() {
                     );
                   }
                 }}
-                className="bg-slate-50 border-2 border-dashed border-slate-300 hover:border-blue-400 hover:bg-blue-50/20 rounded-xl p-6 mb-6 text-center transition group"
+                className="bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-blue-400 hover:bg-blue-50/20 rounded-xl p-6 mb-6 text-center transition group"
               >
-                <Upload className="w-8 h-8 text-slate-400 group-hover:text-blue-500 mx-auto mb-2 transition" />
-                <p className="text-sm font-semibold text-slate-800 mb-1">
+                <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 mx-auto mb-2 transition" />
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">
                   Drag and drop your question paper file here
                 </p>
-                <p className="text-xs text-slate-500 mb-4 max-w-md mx-auto">
+                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-4 max-w-md mx-auto">
                   Supports CSV, JSON, or PDF text extraction. Must contain MCQs, Short Answers, or Coding problems.
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 active:bg-slate-100 active:scale-95 transition shadow-sm cursor-pointer"
+                  className="bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:bg-slate-900 active:bg-slate-100 dark:bg-slate-700 active:scale-95 transition shadow-sm cursor-pointer"
                 >
                   Browse Files
                 </button>
               </div>
 
               {/* Question List */}
-              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100">
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl divide-y divide-slate-100">
                 {(!exam?.questions || exam.questions.length === 0) ? (
-                  <div className="p-6 text-center text-sm text-slate-500">
+                  <div className="p-6 text-center text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                     No questions added yet.
                   </div>
                 ) : (
                   exam.questions.map((q, idx) => (
                     <div
                       key={q.id || idx}
-                      className="p-4 hover:bg-slate-50 transition flex justify-between items-start"
+                      className="p-4 hover:bg-slate-50 dark:bg-slate-900 transition flex justify-between items-start"
                     >
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                          <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                             Q{idx + 1} &bull; {q.type.replace("_", " ")}
                           </span>
                           <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
                             {q.points} pts
                           </span>
                         </div>
-                        <p className="text-sm font-medium text-slate-900">{q.title}</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">{q.title}</p>
                       </div>
                       <button
                         onClick={() =>
                           showToast(`Question ${idx + 1} configuration settings coming soon.`, "info")
                         }
-                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 rounded-lg transition cursor-pointer"
+                        className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:bg-slate-700 active:bg-slate-200 rounded-lg transition cursor-pointer"
                         title={`Configure Q${idx + 1}`}
                       >
                         <Settings className="w-4 h-4" />
@@ -880,56 +880,56 @@ export default function ManageExamPage() {
           </div>
 
           {/* Right Column (1 col): Administration & AI Subsystems */}
-          <div className="space-y-6">
+          <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
             {/* Exam Administration */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-base font-bold text-slate-900 mb-4">Exam Administration</h2>
+            <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Exam Administration</h2>
               <div className="space-y-3">
                 <button
                   onClick={() => {
                     scrollToCandidates();
                     showToast("Jumped to Enrolled Candidates table (1,000 users).", "info");
                   }}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 active:bg-blue-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50/50 active:bg-blue-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition">
                       <Users className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-slate-900 block">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white block">
                         Manage Enrollments
                       </span>
-                      <span className="text-xs text-slate-500">1,000 Candidates Roster</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">1,000 Candidates Roster</span>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-blue-600 group-hover:translate-x-0.5 transition" />
                 </button>
 
                 <button
                   onClick={() => router.push("/dashboard/live")}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 active:bg-blue-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50/50 active:bg-blue-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition">
                       <PlayCircle className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-slate-900 block">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white block">
                         Launch Live Proctoring
                       </span>
-                      <span className="text-xs text-slate-500">Real-time video & anomalies</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Real-time video & anomalies</span>
                     </div>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition" />
+                  <ExternalLink className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-blue-600 transition" />
                 </button>
               </div>
             </div>
 
             {/* AI Subsystems Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-bold text-slate-900">AI Subsystems</h2>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">AI Subsystems</h2>
                 <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   Online
@@ -938,12 +938,12 @@ export default function ManageExamPage() {
 
               <div className="space-y-4">
                 {/* Webcam Subsystem */}
-                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 dark:bg-slate-900/50">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">Webcam Proctoring</p>
-                      <p className="text-xs text-slate-500">Active facial tracking & gaze detection</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">Webcam Proctoring</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Active facial tracking & gaze detection</p>
                     </div>
                   </div>
                   <button
@@ -957,12 +957,12 @@ export default function ManageExamPage() {
                 </div>
 
                 {/* Browser Lockdown Subsystem */}
-                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 dark:bg-slate-900/50">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">Browser Lockdown</p>
-                      <p className="text-xs text-slate-500">Clipboard shield + blur detection</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">Browser Lockdown</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Clipboard shield + blur detection</p>
                     </div>
                   </div>
                   <button
@@ -976,12 +976,12 @@ export default function ManageExamPage() {
                 </div>
 
                 {/* Audio Telemetry Subsystem */}
-                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 dark:bg-slate-900/50">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">Audio Telemetry</p>
-                      <p className="text-xs text-slate-500">Ambient voice & whispers detection</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">Audio Telemetry</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Ambient voice & whispers detection</p>
                     </div>
                   </div>
                   <button
@@ -1002,9 +1002,9 @@ export default function ManageExamPage() {
       {/* CANDIDATE INSPECTION MODAL */}
       {selectedCandidate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-lg w-full overflow-hidden">
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
+            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-900 text-white">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
                   {selectedCandidate.fullName
@@ -1015,14 +1015,14 @@ export default function ManageExamPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base">{selectedCandidate.fullName}</h3>
-                  <p className="text-xs text-slate-400 font-mono">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">
                     {selectedCandidate.rollNumber} &bull; {selectedCandidate.email}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedCandidate(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-white hover:bg-white dark:bg-slate-800 dark:border-slate-700/10 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1031,17 +1031,17 @@ export default function ManageExamPage() {
             {/* Modal Body */}
             <div className="p-6 space-y-5 text-sm">
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
                     Exam Status
                   </span>
-                  <span className="font-semibold text-slate-900">{selectedCandidate.status}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{selectedCandidate.status}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
                     Hardware Check
                   </span>
-                  <span className="font-semibold text-slate-900">{selectedCandidate.systemCheck}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{selectedCandidate.systemCheck}</span>
                 </div>
               </div>
 
@@ -1057,40 +1057,40 @@ export default function ManageExamPage() {
 
               {/* Hardware Diagnostics */}
               <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
                   System Diagnostics
                 </h4>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-xs">
-                    <span className="font-medium text-slate-700 flex items-center gap-2">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 text-xs">
+                    <span className="font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
                       <Laptop className="w-4 h-4 text-blue-500" />
                       Webcam & Video Feed
                     </span>
                     <span className="font-semibold text-emerald-600">Active (1080p)</span>
                   </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-xs">
-                    <span className="font-medium text-slate-700 flex items-center gap-2">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 text-xs">
+                    <span className="font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
                       <Shield className="w-4 h-4 text-blue-500" />
                       Browser Lockdown Sandboxing
                     </span>
                     <span className="font-semibold text-emerald-600">Enforced</span>
                   </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-xs">
-                    <span className="font-medium text-slate-700 flex items-center gap-2">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 text-xs">
+                    <span className="font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
                       <Clock className="w-4 h-4 text-blue-500" />
                       Enrolled Timestamp
                     </span>
-                    <span className="text-slate-600">{selectedCandidate.enrolledAt}</span>
+                    <span className="text-slate-600 dark:text-slate-300">{selectedCandidate.enrolledAt}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
               <button
                 onClick={() => setSelectedCandidate(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition cursor-pointer"
               >
                 Close
               </button>
@@ -1139,7 +1139,7 @@ export default function ManageExamPage() {
               </div>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="text-slate-400 dark:text-slate-500 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

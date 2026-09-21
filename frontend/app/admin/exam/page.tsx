@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -81,9 +81,7 @@ export default function ExamListPage() {
   };
 
   return (
-    <div className="flex flex-1">
-      <Sidebar />
-      <div className="flex-1 p-6 sm:p-8 max-w-7xl">
+    <div className="flex-1 w-full p-6 sm:p-8 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-700 pb-5">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
@@ -193,3 +191,4 @@ export default function ExamListPage() {
     </div>
   );
 }
+

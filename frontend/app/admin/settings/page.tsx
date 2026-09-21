@@ -128,7 +128,7 @@ export default function SettingsPage() {
             )}
 
             {activeTab === "risk" && (
-              <div className="space-y-6">
+              <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                   <h3 className="text-lg font-bold text-slate-900 mb-1">AI Risk Engine Calibration</h3>
                   <p className="text-sm text-slate-500 mb-6">Adjust the weight of individual telemetry signals. Higher weights increase the candidate's total risk score faster.</p>

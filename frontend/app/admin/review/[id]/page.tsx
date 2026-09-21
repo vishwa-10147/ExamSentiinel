@@ -53,7 +53,7 @@ export default function ReviewDetailPage() {
   if (loading) {
     return (
       <div className="p-8 max-w-5xl mx-auto flex justify-center items-center h-64">
-        <p className="text-slate-500">Loading review details...</p>
+        <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Loading review details...</p>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function ReviewDetailPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="mb-6">
-        <Link href="/admin/review" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-700">
+        <Link href="/admin/review" className="inline-flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-200">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Queue
         </Link>
@@ -79,14 +79,14 @@ export default function ReviewDetailPage() {
 
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Review Case #{review.id}</h1>
-          <p className="text-slate-500 mt-1">Submitted on {new Date(review.date).toLocaleString()}</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Review Case #{review.id}</h1>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Submitted on {new Date(review.date).toLocaleString()}</p>
         </div>
         <div className="flex space-x-3">
           <button 
             onClick={() => handleAction('DISMISS')}
             disabled={submitting}
-            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors disabled:opacity-50 flex items-center"
+            className="px-4 py-2 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:bg-slate-900 font-medium transition-colors disabled:opacity-50 flex items-center"
           >
             <XCircle className="w-4 h-4 mr-2" />
             Dismiss
@@ -111,79 +111,79 @@ export default function ReviewDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div className="bg-white dark:bg-slate-800 dark:border-slate-700 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center space-x-3 mb-4">
             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
               <User className="w-5 h-5" />
             </div>
-            <h3 className="font-semibold text-slate-900">Candidate Info</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white">Candidate Info</h3>
           </div>
           <div className="space-y-3 text-sm">
             <div>
-              <p className="text-slate-500">Name</p>
-              <p className="font-medium text-slate-900">{review.candidateName}</p>
+              <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Name</p>
+              <p className="font-medium text-slate-900 dark:text-white">{review.candidateName}</p>
             </div>
             <div>
-              <p className="text-slate-500">Candidate ID</p>
-              <p className="font-medium text-slate-900">{review.candidateId}</p>
+              <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Candidate ID</p>
+              <p className="font-medium text-slate-900 dark:text-white">{review.candidateId}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div className="bg-white dark:bg-slate-800 dark:border-slate-700 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center space-x-3 mb-4">
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
               <BookOpen className="w-5 h-5" />
             </div>
-            <h3 className="font-semibold text-slate-900">Exam Details</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white">Exam Details</h3>
           </div>
           <div className="space-y-3 text-sm">
             <div>
-              <p className="text-slate-500">Exam Name</p>
-              <p className="font-medium text-slate-900">{review.examName}</p>
+              <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Exam Name</p>
+              <p className="font-medium text-slate-900 dark:text-white">{review.examName}</p>
             </div>
             <div>
-              <p className="text-slate-500">Duration</p>
-              <p className="font-medium text-slate-900">{review.duration}</p>
+              <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Duration</p>
+              <p className="font-medium text-slate-900 dark:text-white">{review.duration}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div className="bg-white dark:bg-slate-800 dark:border-slate-700 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center space-x-3 mb-4">
             <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <h3 className="font-semibold text-slate-900">Risk Assessment</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white">Risk Assessment</h3>
           </div>
           <div className="space-y-3 text-sm">
             <div>
-              <p className="text-slate-500 mb-1">Overall Score</p>
+              <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1">Overall Score</p>
               <div className="flex items-center space-x-3">
-                <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div 
                     className={`h-full ${review.riskScore > 80 ? 'bg-red-500' : review.riskScore > 50 ? 'bg-amber-500' : 'bg-green-500'}`}
                     style={{ width: `${review.riskScore}%` }}
                   />
                 </div>
-                <span className="font-bold text-slate-900">{review.riskScore}/100</span>
+                <span className="font-bold text-slate-900 dark:text-white">{review.riskScore}/100</span>
               </div>
             </div>
             <div>
-              <p className="text-slate-500">Current Status</p>
+              <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Current Status</p>
               <p className="font-medium text-amber-700">{review.status}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">Proctoring Timeline</h2>
-          <p className="text-sm text-slate-500">Events flagged during the session.</p>
+      <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Proctoring Timeline</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">Events flagged during the session.</p>
         </div>
         <div className="p-6">
-          <div className="space-y-6">
+          <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
             {review.timeline.map((event: any, index: number) => (
               <div key={event.id} className="flex">
                 <div className="flex flex-col items-center mr-4">
@@ -197,7 +197,7 @@ export default function ReviewDetailPage() {
                 </div>
                 <div className="pb-6">
                   <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-sm font-medium text-slate-900">{event.time}</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-white">{event.time}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                       event.type === 'CRITICAL' ? 'bg-red-100 text-red-800' :
                       event.type === 'WARNING' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
@@ -205,7 +205,7 @@ export default function ReviewDetailPage() {
                       {event.type}
                     </span>
                   </div>
-                  <p className="text-slate-600 text-sm">{event.description}</p>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm">{event.description}</p>
                 </div>
               </div>
             ))}

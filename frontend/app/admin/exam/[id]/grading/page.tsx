@@ -86,13 +86,13 @@ export default function GradingDashboard() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-slate-500">Loading submissions...</div>;
+  if (loading) return <div className="p-8 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">Loading submissions...</div>;
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Professor Grading Dashboard</h1>
-        <p className="text-slate-500">Review code submissions and detect plagiarism</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white dark:text-white">Professor Grading Dashboard</h1>
+        <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500">Review code submissions and detect plagiarism</p>
       </div>
       
       {plagiarismFlags.length > 0 && (
@@ -114,23 +114,23 @@ export default function GradingDashboard() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="col-span-1 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 flex flex-col">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-semibold shrink-0">
+        <div className="col-span-1 border border-slate-200 dark:border-slate-700 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-800 dark:border-slate-700 dark:bg-slate-900 flex flex-col">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-700 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 dark:bg-slate-950 font-semibold shrink-0">
             Student Submissions
           </div>
           <div className="overflow-y-auto flex-1 max-h-[60vh] md:max-h-[800px]">
             {sessions.length === 0 ? (
-              <div className="p-4 text-sm text-slate-500">No submissions found.</div>
+              <div className="p-4 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">No submissions found.</div>
             ) : (
               sessions.map(s => (
                 <button
                   key={s.session_id}
                   onClick={() => setSelectedSession(s)}
-                  className={`w-full text-left p-4 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${selectedSession?.session_id === s.session_id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600' : ''}`}
+                  className={`w-full text-left p-4 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 transition-colors ${selectedSession?.session_id === s.session_id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600' : ''}`}
                 >
-                  <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{s.candidate_name}</div>
-                  <div className="text-xs text-slate-500 truncate">{s.candidate_email}</div>
-                  <div className="text-[10px] text-slate-400 mt-1">Submitted: {new Date(s.submitted_at).toLocaleString()}</div>
+                  <div className="font-medium text-sm text-slate-900 dark:text-white dark:text-slate-100">{s.candidate_name}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 truncate">{s.candidate_email}</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Submitted: {new Date(s.submitted_at).toLocaleString()}</div>
                 </button>
               ))
             )}
@@ -139,26 +139,26 @@ export default function GradingDashboard() {
         
         <div className="col-span-1 md:col-span-3">
           {!selectedSession ? (
-            <div className="h-64 flex items-center justify-center text-slate-400 border border-slate-200 dark:border-slate-800 rounded-xl border-dashed">
+            <div className="h-64 flex items-center justify-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 dark:border-slate-800 rounded-xl border-dashed">
               Select a student to view their submission.
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <h2 className="text-xl font-bold mb-1 text-slate-900 dark:text-white">{selectedSession.candidate_name}</h2>
-                <div className="text-sm text-slate-500 mb-6">{selectedSession.candidate_email}</div>
+            <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
+              <div className="bg-white dark:bg-slate-800 dark:border-slate-700 dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700 dark:border-slate-800 shadow-sm">
+                <h2 className="text-xl font-bold mb-1 text-slate-900 dark:text-white dark:text-white">{selectedSession.candidate_name}</h2>
+                <div className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-6">{selectedSession.candidate_email}</div>
                 
-                <h3 className="font-semibold text-lg mb-4 border-b pb-2 dark:border-slate-800 text-slate-900 dark:text-white">Exam Answers</h3>
+                <h3 className="font-semibold text-lg mb-4 border-b pb-2 dark:border-slate-800 text-slate-900 dark:text-white dark:text-white">Exam Answers</h3>
                 {selectedSession.responses.length === 0 ? (
-                  <p className="text-slate-500 text-sm">No answers submitted.</p>
+                  <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm">No answers submitted.</p>
                 ) : (
                   <div className="space-y-8">
                     {selectedSession.responses.map((r: any, idx: number) => (
-                      <div key={r.response_id} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                        <div className="bg-slate-50 dark:bg-slate-800 p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start flex-wrap gap-2">
+                      <div key={r.response_id} className="border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-lg overflow-hidden">
+                        <div className="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800 p-4 border-b border-slate-200 dark:border-slate-700 dark:border-slate-700 flex justify-between items-start flex-wrap gap-2">
                           <div>
-                            <div className="font-semibold text-slate-800 dark:text-slate-200">Q{idx + 1}: {r.question_title}</div>
-                            <div className="text-xs text-slate-500 mt-1">Type: {r.question_type} | Max Points: {r.question_points}</div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-100 dark:text-slate-200">Q{idx + 1}: {r.question_title}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Type: {r.question_type} | Max Points: {r.question_points}</div>
                           </div>
                           <div className="flex flex-col items-end gap-2 shrink-0">
                             <button 
@@ -187,13 +187,13 @@ export default function GradingDashboard() {
                               {r.response_data?.code || r.response_data?.text || "No code provided."}
                             </pre>
                           ) : (
-                            <div className="text-sm text-slate-700 dark:text-slate-300 overflow-x-auto break-words">
+                            <div className="text-sm text-slate-700 dark:text-slate-200 dark:text-slate-300 overflow-x-auto break-words">
                               {JSON.stringify(r.response_data)}
                             </div>
                           )}
                         </div>
                         
-                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 border-t border-slate-200 dark:border-slate-700">
+                        <div className="bg-slate-50 dark:bg-slate-900 dark:bg-slate-900/50 p-4 border-t border-slate-200 dark:border-slate-700 dark:border-slate-700">
                           <form 
                             id={`form-${r.response_id}`}
                             onSubmit={(e) => {
@@ -208,7 +208,7 @@ export default function GradingDashboard() {
                             className="flex flex-wrap items-center gap-4"
                           >
                             <div className="flex items-center gap-2">
-                              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Marks:</label>
+                              <label className="text-sm font-medium text-slate-700 dark:text-slate-200 dark:text-slate-300">Marks:</label>
                               <input 
                                 type="number" 
                                 name="marks" 
@@ -219,7 +219,7 @@ export default function GradingDashboard() {
                                 className="w-20 px-2 py-1 border rounded dark:bg-slate-800 dark:border-slate-600 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
                                 required
                               />
-                              <span className="text-sm text-slate-500">/ {r.question_points}</span>
+                              <span className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">/ {r.question_points}</span>
                             </div>
                             
                             <div className="flex items-center gap-2 ml-4">
@@ -230,7 +230,7 @@ export default function GradingDashboard() {
                                 defaultChecked={r.is_correct ?? false}
                                 className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-600"
                               />
-                              <label htmlFor={`correct-${r.response_id}`} className="text-sm font-medium text-slate-700 dark:text-slate-300">Mark as Correct</label>
+                              <label htmlFor={`correct-${r.response_id}`} className="text-sm font-medium text-slate-700 dark:text-slate-200 dark:text-slate-300">Mark as Correct</label>
                             </div>
                             
                             <button 

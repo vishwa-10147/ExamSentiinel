@@ -213,9 +213,9 @@ export default function DashboardPage() {
   const isCandidate = user.role === "candidate";
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <div className="flex-1 overflow-auto">
+    <div className="flex-1 w-full">
+      
+      <div className="w-full">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur px-8 py-4">
           <div className="flex items-center justify-between">
