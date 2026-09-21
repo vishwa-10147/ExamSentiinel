@@ -1,6 +1,4 @@
 "use client";
-import ThemeToggle from "./ThemeToggle";
-
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -42,76 +40,37 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-700 dark:border-slate-700 bg-white dark:bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
-          
-        <div className="flex items-center gap-4">
-          {isAuthenticated && (
-            <button
-              onClick={toggleSidebar}
-              className="p-2 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
-              aria-label="Toggle Sidebar"
-            >
-              <Menu className="h-6 w-6" />
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {isAuthenticated && (
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
+                aria-label="Toggle Sidebar"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {/* We moved the profile to Sidebar, but we want the logo in the center or right? */}
+        {/* "the navbutton should work only for navigation and it should be on tehe navigation side but not examsentinel" */}
+        {/* This implies ExamSentinel logo should be separate from the hamburger menu. Let's put ExamSentinel in the center or right. Let's put it on the right! */}
+        
+        <div className="flex items-center">
           <Link href="/" className="flex items-center gap-2">
-
-            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40}  className="h-10 w-auto object-contain drop-shadow-sm" />
+            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="h-10 w-auto object-contain drop-shadow-sm" />
             <div>
               <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">ExamSentinel</span>
             </div>
           </Link>
-
-
-        </div>
-
-        <div className="flex items-center gap-4">
-          {/* Health status indicator */}
-          <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
-            {health?.status === "healthy" ? (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                <span>Backend Online</span>
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                <span>Service Degraded</span>
-              </>
-            )}
-          </div>
-
-          <ThemeToggle />{isAuthenticated && user ? (
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col text-right">
-                <span className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">{user.full_name}</span>
-                <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border self-end ${getRoleBadgeClass(user.role)}`}>
-                  {user.role}
-                </span>
-              </div>
-              <button
-                onClick={logout}
-                title="Sign out"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-100 hover:text-red-600 transition"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <Link
-              href="/auth/login"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
-            >
-              <User className="h-4 w-4" />
-              Sign In
-            </Link>
-          )}
-        </div>
         </div>
       </div>
     </header>
   );
 }
+
 
