@@ -1,4 +1,8 @@
-"use client";
+﻿import os
+
+filepath = 'frontend/app/exam/[id]/lab/page.tsx'
+
+content = """\"use client\";
 
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -15,7 +19,7 @@ export default function LabExamPage() {
   const router = useRouter();
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
   
-  const [code, setCode] = useState("def solve():\n    # Write your solution here\n    pass");
+  const [code, setCode] = useState("def solve():\\n    # Write your solution here\\n    pass");
   const [language, setLanguage] = useState("python");
   const [output, setOutput] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -30,16 +34,16 @@ export default function LabExamPage() {
     setOutput(["Dispatching to secure execution cluster..."]);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/sandbox/execute`, {
+      const res = await fetch(${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/sandbox/execute, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", "Authorization": Bearer  },
         body: JSON.stringify({ language, source_code: code, stdin: "", time_limit_sec: 5.0, memory_limit_mb: 256 })
       });
       const data = await res.json();
       if (res.ok) {
-        setOutput(data.stdout ? data.stdout.split("\n") : []);
+        setOutput(data.stdout ? data.stdout.split("\\n") : []);
         if (data.stderr) {
-          setOutput(prev => [...prev, ...data.stderr.split("\n")]);
+          setOutput(prev => [...prev, ...data.stderr.split("\\n")]);
         }
       } else {
         setOutput(["Execution failed.", JSON.stringify(data)]);
@@ -52,7 +56,7 @@ export default function LabExamPage() {
   };
 
   const handleViolation = async (eventType: string, details: any) => {
-    toast.error(`Proctoring Alert: ${eventType}`);
+    toast.error(Proctoring Alert: );
   };
 
   if (authLoading || !user) return <div className="p-8 text-center">Loading...</div>;
@@ -150,3 +154,8 @@ export default function LabExamPage() {
     </div>
   );
 }
+"""
+
+with open(filepath, 'w', encoding='utf-8') as f:
+    f.write(content)
+print("Created lab page!")

@@ -39,9 +39,9 @@ export default function QuestionsPage() {
     formData.append("file", file);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/questions/bulk, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/questions/bulk`, {
         method: "POST",
-        headers: { "Authorization": Bearer  },
+        headers: { "Authorization": `Bearer ${token}` },
         body: formData,
       });
       if (res.ok) {
