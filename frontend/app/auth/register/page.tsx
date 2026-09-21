@@ -48,7 +48,7 @@ export default function RegisterPage() {
         role: "candidate"
       };
 
-      const res = await fetch("http://localhost:8000/api/auth/register", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "https://examsentinel-backend.onrender.com" : "http://localhost:8000")) + "/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
