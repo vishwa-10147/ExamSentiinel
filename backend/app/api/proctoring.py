@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from typing import Optional
+from pydantic import BaseModel
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
