@@ -90,7 +90,7 @@ export default function LoginPage() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
         <div className="text-center">
-          <Image src="/logo.png" alt="ExamSentinel Logo" width={48} height={48} style={{ width: "auto", height: "auto" }} className="mx-auto drop-shadow-sm" />
+          <Image src="/logo.png" alt="ExamSentinel Logo" width={48} height={48}  className="mx-auto h-20 w-auto object-contain drop-shadow-sm" />
           <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
             {requires2fa ? "Two-Factor Authentication" : "Sign in to ExamSentinel"}
           </h2>
