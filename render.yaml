@@ -1,0 +1,56 @@
+
+services:
+  - type: web
+    name: examsentinel-backend
+    env: docker
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: examsentinel-db
+          property: connectionString
+      - key: SYNC_DATABASE_URL
+        fromDatabase:
+          name: examsentinel-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: examsentinel-redis
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: BACKEND_PORT
+        value: 8000
+      - key: SECRET_KEY
+        generateValue: true
+
+  - type: web
+    name: examsentinel-frontend
+    env: docker
+    dockerContext: frontend
+    dockerfilePath: frontend/Dockerfile
+    plan: free
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: examsentinel-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: NEXT_PUBLIC_WS_URL
+        value: wss://examsentinel-backend.onrender.com
+      - key: PORT
+        value: 3000
+
+databases:
+  - name: examsentinel-db
+    plan: free
+    databaseName: examsentinel
+    user: examsentinel_user
+
+redis:
+  - name: examsentinel-redis
+    plan: free
