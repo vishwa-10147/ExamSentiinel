@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/Sidebar";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { apiClient } from "@/services/apiClient";
 
@@ -30,9 +29,8 @@ export default function AnalyticsDashboard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-slate-50">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 w-full">
+<div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
@@ -45,9 +43,8 @@ export default function AnalyticsDashboard() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <div className="flex-1 p-8 overflow-auto">
+    <div className="flex-1 w-full">
+<div className="flex-1 p-8 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">University Analytics</h1>

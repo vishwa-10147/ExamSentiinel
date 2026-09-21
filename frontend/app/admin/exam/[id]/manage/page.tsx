@@ -4,7 +4,6 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -279,8 +278,7 @@ export default function ManageExamPage() {
   if (loading) {
     return (
       <div className="flex flex-1 min-h-screen bg-slate-50 dark:bg-slate-900">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
+<div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
@@ -289,9 +287,7 @@ export default function ManageExamPage() {
 
   return (
     <div className="flex flex-1 min-h-screen bg-slate-50 dark:bg-slate-900">
-      <Sidebar />
-
-      <div className="flex-1 p-6 sm:p-8 max-w-6xl mx-auto w-full">
+<div className="flex-1 p-6 sm:p-8 max-w-6xl mx-auto w-full">
         {/* Navigation Breadcrumb */}
         <div className="mb-6 flex items-center justify-between">
           <Link

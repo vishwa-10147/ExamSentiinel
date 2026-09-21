@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import Sidebar from "@/components/Sidebar";
 import { History, Shield, Activity, Filter, Download, User as UserIcon, Monitor } from "lucide-react";
 
 interface AuditLog {
@@ -60,9 +59,8 @@ export default function AuditPage() {
 
   if (user.role !== "admin") {
     return (
-      <div className="flex flex-1">
-        <Sidebar />
-        <div className="flex-1 p-8 text-center text-red-500 font-semibold">
+      <div className="flex-1 w-full">
+<div className="flex-1 p-8 text-center text-red-500 font-semibold">
           Access Denied. Admins only.
         </div>
       </div>
@@ -70,10 +68,8 @@ export default function AuditPage() {
   }
 
   return (
-    <div className="flex flex-1 h-screen overflow-hidden bg-slate-50">
-      <Sidebar />
-
-      <main className="flex-1 flex flex-col overflow-y-auto">
+    <div className="flex-1 w-full">
+<main className="flex-1 flex flex-col overflow-y-auto">
         <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-8">

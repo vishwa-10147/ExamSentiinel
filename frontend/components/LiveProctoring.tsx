@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import Sidebar from "@/components/Sidebar";
 import { Video, AlertTriangle, ShieldCheck, AlertCircle } from "lucide-react";
 
 interface ActiveSession {
@@ -114,10 +113,7 @@ export default function LiveProctoringDashboard() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-
-      <main className="flex-1 p-6 sm:p-8 max-w-7xl mx-auto">
+    <div className="w-full p-6 sm:p-8 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Live Proctoring</h1>
@@ -194,7 +190,7 @@ export default function LiveProctoringDashboard() {
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    
   );
 }

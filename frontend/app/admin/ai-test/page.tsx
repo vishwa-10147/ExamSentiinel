@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import Sidebar from "@/components/Sidebar";
 import { apiClient } from "@/services/apiClient";
 import { Camera, RefreshCw, AlertTriangle, CheckCircle, Shield } from "lucide-react";
 
@@ -78,9 +77,8 @@ export default function AITestDashboard() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <div className="flex-1 p-8 overflow-auto">
+    <div className="flex-1 w-full">
+<div className="flex-1 p-8 overflow-auto">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center space-x-3">
             <div className="p-3 bg-indigo-100 rounded-lg">

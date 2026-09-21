@@ -4,7 +4,6 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient, UserProfile } from "@/services/apiClient";
-import Sidebar from "@/components/Sidebar";
 import { Users, Plus, Shield, Mail, Search, Trash2, Edit } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 
@@ -142,9 +141,8 @@ export default function UsersPage() {
 
   if (user.role !== "admin") {
     return (
-      <div className="flex flex-1 h-screen bg-slate-50">
-        <Sidebar />
-        <div className="flex-1 p-8 text-center text-red-500 font-semibold mt-10">
+      <div className="flex-1 w-full">
+<div className="flex-1 p-8 text-center text-red-500 font-semibold mt-10">
           Access Denied. Admins only.
         </div>
       </div>
@@ -152,11 +150,9 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex flex-1 h-screen overflow-hidden bg-slate-50">
+    <div className="flex-1 w-full">
       <Toaster position="top-right" />
-      <Sidebar />
-
-      <main className="flex-1 flex flex-col overflow-y-auto">
+<main className="flex-1 flex flex-col overflow-y-auto">
         <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-8">

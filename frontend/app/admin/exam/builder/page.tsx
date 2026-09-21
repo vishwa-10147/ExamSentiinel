@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import Sidebar from "@/components/Sidebar";
 import {
   ArrowLeft,
   Save,
@@ -113,9 +112,8 @@ export default function ExamBuilderPage() {
   }
 
   return (
-    <div className="flex flex-1">
-      <Sidebar />
-      <div className="flex-1 p-6 sm:p-8 max-w-4xl mx-auto">
+    <div className="flex-1 w-full">
+<div className="flex-1 p-6 sm:p-8 max-w-4xl mx-auto">
         <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-700 pb-5">
           <Link
             href="/exam"

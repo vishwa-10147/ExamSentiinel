@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
 import {
   Settings,
   Shield,
@@ -40,8 +39,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-1 min-h-screen bg-slate-50">
-      <Sidebar />
-      <div className="flex-1 p-6 sm:p-8 max-w-6xl mx-auto">
+<div className="flex-1 p-6 sm:p-8 max-w-6xl mx-auto">
         
         <div className="flex items-center justify-between mb-8">
           <div>
