@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import ThemeToggle from "./ThemeToggle";
 
 import React, { useEffect, useState } from "react";
