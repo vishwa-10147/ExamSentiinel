@@ -858,6 +858,19 @@ export default function ManageExamPage() {
                           </span>
                         </div>
                         <p className="text-sm font-medium text-slate-900 dark:text-white">{q.title}</p>
+                          {q.options && Array.isArray(q.options) && (
+                            <ul className="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                              {q.options.map((opt: any, i: number) => {
+                                const isCorrect = q.correct_answer === opt || (Array.isArray(q.correct_answer) && q.correct_answer.includes(opt));
+                                return (
+                                  <li key={i} className={lex items-center gap-2 }>
+                                    <div className={w-1.5 h-1.5 rounded-full }></div>
+                                    {opt}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
                       </div>
                       <button
                         onClick={() =>

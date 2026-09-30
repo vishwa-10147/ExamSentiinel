@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/services/apiClient";
 
 interface CreateQuestionModalProps {
@@ -16,31 +16,81 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
   const [title, setTitle] = useState("");
   const [points, setPoints] = useState(10);
   const [difficulty, setDifficulty] = useState("MEDIUM");
+  
+  // MCQ states
+  const [options, setOptions] = useState<string[]>(["Option 1", "Option 2"]);
+  const [singleCorrect, setSingleCorrect] = useState<number>(0);
+  const [multiCorrect, setMultiCorrect] = useState<number[]>([]);
+  
+  // Essay/Short Answer state
+  const [idealAnswer, setIdealAnswer] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const handleAddOption = () => setOptions([...options, Option ]);
+  const handleRemoveOption = (index: number) => {
+    if (options.length <= 2) return; // Minimum 2 options
+    const newOptions = options.filter((_, i) => i !== index);
+    setOptions(newOptions);
+    if (singleCorrect === index) setSingleCorrect(0);
+    else if (singleCorrect > index) setSingleCorrect(singleCorrect - 1);
+    
+    setMultiCorrect(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i));
+  };
+
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = value;
+    setOptions(newOptions);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
 
+    if (!title.trim()) {
+      setError("Title is required.");
+      return;
+    }
+
+    let finalOptions: any = {};
+    let finalCorrectAnswer: any = {};
+
+    if (type === "MCQ_SINGLE") {
+      finalOptions = options;
+      finalCorrectAnswer = options[singleCorrect];
+    } else if (type === "MCQ_MULTI") {
+      if (multiCorrect.length === 0) {
+        setError("Please select at least one correct option.");
+        return;
+      }
+      finalOptions = options;
+      finalCorrectAnswer = multiCorrect.map(i => options[i]);
+    } else if (type === "CODING") {
+      finalOptions = { allowed_languages: ["python", "javascript"] };
+      finalCorrectAnswer = { test_cases: [] };
+    } else {
+      finalCorrectAnswer = idealAnswer;
+    }
+
+    setLoading(true);
+
     try {
-      // 1. Create the question
       const questionPayload = {
         type,
         title,
-        content_rich_text: title, // Backend requires this field
+        content_rich_text: title,
         points,
         difficulty,
-        correct_answer: type === "CODING" ? { test_cases: [] } : {},
-        options: type === "CODING" ? { allowed_languages: ["python", "javascript"] } : {}
+        correct_answer: finalCorrectAnswer,
+        options: finalOptions
       };
 
       const qRes = await apiClient.post("/api/questions", questionPayload) as any;
       const questionId = qRes.id;
 
-      // 2. Link to exam
-      await apiClient.post(`/api/exams/${examId}/questions`, {
+      await apiClient.post(/api/exams//questions, {
         question_id: questionId,
         order_index: nextOrderIndex
       });
@@ -49,69 +99,46 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to create question");
-    } finally {
       setLoading(false);
     }
   };
 
+  const isMCQ = type === "MCQ_SINGLE" || type === "MCQ_MULTI";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-lg w-full overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-900 text-white">
-          <h3 className="font-bold text-base">Add New Question</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-white hover:bg-white dark:bg-slate-800 dark:border-slate-700/10 transition cursor-pointer">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-900 text-white">
+          <h3 className="font-bold text-lg">Add New Question</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
+          {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">{error}</div>}
           
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Question Type</label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="MCQ_SINGLE">Single Choice (MCQ)</option>
-              <option value="MCQ_MULTI">Multiple Choice (MCQ)</option>
-              <option value="SHORT_ANSWER">Short Answer</option>
-              <option value="ESSAY">Essay</option>
-              <option value="CODING">Coding Problem</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Title / Prompt</label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. What is the time complexity of binary search?"
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Points</label>
-              <input
-                type="number"
-                required
-                min={1}
-                value={points}
-                onChange={(e) => setPoints(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Question Type</label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="MCQ_SINGLE">Single Choice (MCQ)</option>
+                <option value="MCQ_MULTI">Multiple Choice (MCQ)</option>
+                <option value="SHORT_ANSWER">Short Answer</option>
+                <option value="ESSAY">Essay</option>
+                <option value="CODING">Coding Problem</option>
+              </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Difficulty</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Difficulty</label>
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="EASY">Easy</option>
                 <option value="MEDIUM">Medium</option>
@@ -120,18 +147,112 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end gap-3">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Question Prompt</label>
+            <textarea
+              required
+              rows={3}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              placeholder="e.g. What is the time complexity of binary search?"
+            />
+          </div>
+
+          {isMCQ && (
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Options & Correct Answer</label>
+                <button type="button" onClick={handleAddOption} className="text-xs font-semibold text-blue-600 flex items-center gap-1 hover:text-blue-700">
+                  <Plus className="w-3 h-3" /> Add Option
+                </button>
+              </div>
+              
+              <div className="space-y-2">
+                {options.map((opt, idx) => (
+                  <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-600">
+                    {type === "MCQ_SINGLE" ? (
+                      <input 
+                        type="radio" 
+                        name="correctAnswer" 
+                        checked={singleCorrect === idx} 
+                        onChange={() => setSingleCorrect(idx)}
+                        className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    ) : (
+                      <input 
+                        type="checkbox" 
+                        checked={multiCorrect.includes(idx)} 
+                        onChange={(e) => {
+                          if (e.target.checked) setMultiCorrect([...multiCorrect, idx]);
+                          else setMultiCorrect(multiCorrect.filter(i => i !== idx));
+                        }}
+                        className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer rounded"
+                      />
+                    )}
+                    <input
+                      type="text"
+                      required
+                      value={opt}
+                      onChange={(e) => handleOptionChange(idx, e.target.value)}
+                      className="flex-1 bg-transparent text-sm focus:outline-none border-b border-transparent focus:border-blue-500 pb-0.5"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => handleRemoveOption(idx)}
+                      disabled={options.length <= 2}
+                      className="p-1.5 text-slate-400 hover:text-red-500 disabled:opacity-30 disabled:hover:text-slate-400 transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {type === "MCQ_MULTI" && multiCorrect.length === 0 && (
+                <p className="text-xs text-amber-600 flex items-center gap-1">Select at least one correct option.</p>
+              )}
+            </div>
+          )}
+
+          {(type === "SHORT_ANSWER" || type === "ESSAY") && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Ideal Answer / Grading Rubric (Optional)</label>
+              <textarea
+                rows={2}
+                value={idealAnswer}
+                onChange={(e) => setIdealAnswer(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                placeholder="What should the grader look for in a correct response?"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Points</label>
+            <input
+              type="number"
+              min="0.5"
+              step="0.5"
+              required
+              value={points}
+              onChange={(e) => setPoints(parseFloat(e.target.value) || 0)}
+              className="w-32 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+
+          <div className="pt-4 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-700 mt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:bg-slate-900"
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
             >
               {loading ? "Saving..." : "Save Question"}
             </button>
