@@ -93,6 +93,7 @@ export default function QuestionsPage() {
     try {
       const createdQuestion = await apiClient.post<Question>("/api/questions", {
         title: newTitle,
+        content_rich_text: newTitle,
         difficulty: newDifficulty,
         type: newType,
       });

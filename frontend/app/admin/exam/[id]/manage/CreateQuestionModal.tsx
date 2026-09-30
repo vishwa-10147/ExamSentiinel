@@ -29,6 +29,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
       const questionPayload = {
         type,
         title,
+        content_rich_text: title, // Backend requires this field
         points,
         difficulty,
         correct_answer: type === "CODING" ? { test_cases: [] } : {},
