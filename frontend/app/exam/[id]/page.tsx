@@ -23,6 +23,9 @@ export default function ExamTakingPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
+    const [hasAcceptedInstructions, setHasAcceptedInstructions] = useState(false);
+  const [examDetails, setExamDetails] = useState<any>(null);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [session, setSession] = useState<SessionState | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
