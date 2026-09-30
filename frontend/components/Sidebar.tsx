@@ -78,10 +78,8 @@ export default function Sidebar() {
     
     // Candidate routes
     { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
-    { label: "Practice Problems", href: "/candidate/problems", icon: Code2, roles: ["candidate"] },
     { label: "My Results", href: "/candidate/results", icon: FileCheck2, roles: ["candidate"] },
     { label: "Leaderboard", href: "/candidate/leaderboard", icon: Trophy, roles: ["candidate"] },
-    { label: "Code Sandbox", href: "/candidate/practice", icon: Code2, roles: ["candidate", "admin"] },
     { label: "My Profile", href: "/candidate/profile", icon: User, roles: ["candidate"] },
   ];
 

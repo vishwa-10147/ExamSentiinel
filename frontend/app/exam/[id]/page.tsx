@@ -54,7 +54,19 @@ export default function ExamTakingPage() {
       return;
     }
 
-    if (examId) {
+    if (examId && !hasAcceptedInstructions) {
+      // Just load details first
+      apiClient.get(`/api/exams/${examId}`).then(data => {
+        setExamDetails(data);
+        setLoading(false);
+      }).catch(err => {
+        setError("Failed to load exam details.");
+        setLoading(false);
+      });
+    }
+
+    if (examId && hasAcceptedInstructions && !session) {
+      setLoading(true);
       examService
         .startSession(examId)
         .then((sessionData) => {
@@ -78,7 +90,7 @@ export default function ExamTakingPage() {
           setLoading(false);
         });
     }
-  }, [examId, isAuthenticated, authLoading, router]);
+  }, [examId, isAuthenticated, authLoading, router, hasAcceptedInstructions, session]);
 
   const submitTelemetry = useCallback(
     (eventType: Parameters<typeof proctoringService.submitEvent>[1], details: Record<string, unknown> = {}) => {
@@ -447,6 +459,21 @@ export default function ExamTakingPage() {
             responses={responses}
             onSelectQuestion={(idx) => setCurrentQuestionIndex(idx)}
           />
+          
+          <div className="mt-6 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="bg-slate-950 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-300 flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                Live Proctoring
+              </span>
+            </div>
+            <div className="p-3">
+              <FaceTracker 
+                enabled={true} 
+                onEventDetected={(eventType, details) => submitTelemetry(eventType as any, details)} 
+              />
+            </div>
+          </div>
         </div>
       </main>
 
