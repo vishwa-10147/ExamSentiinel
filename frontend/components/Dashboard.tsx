@@ -153,8 +153,8 @@ export default function DashboardPage() {
   const fetchExams = useCallback(async () => {
     if (!user) return;
     try {
-      const data = await apiClient.get<{ exams: Exam[]; total: number }>("/api/exams?limit=5&offset=0");
-      setExams(data.exams ?? []);
+      const data = await apiClient.get<Exam[]>("/api/exams?limit=5&offset=0");
+        setExams(Array.isArray(data) ? data : []);
     } catch {
       setExams([]);
     } finally {
