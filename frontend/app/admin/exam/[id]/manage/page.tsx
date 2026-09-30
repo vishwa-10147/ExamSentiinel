@@ -123,6 +123,9 @@ export default function ManageExamPage() {
     try {
       const response: any = await apiClient.get(`/api/exams/${examId}`);
       if (response && response.id) {
+        if (response.assigned_questions && !response.questions) {
+            response.questions = response.assigned_questions.map((q: any) => ({ ...q, id: q.question_id }));
+        }
         setExam(response);
       } else {
         // Fallback for demo
