@@ -19,24 +19,49 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
   const [difficulty, setDifficulty] = useState(initialData?.difficulty || "MEDIUM");
   
   // MCQ states
-  const [options, setOptions] = useState<string[]>(initialData?.options || ["Option 1", "Option 2"]);
+  
+  const [options, setOptions] = useState<string[]>(() => {
+    if (!initialData?.options) return ["Option 1", "Option 2"];
+    if (Array.isArray(initialData.options)) return initialData.options;
+    if (typeof initialData.options === 'string') {
+      try {
+        const parsed = JSON.parse(initialData.options);
+        return Array.isArray(parsed) ? parsed : [initialData.options];
+      } catch(e) {
+        return [initialData.options];
+      }
+    }
+    return ["Option 1", "Option 2"];
+  });
+  
   const [singleCorrect, setSingleCorrect] = useState<number>(0);
   const [multiCorrect, setMultiCorrect] = useState<number[]>([]);
+
   
   // Essay/Short Answer state
   const [idealAnswer, setIdealAnswer] = useState(typeof initialData?.correct_answer === 'string' && !["MCQ_SINGLE", "MCQ_MULTI"].includes(initialData?.type) ? initialData.correct_answer : "");
 
   React.useEffect(() => {
     if (initialData) {
-        if (initialData.type === "MCQ_SINGLE" && initialData.options && initialData.correct_answer) {
-            const idx = initialData.options.indexOf(initialData.correct_answer);
+        let parsedOptions = options;
+        
+        let parsedAnswer = initialData.correct_answer;
+        if (typeof parsedAnswer === 'string') {
+          try {
+            const temp = JSON.parse(parsedAnswer);
+            parsedAnswer = temp;
+          } catch(e) {}
+        }
+
+        if (initialData.type === "MCQ_SINGLE" && parsedAnswer !== undefined) {
+            const idx = parsedOptions.indexOf(parsedAnswer);
             if (idx !== -1) setSingleCorrect(idx);
-        } else if (initialData.type === "MCQ_MULTI" && initialData.options && Array.isArray(initialData.correct_answer)) {
-            const indices = initialData.correct_answer.map((ans: any) => initialData.options.indexOf(ans)).filter((i: number) => i !== -1);
+        } else if (initialData.type === "MCQ_MULTI" && Array.isArray(parsedAnswer)) {
+            const indices = parsedAnswer.map((ans: any) => parsedOptions.indexOf(ans)).filter((i: number) => i !== -1);
             setMultiCorrect(indices);
         }
     }
-  }, [initialData]);
+  }, [initialData, options]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
