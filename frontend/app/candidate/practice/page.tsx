@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Sidebar from "@/components/Sidebar";
 import Editor from "@monaco-editor/react";
 import { Play, RotateCcw, Terminal, Code2, CheckCircle2, ChevronDown } from "lucide-react";
 
@@ -172,9 +171,7 @@ export default function PracticeCodingPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+    <div className="flex-1 flex flex-col h-screen overflow-hidden">
         
         {/* Header */}
         <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shrink-0">
@@ -302,6 +299,5 @@ export default function PracticeCodingPage() {
 
         </div>
       </div>
-    </div>
-  );
+    );
 }

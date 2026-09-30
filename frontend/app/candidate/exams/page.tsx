@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import Sidebar from "@/components/Sidebar";
 import { BookOpen, Clock, Calendar, ChevronRight } from "lucide-react";
 
 export default function CandidateExamsPage() {
@@ -46,8 +45,6 @@ export default function CandidateExamsPage() {
   }
 
   return (
-    <div className="flex flex-1 h-screen overflow-hidden bg-slate-50">
-      <Sidebar />
       <main className="flex-1 flex flex-col overflow-y-auto">
         <div className="p-6 sm:p-8 max-w-5xl mx-auto w-full">
           <div className="mb-8">
@@ -103,6 +100,5 @@ export default function CandidateExamsPage() {
           )}
         </div>
       </main>
-    </div>
-  );
+    );
 }

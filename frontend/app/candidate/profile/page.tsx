@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import Sidebar from "@/components/Sidebar";
 import { User, Mail, Save, Lock, Phone } from "lucide-react";
 import { ActivityHeatmap } from "@/components/ActivityHeatmap";
 import { toast } from "react-hot-toast";
@@ -90,8 +89,6 @@ export default function CandidateProfilePage() {
   };
 
   return (
-    <div className="flex flex-1 h-screen overflow-hidden bg-slate-50">
-      <Sidebar />
       <main className="flex-1 flex flex-col overflow-y-auto">
         <div className="p-6 sm:p-8 max-w-4xl mx-auto w-full">
           <div className="mb-8">
@@ -250,6 +247,5 @@ export default function CandidateProfilePage() {
           </div>
         </div>
       </main>
-    </div>
-  );
+    );
 }

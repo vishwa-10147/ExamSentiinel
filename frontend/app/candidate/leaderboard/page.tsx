@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import Sidebar from "@/components/Sidebar";
 import { Trophy, Medal, Star, Loader2, Award } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -62,9 +61,7 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <div className="flex-1 p-8 overflow-auto">
+    <div className="flex-1 p-8 overflow-auto">
         
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -159,6 +156,5 @@ export default function LeaderboardPage() {
           
         </div>
       </div>
-    </div>
-  );
+    );
 }
