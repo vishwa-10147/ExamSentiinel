@@ -13,7 +13,7 @@ import {
   FileText,
   Plus,
   PlayCircle,
-  Settings,
+  Settings, Trash2,
   CheckCircle2,
   Sparkles,
   Search,
@@ -245,6 +245,17 @@ export default function ManageExamPage() {
       showToast(`Exported ${filteredCandidates.length.toLocaleString()} candidates to CSV.`, "success");
     } catch (err) {
       showToast("Failed to generate CSV export.", "warning");
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId: string) => {
+    if (!confirm("Are you sure you want to remove this question from the exam?")) return;
+    try {
+      await apiClient.delete(`/api/exams/${examId}/questions/${questionId}`);
+      showToast("Question removed successfully.", "success");
+      fetchExam();
+    } catch (err: any) {
+      showToast(err.message || "Failed to remove question.", "warning");
     }
   };
 
@@ -823,6 +834,7 @@ export default function ManageExamPage() {
                       `File "${e.dataTransfer.files[0].name}" received. Parsing questions...`,
                       "success"
                     );
+                    processFile(e.dataTransfer.files[0]);
                   }
                 }}
                 className="bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-blue-400 hover:bg-blue-50/20 rounded-xl p-6 mb-6 text-center transition group"
@@ -884,6 +896,13 @@ export default function ManageExamPage() {
                         title={`Configure Q${idx + 1}`}
                       >
                         <Settings className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteQuestion(q.id || q.question_id)}
+                        className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 active:bg-red-100 rounded-lg transition cursor-pointer ml-1"
+                        title={`Remove Q${idx + 1}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   ))
