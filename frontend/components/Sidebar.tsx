@@ -90,7 +90,7 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className={`sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto w-64 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex flex-col justify-between shrink-0 transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full hidden sm:flex sm:translate-x-0"}`}>
+    <aside className={`sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? "w-64 p-4 border-r translate-x-0 opacity-100" : "w-0 p-0 border-r-0 -translate-x-full opacity-0 overflow-hidden"}`}>
       <div className="space-y-6">
         <div>
           <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 dark:text-slate-400">
