@@ -22,20 +22,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Quick credentials for developer & demo testing
-  const demoAccounts = [
-    { role: "Admin", email: "admin@sentinel.edu", pass: "DemoPass123!" },
-    { role: "Proctor", email: "proctor@sentinel.edu", pass: "DemoPass123!" },
-    { role: "Reviewer", email: "reviewer@sentinel.edu", pass: "DemoPass123!" },
-    { role: "Candidate", email: "candidate@sentinel.edu", pass: "DemoPass123!" },
-  ];
-
-  const handleDemoSelect = (account: typeof demoAccounts[0]) => {
-    setEmail(account.email);
-    setPassword(account.pass);
-    setError(null);
-  };
-
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -179,24 +165,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            {/* Demo Accounts Quick-Fill Section */}
-            <div className="border-t border-slate-200 mt-6 pt-5">
-              <p className="text-center text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Quick Fill Demo Credentials
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {demoAccounts.map((acc) => (
-                  <button
-                    key={acc.role}
-                    type="button"
-                    onClick={() => handleDemoSelect(acc)}
-                    className="rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:focus:border-blue-500 dark:focus:ring-blue-500/20 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 hover:border-slate-300 dark:border-slate-700 transition text-left"
-                  >
-                    <span className="font-semibold text-blue-600">{acc.role}:</span> {acc.email.split("@")[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
+            
           </>
         ) : (
           <form onSubmit={handleVerifyOTP} className="space-y-4">
