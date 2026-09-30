@@ -42,6 +42,8 @@ interface Question {
   points: number;
   difficulty?: string;
   order_index?: number;
+  options?: any;
+  correct_answer?: any;
 }
 
 interface ExamDetails {
