@@ -9,9 +9,10 @@ interface CreateQuestionModalProps {
   onClose: () => void;
   onSuccess: (keepOpen?: boolean) => void;
   nextOrderIndex: number;
+  initialData?: any;
 }
 
-export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOrderIndex }: CreateQuestionModalProps) {
+export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOrderIndex, initialData }: CreateQuestionModalProps) {
   const [type, setType] = useState("MCQ_SINGLE");
   const [title, setTitle] = useState("");
   const [points, setPoints] = useState(10);
@@ -87,13 +88,18 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
         options: finalOptions
       };
 
-      const qRes = await apiClient.post("/api/questions", questionPayload) as any;
-      const questionId = qRes.id;
+      
+      if (initialData) {
+        await apiClient.put(`/api/questions/${initialData.id || initialData.question_id}`, questionPayload);
+      } else {
+        const qRes = await apiClient.post("/api/questions", questionPayload) as any;
+        const questionId = qRes.id;
+        await apiClient.post(`/api/exams/${examId}/questions`, {
+          question_id: questionId,
+          order_index: nextOrderIndex
+        });
+      }
 
-      await apiClient.post(`/api/exams/${examId}/questions`, {
-        question_id: questionId,
-        order_index: nextOrderIndex
-      });
 
       if (keepOpen) {
         // Reset form for next question
@@ -119,7 +125,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-900 text-white">
-          <h3 className="font-bold text-lg">Add New Question</h3>
+          <h3 className="font-bold text-lg">{initialData ? "Edit Question" : "Add New Question"}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition">
             <X className="w-5 h-5" />
           </button>

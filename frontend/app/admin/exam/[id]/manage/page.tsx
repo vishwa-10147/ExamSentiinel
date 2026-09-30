@@ -87,6 +87,7 @@ export default function ManageExamPage() {
   const [exam, setExam] = useState<ExamDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
 
   // Candidate Data & Filtering state
@@ -878,9 +879,7 @@ export default function ManageExamPage() {
                           )}
                       </div>
                       <button
-                        onClick={() =>
-                          showToast(`Question ${idx + 1} configuration settings coming soon.`, "info")
-                        }
+                        onClick={() => setEditingQuestion(q)}
                         className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:bg-slate-700 active:bg-slate-200 rounded-lg transition cursor-pointer"
                         title={`Configure Q${idx + 1}`}
                       >
@@ -1184,6 +1183,20 @@ export default function ManageExamPage() {
             if (!keepOpen) setShowCreateModal(false);
           }}
           nextOrderIndex={exam?.questions?.length || 0}
+        />
+      )}
+      
+      {editingQuestion && (
+        <CreateQuestionModal
+          examId={examId}
+          initialData={editingQuestion}
+          onClose={() => setEditingQuestion(null)}
+          onSuccess={() => {
+            showToast("Question updated successfully!", "success");
+            fetchExam();
+            setEditingQuestion(null);
+          }}
+          nextOrderIndex={editingQuestion.order_index || 0}
         />
       )}
     </div>
