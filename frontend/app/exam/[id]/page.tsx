@@ -16,6 +16,7 @@ import { QuestionCard } from "@/components/exam/QuestionCard";
 import { SubmitModal } from "@/components/exam/SubmitModal";
 import FaceTracker from "@/components/FaceTracker";
 import { proctoringService } from "@/services/proctoringService";
+import { apiClient } from "@/services/apiClient";
 
 export default function ExamTakingPage() {
   const params = useParams();
