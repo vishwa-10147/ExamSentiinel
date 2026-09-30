@@ -249,8 +249,8 @@ export default function ManageExamPage() {
   };
 
   const processFile = async (file: File) => {
-    if (!file.name.endsWith('.csv')) {
-      showToast("Only CSV files are supported currently.", "warning");
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.json')) {
+      showToast("Only CSV and JSON files are supported.", "warning");
       return;
     }
     
