@@ -28,7 +28,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleAddOption = () => setOptions([...options, Option ]);
+  const handleAddOption = () => setOptions([...options, `Option ${options.length + 1}`]);
   const handleRemoveOption = (index: number) => {
     if (options.length <= 2) return; // Minimum 2 options
     const newOptions = options.filter((_, i) => i !== index);
@@ -90,7 +90,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
       const qRes = await apiClient.post("/api/questions", questionPayload) as any;
       const questionId = qRes.id;
 
-      await apiClient.post(/api/exams//questions, {
+      await apiClient.post(`/api/exams/${examId}/questions`, {
         question_id: questionId,
         order_index: nextOrderIndex
       });

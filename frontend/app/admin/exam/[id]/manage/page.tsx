@@ -863,10 +863,10 @@ export default function ManageExamPage() {
                               {q.options.map((opt: any, i: number) => {
                                 const isCorrect = q.correct_answer === opt || (Array.isArray(q.correct_answer) && q.correct_answer.includes(opt));
                                 return (
-                                  <li key={i} className={lex items-center gap-2 }>
-                                    <div className={w-1.5 h-1.5 rounded-full }></div>
-                                    {opt}
-                                  </li>
+                                  <li key={i} className={`flex items-center gap-2 ${isCorrect ? "font-semibold text-emerald-600 dark:text-emerald-400" : ""}`}>
+                                      <div className={`w-1.5 h-1.5 rounded-full ${isCorrect ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`}></div>
+                                      {opt}
+                                    </li>
                                 );
                               })}
                             </ul>
