@@ -898,7 +898,7 @@ export default function ManageExamPage() {
                         <Settings className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteQuestion(q.id || q.question_id)}
+                        onClick={() => handleDeleteQuestion(q.id || (q as any).question_id)}
                         className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 active:bg-red-100 rounded-lg transition cursor-pointer ml-1"
                         title={`Remove Q${idx + 1}`}
                       >
