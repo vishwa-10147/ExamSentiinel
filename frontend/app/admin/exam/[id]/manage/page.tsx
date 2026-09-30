@@ -259,6 +259,17 @@ export default function ManageExamPage() {
     }
   };
 
+  const handleTogglePublish = async () => {
+    try {
+      const newStatus = exam?.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+      await apiClient.put(`/api/exams/${examId}`, { status: newStatus });
+      showToast(`Exam ${newStatus === "PUBLISHED" ? "published" : "unpublished"} successfully!`, "success");
+      fetchExam();
+    } catch (err: any) {
+      showToast(err.message || "Failed to update exam status", "warning");
+    }
+  };
+
   const processFile = async (file: File) => {
     if (!file.name.endsWith('.csv') && !file.name.endsWith('.json')) {
       showToast("Only CSV and JSON files are supported.", "warning");
@@ -917,6 +928,24 @@ export default function ManageExamPage() {
             <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
               <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Exam Administration</h2>
               <div className="space-y-3">
+                  <button
+                    onClick={handleTogglePublish}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 active:bg-indigo-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition">
+                        <Upload className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-slate-900 dark:text-white block">
+                          {exam?.status === "PUBLISHED" ? "Unpublish Exam" : "Publish Exam"}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {exam?.status === "PUBLISHED" ? "Hide from candidates" : "Make visible to all candidates"}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
                 <button
                   onClick={() => {
                     scrollToCandidates();
