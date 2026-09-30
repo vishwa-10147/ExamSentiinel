@@ -1178,10 +1178,10 @@ export default function ManageExamPage() {
         <CreateQuestionModal
           examId={examId}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
+          onSuccess={(keepOpen) => {
             showToast("Question added successfully!", "success");
             fetchExam();
+            if (!keepOpen) setShowCreateModal(false);
           }}
           nextOrderIndex={exam?.questions?.length || 0}
         />

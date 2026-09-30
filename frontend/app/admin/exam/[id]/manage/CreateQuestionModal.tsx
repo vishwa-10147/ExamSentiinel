@@ -7,7 +7,7 @@ import { apiClient } from "@/services/apiClient";
 interface CreateQuestionModalProps {
   examId: string;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (keepOpen?: boolean) => void;
   nextOrderIndex: number;
 }
 
@@ -45,7 +45,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
     setOptions(newOptions);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent | React.MouseEvent, keepOpen: boolean = false) => {
     e.preventDefault();
     setError("");
 
@@ -95,7 +95,17 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
         order_index: nextOrderIndex
       });
 
-      onSuccess();
+      if (keepOpen) {
+        // Reset form for next question
+        setTitle("");
+        setOptions(["Option 1", "Option 2"]);
+        setSingleCorrect(0);
+        setMultiCorrect([]);
+        setIdealAnswer("");
+        setLoading(false);
+      }
+      
+      onSuccess(keepOpen);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to create question");
@@ -245,16 +255,25 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
             >
               Cancel
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={(e) => handleSubmit(e, true)}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+              className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition cursor-pointer"
             >
-              {loading ? "Saving..." : "Save Question"}
+              Save & Add Another
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, false)}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer"
+            >
+              {loading ? "Saving..." : "Save & Close"}
             </button>
           </div>
         </form>
