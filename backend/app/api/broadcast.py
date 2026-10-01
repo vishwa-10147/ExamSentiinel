@@ -58,6 +58,12 @@ async def send_broadcast(
             
     if not emails:
         raise HTTPException(status_code=400, detail="No recipients found")
+
+    if not email_service.configured:
+        raise HTTPException(
+            status_code=503,
+            detail="Email delivery is not configured. Set ENABLE_EMAILS=true and SMTP settings before sending broadcasts.",
+        )
         
     html_body = get_custom_broadcast_template(payload.body)
     
@@ -65,6 +71,6 @@ async def send_broadcast(
     success = await email_service.send(list(emails), payload.subject, html_body)
     
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to send emails. Check SMTP configuration.")
+        raise HTTPException(status_code=502, detail="Failed to deliver one or more emails. Check SMTP configuration and mail logs.")
         
     return {"status": "success", "recipients": len(emails)}

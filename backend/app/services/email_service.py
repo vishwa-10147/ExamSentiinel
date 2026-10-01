@@ -14,10 +14,18 @@ class EmailService:
         self.smtp_user = os.getenv("SMTP_USER", "")
         self.smtp_pass = os.getenv("SMTP_PASS", "")
 
+    @property
+    def configured(self) -> bool:
+        """Whether outbound email has been explicitly enabled and configured."""
+        return self.enabled and bool(self.smtp_host and self.sender)
+
     def send_email_sync(self, to_address: str, subject: str, html_body: str, text_body: str) -> bool:
         if not self.enabled:
-            logger.info(f"[EMAIL MOCK] To: {to_address} | Subject: {subject}")
-            return True
+            logger.warning("Email delivery is disabled; message was not sent")
+            return False
+        if not self.smtp_host:
+            logger.error("Email delivery is enabled but SMTP_HOST is not configured")
+            return False
 
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject

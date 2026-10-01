@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db, log_audit_event, RateLimiter
 from app.core.config import settings
+from app.core.logging import logger
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -22,6 +23,8 @@ from app.schemas.user import UserCreate, UserLogin, UserResponse
 import random
 import redis.asyncio as redis
 from pydantic import BaseModel
+from app.services.email_service import email_service
+from app.services.email_templates import get_base_template
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -379,11 +382,22 @@ async def forgot_password(
     await r.setex(f"auth:forgot:{user.id}", 300, otp_code)
     await r.aclose()
     
-    print(f"\n{'='*50}")
-    print(f"MOCK EMAIL: To {user.email}")
-    print(f"Subject: Password Reset Request")
-    print(f"Your OTP is: {otp_code}. It expires in 5 minutes.")
-    print(f"{'='*50}\n")
+    html_body = get_base_template(
+        f"<h3>Password reset request</h3><p>Your one-time password is <strong>{otp_code}</strong>.</p>"
+        "<p>This code expires in 5 minutes. If you did not request this, you can ignore this email.</p>"
+    )
+    text_body = (
+        f"Your ExamSentinel password reset OTP is {otp_code}. "
+        "It expires in 5 minutes."
+    )
+    delivered = await email_service.send(
+        [user.email],
+        "ExamSentinel password reset OTP",
+        html_body,
+        text_body,
+    )
+    if not delivered:
+        logger.warning("Password reset OTP generated but email delivery is unavailable")
     
     return {"status": "success", "message": "If an account exists, an OTP has been sent."}
 
