@@ -460,7 +460,7 @@ export default function PracticeCodingPage() {
 
                 {output.length === 0 ? (
                   <div className="text-slate-500 italic py-6 text-center">
-                    Ready for execution. Press "Run Code" to execute script.
+                    Ready for execution. Press &quot;Run Code&quot; to execute script.
                   </div>
                 ) : (
                   output.map((line, idx) => (

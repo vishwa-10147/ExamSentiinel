@@ -330,7 +330,7 @@ export default function ExamListPage() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Are you sure you want to delete <strong className="text-slate-900">"{confirmDeleteExam.title}"</strong>? All associated questions, enrollments, and session records will be permanently removed.
+              Are you sure you want to delete <strong className="text-slate-900">&quot;{confirmDeleteExam.title}&quot;</strong>? All associated questions, enrollments, and session records will be permanently removed.
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-2">
