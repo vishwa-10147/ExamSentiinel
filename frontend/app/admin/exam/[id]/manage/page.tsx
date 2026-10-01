@@ -180,31 +180,10 @@ export default function ManageExamPage() {
         }
         setExam(response);
       } else {
-        // Fallback for demo
-        setExam({
-          id: examId,
-          title: "Demo Integrity Examination",
-          description: "A comprehensive assessment testing candidate knowledge while enforcing strict proctoring integrity rules.",
-          start_window: new Date().toISOString(),
-          end_window: new Date(Date.now() + 86400000 * 7).toISOString(),
-          duration_minutes: 120,
-          status: "PUBLISHED",
-          created_at: new Date().toISOString(),
-          questions: []
-        });
+        showToast("Exam was not found.", "warning");
       }
     } catch (err) {
-      setExam({
-        id: examId,
-        title: "Demo Integrity Examination",
-        description: "A comprehensive assessment testing candidate knowledge while enforcing strict proctoring integrity rules.",
-        start_window: new Date().toISOString(),
-        end_window: new Date(Date.now() + 86400000 * 7).toISOString(),
-        duration_minutes: 120,
-        status: "PUBLISHED",
-        created_at: new Date().toISOString(),
-        questions: []
-      });
+      showToast(err instanceof Error ? err.message : "Failed to load exam.", "warning");
     } finally {
       setLoading(false);
     }
@@ -412,7 +391,7 @@ export default function ManageExamPage() {
 
               <div className="flex gap-3 mt-2 sm:mt-0">
                 <button
-                  onClick={() => showToast("Edit Exam Details is coming soon in the next update.", "info")}
+                  onClick={() => router.push(`/admin/exam/${examId}/edit`)}
                   className="px-4 py-2 bg-white dark:bg-slate-800 dark:border-slate-700/10 hover:bg-white dark:bg-slate-800 dark:border-slate-700/20 active:bg-white dark:bg-slate-800 dark:border-slate-700/30 text-white rounded-lg text-sm font-semibold transition cursor-pointer active:scale-95 shadow-sm"
                 >
                   Edit Details
