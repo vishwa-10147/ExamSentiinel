@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: {
     template: "%s | ExamSentinel",
-    default: "ExamSentinel â€” AI-Powered Examination Platform",
+    default: "ExamSentinel — AI-Powered Examination Platform",
   },
   description: "Secure online exams with intelligent, human-reviewed integrity monitoring.",
   keywords: ["ExamSentinel", "Online Exams", "Proctoring", "AI Proctoring", "Secure Exams", "Education"],
@@ -22,13 +22,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://examsentinel.com/",
-    title: "ExamSentinel â€” AI-Powered Examination Platform",
+    title: "ExamSentinel — AI-Powered Examination Platform",
     description: "Secure online exams with intelligent, human-reviewed integrity monitoring.",
     siteName: "ExamSentinel",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ExamSentinel â€” AI-Powered Examination Platform",
+    title: "ExamSentinel — AI-Powered Examination Platform",
     description: "Secure online exams with intelligent, human-reviewed integrity monitoring.",
   },
 };
