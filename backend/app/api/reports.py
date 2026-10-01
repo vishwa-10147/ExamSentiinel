@@ -263,7 +263,7 @@ async def get_grading_dashboard_data(
         joinedload(ExamSession.candidate)
     ).where(
         ExamSession.exam_id == exam_id,
-        ExamSession.status.in_(["SUBMITTED", "AUTO_SUBMITTED"])
+        ExamSession.status == "SUBMITTED"
     )
     
     sessions_result = await db.execute(sessions_query)
@@ -291,7 +291,7 @@ async def get_grading_dashboard_data(
             "session_id": str(session.id),
             "candidate_name": session.candidate.full_name,
             "candidate_email": session.candidate.email,
-            "submitted_at": session.ended_at.isoformat() if session.ended_at else None,
+            "submitted_at": session.submitted_at.isoformat() if session.submitted_at else None,
             "responses": []
         }
         
@@ -383,7 +383,7 @@ async def export_exam_grades_csv(
         joinedload(ExamSession.candidate)
     ).where(
         ExamSession.exam_id == exam_id,
-        ExamSession.status.in_(["SUBMITTED", "AUTO_SUBMITTED"])
+        ExamSession.status == "SUBMITTED"
     )
     
     sessions_result = await db.execute(sessions_query)

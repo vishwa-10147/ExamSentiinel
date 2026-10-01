@@ -15,6 +15,7 @@ from app.models.response import ExamResponse
 from app.models.question import ExamQuestion, Question, QuestionType
 from app.services.sandbox_service import sandbox_service
 from app.services.ai_service import ai_service
+from app.core.logging import logger
 
 class GradingService:
     async def grade_session(self, db: AsyncSession, session_id: uuid.UUID) -> ExamSession:
@@ -73,18 +74,20 @@ class GradingService:
                     pass
                     
             elif question.type == QuestionType.ESSAY:
-                # AI Grading for Essay
                 essay_text = response.response_data.get("text", "")
                 if essay_text:
                     rubric = question.rubric or "Grade based on general comprehension and correctness."
-                    ai_result = await ai_service.grade_essay(
-            question_text=question.content_rich_text,
-            student_answer=essay_text,
-            rubric=rubric
-                    )
-                    # Normalize AI score to question points
-                    marks = (ai_result["score"] / 100.0) * question_points
-                    is_correct = marks > (question_points * 0.5)
+                    try:
+                        ai_result = await ai_service.grade_essay(
+                            question_text=question.content_rich_text,
+                            student_answer=essay_text,
+                            rubric=rubric,
+                        )
+                        marks = (ai_result["score"] / 100.0) * question_points
+                        is_correct = marks > (question_points * 0.5)
+                    except Exception:
+                        logger.warning("Essay response requires manual grading", extra={"response_id": str(response.id)})
+                        is_correct = None
             elif question.type == QuestionType.CODING:
                 code = response.response_data.get("text") or response.response_data.get("code")
                 language = response.response_data.get("language") or "python"
@@ -95,8 +98,9 @@ class GradingService:
                         test_cases = question.correct_answer["test_cases"]
                         
                     job_id = str(uuid.uuid4())
-                    r = redis.from_url(str(settings.REDIS_URL))
+                    r = None
                     try:
+                        r = redis.from_url(str(settings.REDIS_URL))
                         payload = json.dumps({
                             "job_id": job_id,
                             "language": language.lower(),
@@ -125,17 +129,21 @@ class GradingService:
                                     is_correct = True
                                 break
                             await asyncio.sleep(0.2)
+                    except Exception:
+                        logger.warning("Coding response requires manual grading because the execution worker is unavailable", extra={"response_id": str(response.id)})
+                        is_correct = None
                     finally:
-                        await r.aclose()
+                        if r is not None:
+                            await r.aclose()
             
             elif question.type in (QuestionType.ESSAY, QuestionType.SHORT_ANSWER):
                 # Manual grading required
                 marks = 0.0
                 is_correct = None
             
-            response.marks_awarded = marks
+            response.marks_awarded = marks if is_correct is not None else None
             response.is_correct = is_correct
-            response.graded_at = datetime.datetime.now(datetime.timezone.utc)
+            response.graded_at = datetime.datetime.now(datetime.timezone.utc) if is_correct is not None else None
             
             total_score += marks
             

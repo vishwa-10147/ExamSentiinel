@@ -24,13 +24,13 @@ async def get_overview(
     # Total Completed Sessions
     completed_sessions = (await db.execute(
         select(func.count(ExamSession.id))
-        .where(ExamSession.status.in_([SessionStatus.SUBMITTED, SessionStatus.AUTO_SUBMITTED]))
+        .where(ExamSession.status == SessionStatus.SUBMITTED)
     )).scalar_one_or_none() or 0
     
     # Average Risk Score
     avg_risk = (await db.execute(
         select(func.avg(ExamSession.current_risk_score))
-        .where(ExamSession.status.in_([SessionStatus.SUBMITTED, SessionStatus.AUTO_SUBMITTED]))
+        .where(ExamSession.status == SessionStatus.SUBMITTED)
     )).scalar_one_or_none() or 0.0
     
     return {
