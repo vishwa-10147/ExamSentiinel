@@ -305,7 +305,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                     <div key={i} className="whitespace-pre-wrap">{line}</div>
                   ))
                 ) : (
-                  <div className="text-slate-600 italic">No output yet. Click 'Run Query' to execute.</div>
+                  <div className="text-slate-600 italic">No output yet. Click &apos;Run Query&apos; to execute.</div>
                 )}
               </div>
             </div>
@@ -364,7 +364,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                     <div key={i} className="whitespace-pre-wrap">{line}</div>
                   ))
                 ) : (
-                  <div className="text-slate-600 italic">No output yet. Click 'Run Code' to test your solution.</div>
+                  <div className="text-slate-600 italic">No output yet. Click &apos;Run Code&apos; to test your solution.</div>
                 )}
               </div>
             </div>

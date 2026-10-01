@@ -348,10 +348,10 @@ async def publish_exam(
             detail="Exam not found",
         )
 
-    if not exam.exam_questions or len(exam.exam_questions) < 10:
+    if not exam.exam_questions:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An exam must have at least 10 questions assigned before it can be published",
+            detail="no questions assigned to this exam",
         )
 
     exam.status = ExamStatus.PUBLISHED

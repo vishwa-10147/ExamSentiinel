@@ -20,7 +20,7 @@ export default function TermsConditionsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-slate-800 mb-3">2. Description of Service</h2>
-            <p>ExamSentinel provides an online examination platform with proctoring capabilities ("Service"). The Service includes software, web applications, algorithms, and human review processes designed to maintain examination integrity.</p>
+            <p>ExamSentinel provides an online examination platform with proctoring capabilities (&quot;Service&quot;). The Service includes software, web applications, algorithms, and human review processes designed to maintain examination integrity.</p>
           </section>
 
           <section>

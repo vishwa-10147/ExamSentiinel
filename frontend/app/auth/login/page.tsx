@@ -159,10 +159,17 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-4 text-center text-sm text-slate-600">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link href="/auth/register" className="font-semibold text-blue-600 hover:text-blue-500 transition">
                 Register here
               </Link>
+            </div>
+
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-slate-600">
+              <p className="font-semibold text-slate-800">Demo accounts</p>
+              <p><span className="font-medium">Admin:</span> admin@sentinel.edu</p>
+              <p><span className="font-medium">Candidate:</span> candidate@sentinel.edu</p>
+              <p>Password: DemoPass123!</p>
             </div>
 
             

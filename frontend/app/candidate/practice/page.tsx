@@ -275,7 +275,7 @@ export default function PracticeCodingPage() {
               {activeTab === 'console' ? (
                 <div className="space-y-1">
                   {output.length === 0 ? (
-                    <div className="text-slate-500 italic mt-2">Ready. Click 'Run Code' to execute.</div>
+                    <div className="text-slate-500 italic mt-2">Ready. Click &apos;Run Code&apos; to execute.</div>
                   ) : (
                     output.map((line, idx) => {
                       const isError = line.includes('Error') || line.includes('Exception');

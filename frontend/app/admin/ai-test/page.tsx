@@ -148,7 +148,7 @@ export default function AITestDashboard() {
               
               {!results ? (
                 <div className="h-48 flex items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-lg">
-                  Click 'Analyze Frame' to generate telemetry
+                  Click &apos;Analyze Frame&apos; to generate telemetry
                 </div>
               ) : (
                 <div className="space-y-4">

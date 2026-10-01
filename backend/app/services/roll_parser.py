@@ -3,7 +3,7 @@ from typing import Dict, Optional, Tuple
 
 class RollNumberParser:
     def __init__(self, regex_pattern: str, group_mapping: Dict[str, int]):
-        """
+        r"""
         regex_pattern: The regex pattern to match roll numbers, e.g., r"^(\d{4})([A-Z]{2,3})(\d{3})$"
         group_mapping: Dictionary mapping semantic fields to regex groups.
                        e.g., {"year": 1, "department": 2, "id": 3}

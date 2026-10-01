@@ -16,7 +16,7 @@ export default function ExamCompletedPage() {
       
       <h1 className="text-3xl font-bold text-white mb-3">Exam Submitted Successfully</h1>
       <p className="text-slate-400 max-w-md mx-auto mb-10">
-        Your examination responses and proctoring telemetry have been securely transmitted to your institution's review center.
+        Your examination responses and proctoring telemetry have been securely transmitted to your institution&apos;s review center.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full mb-10">

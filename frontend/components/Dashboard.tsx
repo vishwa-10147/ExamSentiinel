@@ -132,7 +132,7 @@ export default function DashboardPage() {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) router.push("/auth/login");
+    if (!isLoading && !isAuthenticated) router.replace("/auth/login");
   }, [isLoading, isAuthenticated, router]);
 
   const fetchStats = useCallback(async () => {
