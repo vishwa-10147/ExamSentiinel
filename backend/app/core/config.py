@@ -1,5 +1,5 @@
 from typing import List, Union
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -52,6 +52,17 @@ class Settings(BaseSettings):
                     pass
             return [i.strip() for i in v.split(",") if i.strip()]
         return v
+
+    @model_validator(mode="after")
+    def validate_production_security(self):
+        if self.ENVIRONMENT.lower() == "production":
+            if self.DEBUG:
+                raise ValueError("DEBUG must be false in production")
+            if self.SECRET_KEY.startswith("examsentinel_super_secret"):
+                raise ValueError("SECRET_KEY must be replaced in production")
+            if not self.CORS_ORIGINS:
+                raise ValueError("CORS_ORIGINS must contain the deployed frontend origin")
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",
