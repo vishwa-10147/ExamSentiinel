@@ -15,10 +15,11 @@ export default function AITestDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const videoElement = videoRef.current;
     return () => {
       // Cleanup video stream on unmount
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+      if (videoElement?.srcObject) {
+        const stream = videoElement.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
       }
     };

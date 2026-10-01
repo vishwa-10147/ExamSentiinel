@@ -16,6 +16,13 @@ export default function FaceTracker({ onEventDetected, enabled, sessionId }: Fac
   const [model, setModel] = useState<blazeface.BlazeFaceModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isTracking = useRef(false);
+  const onEventDetectedRef = useRef(onEventDetected);
+  const sessionIdRef = useRef(sessionId);
+
+  useEffect(() => {
+    onEventDetectedRef.current = onEventDetected;
+    sessionIdRef.current = sessionId;
+  }, [onEventDetected, sessionId]);
 
   useEffect(() => {
     const initModel = async () => {
@@ -48,13 +55,13 @@ export default function FaceTracker({ onEventDetected, enabled, sessionId }: Fac
         isTracking.current = true;
 
         frameInterval = setInterval(async () => {
-          if (!sessionId || !videoRef.current || !isTracking.current || videoRef.current.readyState < 2) return;
+          if (!sessionIdRef.current || !videoRef.current || !isTracking.current || videoRef.current.readyState < 2) return;
           const canvas = document.createElement("canvas");
           canvas.width = videoRef.current.videoWidth || 640;
           canvas.height = videoRef.current.videoHeight || 480;
           canvas.getContext("2d")?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
           try {
-            await apiClient.post(`/api/proctoring/evidence/${sessionId}`, {
+            await apiClient.post(`/api/proctoring/evidence/${sessionIdRef.current}`, {
               image_base64: canvas.toDataURL("image/jpeg", 0.65),
               event_type: "FACE_DETECTED_OK",
               metadata: { source: "ai_vision", capture_type: "periodic_frame" },
@@ -72,12 +79,12 @@ export default function FaceTracker({ onEventDetected, enabled, sessionId }: Fac
             const predictions = await model.estimateFaces(videoRef.current, false);
             
             if (predictions.length === 0) {
-              onEventDetected("FACE_NOT_DETECTED", { source: "ai_vision", faceCount: 0 });
+              onEventDetectedRef.current("FACE_NOT_DETECTED", { source: "ai_vision", faceCount: 0 });
             } else if (predictions.length > 1) {
-              onEventDetected("MULTIPLE_FACES", { source: "ai_vision", faceCount: predictions.length });
+              onEventDetectedRef.current("MULTIPLE_FACES", { source: "ai_vision", faceCount: predictions.length });
             } else {
               // Exactly 1 face, potentially could do head pose estimation here
-              onEventDetected("FACE_DETECTED_OK", { source: "ai_vision", faceCount: 1 });
+              onEventDetectedRef.current("FACE_DETECTED_OK", { source: "ai_vision", faceCount: 1 });
             }
           } catch (e) {
              console.error("Error predicting face", e);
@@ -86,7 +93,7 @@ export default function FaceTracker({ onEventDetected, enabled, sessionId }: Fac
       } catch (err) {
         console.error("Camera access denied", err);
         setError("Camera access is required for proctoring.");
-        onEventDetected("CAMERA_DENIED", { source: "browser" });
+        onEventDetectedRef.current("CAMERA_DENIED", { source: "browser" });
       }
     };
 
