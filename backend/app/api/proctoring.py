@@ -510,3 +510,90 @@ async def upload_evidence(
     await db.commit()
     
     return {"status": "success", "image_url": image_url}
+
+
+class InterveneRequest(BaseModel):
+    message: Optional[str] = "Warning: Suspected unauthorized activity detected."
+
+@router.post("/sessions/{session_id}/warning")
+async def issue_proctor_warning(
+    session_id: uuid.UUID,
+    payload: InterveneRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
+):
+    """Issue a live warning to a candidate's exam session."""
+    session = (await db.execute(select(ExamSession).where(ExamSession.id == session_id))).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Exam session not found")
+
+    event = ProctoringEvent(
+        id=uuid.uuid4(),
+        session_id=session.id,
+        candidate_id=session.candidate_id,
+        exam_id=session.exam_id,
+        event_type="PROCTOR_WARNING_ISSUED",
+        category=EventCategory.INTERVIEW,
+        severity=EventSeverity.HIGH,
+        details={"message": payload.message, "issued_by": current_user.full_name},
+        client_timestamp=datetime.now(timezone.utc),
+    )
+    db.add(event)
+    await db.commit()
+
+    await manager.broadcast_event(
+        str(session.id),
+        str(session.exam_id),
+        {"event_type": "PROCTOR_WARNING_ISSUED", "message": payload.message},
+    )
+
+    return {"status": "success", "message": "Warning issued successfully"}
+
+
+@router.post("/sessions/{session_id}/terminate")
+async def terminate_session_by_proctor(
+    session_id: uuid.UUID,
+    payload: InterveneRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
+):
+    """Terminate an active candidate exam session immediately due to an integrity breach."""
+    session = (await db.execute(select(ExamSession).where(ExamSession.id == session_id))).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Exam session not found")
+
+    from app.models.session import SessionStatus
+    session.status = SessionStatus.EXPIRED
+    session.risk_level = "CRITICAL"
+    session.updated_at = datetime.now(timezone.utc)
+
+    event = ProctoringEvent(
+        id=uuid.uuid4(),
+        session_id=session.id,
+        candidate_id=session.candidate_id,
+        exam_id=session.exam_id,
+        event_type="PROCTOR_TERMINATED_SESSION",
+        category=EventCategory.INTERVIEW,
+        severity=EventSeverity.CRITICAL,
+        details={"reason": payload.message, "terminated_by": current_user.full_name},
+        client_timestamp=datetime.now(timezone.utc),
+    )
+    db.add(event)
+    await log_audit_event(
+        db=db,
+        action="SESSION_TERMINATED_BY_PROCTOR",
+        resource_type="exam_session",
+        resource_id=str(session.id),
+        details={"reason": payload.message, "proctor_id": str(current_user.id)},
+        user_id=current_user.id,
+        institution_id=current_user.institution_id,
+    )
+    await db.commit()
+
+    await manager.broadcast_event(
+        str(session.id),
+        str(session.exam_id),
+        {"event_type": "PROCTOR_TERMINATED_SESSION", "reason": payload.message},
+    )
+
+    return {"status": "success", "message": "Exam session terminated successfully"}
