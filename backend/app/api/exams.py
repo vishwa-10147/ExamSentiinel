@@ -28,6 +28,12 @@ class AIGenerateRequest(BaseModel):
     syllabus_text: str
     question_count: int = 5
 
+
+class CohortEnrollmentRequest(BaseModel):
+    department: Optional[str] = None
+    section: Optional[str] = None
+    batch_year: Optional[int] = None
+
 router = APIRouter(prefix="/exams", tags=["Exams"])
 
 
@@ -508,6 +514,90 @@ async def list_exam_enrollments(
     query = select(ExamEnrollment).where(ExamEnrollment.exam_id == exam_id)
     result = await db.execute(query)
     return result.scalars().all()
+
+
+async def _cohort_candidates(
+    exam: Exam,
+    db: AsyncSession,
+    department: Optional[str],
+    section: Optional[str],
+    batch_year: Optional[int],
+):
+    query = select(User).where(User.role == UserRole.CANDIDATE, User.is_active.is_(True))
+    if exam.institution_id is not None:
+        query = query.where(User.institution_id == exam.institution_id)
+    if department:
+        query = query.where(User.department == department)
+    if section:
+        query = query.where(User.section == section)
+    if batch_year is not None:
+        query = query.where(User.batch_year == batch_year)
+
+    users = (await db.execute(query.order_by(User.full_name))).scalars().all()
+    enrolled = (
+        await db.execute(select(ExamEnrollment.candidate_id).where(ExamEnrollment.exam_id == exam.id))
+    ).scalars().all()
+    return users, {str(candidate_id) for candidate_id in enrolled}
+
+
+@router.get("/{exam_id}/cohort-candidates")
+async def preview_cohort_candidates(
+    exam_id: uuid.UUID,
+    department: Optional[str] = None,
+    section: Optional[str] = None,
+    batch_year: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
+):
+    exam = (await db.execute(select(Exam).where(Exam.id == exam_id))).scalar_one_or_none()
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    users, enrolled_ids = await _cohort_candidates(exam, db, department, section, batch_year)
+    return {
+        "total": len(users),
+        "already_enrolled": sum(str(user.id) in enrolled_ids for user in users),
+        "candidates": [
+            {
+                "id": user.id,
+                "full_name": user.full_name,
+                "email": user.email,
+                "department": user.department,
+                "section": user.section,
+                "batch_year": user.batch_year,
+                "enrolled": str(user.id) in enrolled_ids,
+            }
+            for user in users
+        ],
+    }
+
+
+@router.post("/{exam_id}/enroll-cohort", response_model=List[ExamEnrollmentResponse], status_code=status.HTTP_201_CREATED)
+async def enroll_cohort(
+    exam_id: uuid.UUID,
+    payload: CohortEnrollmentRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
+):
+    exam = (await db.execute(select(Exam).where(Exam.id == exam_id))).scalar_one_or_none()
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    users, enrolled_ids = await _cohort_candidates(
+        exam, db, payload.department, payload.section, payload.batch_year
+    )
+    new_enrollments = [
+        ExamEnrollment(
+            exam_id=exam.id,
+            candidate_id=user.id,
+            status=ExamEnrollmentStatus.ENROLLED,
+        )
+        for user in users
+        if str(user.id) not in enrolled_ids
+    ]
+    db.add_all(new_enrollments)
+    await db.commit()
+    for enrollment in new_enrollments:
+        await db.refresh(enrollment)
+    return new_enrollments
 
 from fastapi import UploadFile, File
 import csv

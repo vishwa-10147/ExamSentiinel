@@ -57,6 +57,9 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
+    department: Optional[str] = None
+    section: Optional[str] = None
+    batch_year: Optional[int] = None
 
 class UserPasswordUpdate(BaseModel):
     current_password: str

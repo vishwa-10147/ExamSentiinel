@@ -17,6 +17,9 @@ export default function CandidateProfilePage() {
     full_name: "",
     email: "",
     phone: "",
+    department: "",
+    section: "",
+    batch_year: "",
   });
   const [passwordData, setPasswordData] = useState({
     current_password: "",
@@ -34,7 +37,10 @@ export default function CandidateProfilePage() {
       setProfileData({
         full_name: user.full_name || "",
         email: user.email || "",
-        phone: "+1 (555) 000-0000",
+        phone: user.phone || "",
+        department: user.department || "",
+        section: user.section || "",
+        batch_year: user.batch_year ? String(user.batch_year) : "",
       });
     }
   }, [isLoading, isAuthenticated, user, router]);
@@ -54,7 +60,10 @@ export default function CandidateProfilePage() {
       await apiClient.put('/api/users/me', {
         full_name: profileData.full_name,
         email: profileData.email,
-        phone: profileData.phone
+        phone: profileData.phone,
+        department: profileData.department,
+        section: profileData.section,
+        batch_year: profileData.batch_year ? Number(profileData.batch_year) : undefined,
       });
       toast.success("Profile updated successfully!");
     } catch (err: any) {
@@ -167,6 +176,20 @@ export default function CandidateProfilePage() {
                         onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
                         className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
                       />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Branch / Department</label>
+                      <input type="text" value={profileData.department} onChange={(e) => setProfileData({...profileData, department: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Computer Science" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Section</label>
+                      <input type="text" value={profileData.section} onChange={(e) => setProfileData({...profileData, section: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="A" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Batch Year</label>
+                      <input type="number" value={profileData.batch_year} onChange={(e) => setProfileData({...profileData, batch_year: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="2026" />
                     </div>
                   </div>
                 </div>

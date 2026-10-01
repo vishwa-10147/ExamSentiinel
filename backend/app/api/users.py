@@ -192,6 +192,12 @@ async def update_user_me(
         current_user.phone = user_in.phone
     if user_in.email is not None:
         current_user.email = user_in.email
+    if user_in.department is not None:
+        current_user.department = user_in.department
+    if user_in.section is not None:
+        current_user.section = user_in.section
+    if user_in.batch_year is not None:
+        current_user.batch_year = user_in.batch_year
 
     db.add(current_user)
     await db.commit()

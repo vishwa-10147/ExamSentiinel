@@ -69,6 +69,9 @@ interface CandidateEnrollment {
   systemCheck: "Verified" | "Pending" | "Failed";
   enrolledAt: string;
   flagReason?: string;
+  department?: string;
+  section?: string;
+  batchYear?: number;
 }
 
 interface ToastNotification {
@@ -98,6 +101,9 @@ export default function ManageExamPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateEnrollment | null>(null);
+  const [cohortFilters, setCohortFilters] = useState({ department: "", section: "", batch_year: "" });
+  const [cohortPreview, setCohortPreview] = useState({ total: 0, already_enrolled: 0 });
+  const [cohortLoading, setCohortLoading] = useState(false);
 
   // Toast notification state
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -115,11 +121,55 @@ export default function ManageExamPage() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Candidates list left empty for now
   useEffect(() => {
-    // In a real app, fetch candidates from the DB
-    setCandidates([]);
-  }, []);
+    if (!examId || authLoading || !user) return;
+    const loadCohort = async () => {
+      setCohortLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (cohortFilters.department) params.set("department", cohortFilters.department);
+        if (cohortFilters.section) params.set("section", cohortFilters.section);
+        if (cohortFilters.batch_year) params.set("batch_year", cohortFilters.batch_year);
+        const data = await apiClient.get<any>(`/api/exams/${examId}/cohort-candidates?${params.toString()}`);
+        setCohortPreview({ total: data.total || 0, already_enrolled: data.already_enrolled || 0 });
+        setCandidates((data.candidates || []).filter((candidate: any) => candidate.enrolled).map((candidate: any) => ({
+          id: candidate.id,
+          candidateNumber: 0,
+          fullName: candidate.full_name,
+          email: candidate.email,
+          rollNumber: "",
+          status: "Registered",
+          systemCheck: "Pending",
+          enrolledAt: "",
+          department: candidate.department,
+          section: candidate.section,
+          batchYear: candidate.batch_year,
+        })));
+      } catch (err: any) {
+        showToast(err.message || "Failed to load candidates", "warning");
+      } finally {
+        setCohortLoading(false);
+      }
+    };
+    void loadCohort();
+  }, [examId, authLoading, user, cohortFilters]);
+
+  const handleCohortEnrollment = async () => {
+    try {
+      setCohortLoading(true);
+      await apiClient.post(`/api/exams/${examId}/enroll-cohort`, {
+        department: cohortFilters.department || null,
+        section: cohortFilters.section || null,
+        batch_year: cohortFilters.batch_year ? Number(cohortFilters.batch_year) : null,
+      });
+      showToast(`Enrolled ${Math.max(0, cohortPreview.total - cohortPreview.already_enrolled)} matching candidates.`, "success");
+      setCohortFilters({ ...cohortFilters });
+    } catch (err: any) {
+      showToast(err.message || "Bulk enrollment failed", "warning");
+    } finally {
+      setCohortLoading(false);
+    }
+  };
 
   const fetchExam = async () => {
     try {
@@ -443,12 +493,28 @@ export default function ManageExamPage() {
                   Export CSV
                 </button>
                 <button
-                  onClick={() => showToast("Candidate manual enrollment portal is under development.", "info")}
+                  onClick={handleCohortEnrollment}
+                  disabled={cohortLoading || cohortPreview.total === cohortPreview.already_enrolled}
                   className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-95 rounded-lg transition shadow-sm cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" />
-                  Enroll Candidate
+                  Enroll Matching Students
                 </button>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Enroll by cohort</h3>
+                  <p className="text-xs text-slate-600">Filter active candidates from this institution before enrolling them.</p>
+                </div>
+                <span className="text-xs font-semibold text-blue-700">{cohortPreview.total} matched · {cohortPreview.already_enrolled} already enrolled</span>
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <input value={cohortFilters.department} onChange={(e) => setCohortFilters({...cohortFilters, department: e.target.value})} placeholder="Branch / department" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+                <input value={cohortFilters.section} onChange={(e) => setCohortFilters({...cohortFilters, section: e.target.value})} placeholder="Section" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+                <input type="number" value={cohortFilters.batch_year} onChange={(e) => setCohortFilters({...cohortFilters, batch_year: e.target.value})} placeholder="Batch year" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
               </div>
             </div>
 

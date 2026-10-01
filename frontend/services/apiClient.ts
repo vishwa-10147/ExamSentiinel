@@ -4,6 +4,11 @@ export interface UserProfile {
   full_name: string;
   role: "admin" | "proctor" | "reviewer" | "candidate";
   institution_id?: string | null;
+  department?: string | null;
+  section?: string | null;
+  batch_year?: number | null;
+  phone?: string | null;
+  roll_no?: string | null;
   is_active: boolean;
   created_at: string;
 }
