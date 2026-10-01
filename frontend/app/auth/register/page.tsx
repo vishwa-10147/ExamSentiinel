@@ -3,8 +3,20 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { User, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  ShieldCheck,
+  User,
+  Mail,
+  Lock,
+  AlertCircle,
+  Loader2,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  ArrowRight
+} from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,18 +25,18 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+  const [showPassword, setShowPassword] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!firstName || !lastName || !email || !password) {
-      setError("Please fill in all fields.");
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
+      setError("Please fill in all required fields.");
       return;
     }
     
@@ -33,22 +45,18 @@ export default function RegisterPage() {
       return;
     }
 
-    // SPAM PROTECTION: Requires valid Turnstile token in production
-    // if (process.env.NODE_ENV === "production" && !turnstileToken) {
-    //   setError("Please complete the security check.");
-    //   return;
-    // }
-
     setIsSubmitting(true);
     try {
       const payload = {
-        email,
+        email: email.trim().toLowerCase(),
         password,
-        full_name: `${firstName} ${lastName}`.trim(),
+        full_name: `${firstName.trim()} ${lastName.trim()}`,
         role: "candidate"
       };
 
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "https://examsentinel-backend.onrender.com" : "http://localhost:8000")) + "/api/auth/register", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "https://examsentinel-backend.onrender.com" : "http://localhost:8000");
+
+      const res = await fetch(`${apiUrl}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -58,7 +66,7 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        let errorMsg = `HTTP ${res.status}: ${res.statusText}`;
+        let errorMsg = `Registration failed (${res.status})`;
         if (data.detail) {
           if (typeof data.detail === "string") {
             errorMsg = data.detail;
@@ -70,6 +78,7 @@ export default function RegisterPage() {
       }
 
       setSuccess(true);
+      toast.success("Account created successfully!");
       setTimeout(() => {
         router.push("/auth/login");
       }, 2000);
@@ -80,149 +89,198 @@ export default function RegisterPage() {
     }
   };
 
-  if (success) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-8">
-        <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 p-6 sm:p-8 shadow-sm text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-            <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-          </div>
-          <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Registration Successful
-          </h2>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Your account has been created successfully. Redirecting to login...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 p-6 sm:p-8 shadow-sm">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-3">
-            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="h-10 w-auto object-contain drop-shadow-sm" />
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Create an Account
-            </h2>
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-slate-950/5 relative overflow-hidden">
+      
+      {/* Container Box */}
+      <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden grid grid-cols-1 lg:grid-cols-12 my-auto">
+        
+        {/* Left Side: Product Showcase Banner (5 Cols) */}
+        <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 via-slate-850 to-blue-950 p-8 sm:p-10 text-white flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute -top-24 -left-24 w-60 h-60 bg-blue-500/20 rounded-full blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-indigo-500/20 rounded-full blur-3xl" />
+
+          <div className="relative z-10 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-600/30 border border-blue-400/30 rounded-xl backdrop-blur">
+                <ShieldCheck className="h-7 w-7 text-blue-400" />
+              </div>
+              <span className="text-xl font-bold tracking-tight text-white">ExamSentinel</span>
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-extrabold text-white leading-tight">
+                Candidate Account Registration
+              </h2>
+              <p className="text-slate-300 text-xs sm:text-sm mt-2 leading-relaxed">
+                Join the secure examination network to participate in institutional assessments, online testing, and automated evaluation.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2.5 text-xs text-slate-200">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                <span>Instant Candidate Account Provisioning</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-xs text-slate-200">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                <span>Automated Pre-Exam System Verification</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-xs text-slate-200">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                <span>Verified Score & Result Publication</span>
+              </div>
+            </div>
           </div>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Sign up to take your exams securely
-          </p>
+
+          <div className="relative z-10 pt-8 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+            <span>Secure Encryption Enabled</span>
+            <span className="font-mono text-blue-400">SSL / TLS 1.3</span>
+          </div>
         </div>
 
-        {error && (
-          <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">
-            <AlertCircle className="h-5 w-5 shrink-0 text-red-500" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                First Name
-              </label>
-              <div className="relative mt-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <User className="h-4 w-4" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="John"
-                  className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Last Name
-              </label>
-              <div className="relative mt-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <User className="h-4 w-4" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Doe"
-                  className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                />
-              </div>
-            </div>
-          </div>
-
+        {/* Right Side: Form Card (7 Cols) */}
+        <div className="lg:col-span-7 p-8 sm:p-10 flex flex-col justify-between">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Email Address
-            </label>
-            <div className="relative mt-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Mail className="h-4 w-4" />
-              </div>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@institution.edu"
-                className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              />
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-slate-900">Create Candidate Account</h3>
+              <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                Fill in your details below to register for institutional examinations.
+              </p>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Password
-            </label>
-            <div className="relative mt-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Lock className="h-4 w-4" />
+            {error && (
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-xs sm:text-sm text-red-700">
+                <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
+                <span className="leading-relaxed">{error}</span>
               </div>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="block w-full rounded-lg border border-slate-300 dark:border-slate-700 py-2.5 pl-10 pr-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex w-full items-center justify-center rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 transition"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Registering...
-              </>
-            ) : (
-              "Sign Up"
             )}
-          </button>
-        </form>
 
-        <div className="mt-4 text-center text-sm text-slate-600">
-          Already have an account?{" "}
-          <Link href="/auth/login" className="font-semibold text-blue-600 hover:text-blue-500 transition">
-            Sign in
-          </Link>
+            {success ? (
+              <div className="py-8 text-center space-y-4">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 border border-emerald-200">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                </div>
+                <h4 className="text-xl font-bold text-slate-900">Registration Successful!</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Your candidate account has been created. Redirecting to sign in screen...
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="John"
+                        className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Doe"
+                        className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                    Institutional Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                      <Mail className="h-4 w-4" />
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="student@university.edu"
+                      className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                      <Lock className="h-4 w-4" />
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="At least 8 characters"
+                      className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 transition"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-bold text-white shadow-md hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 transition"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating Candidate Account...
+                    </>
+                  ) : (
+                    <>
+                      Complete Registration <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
+
+          <div className="mt-6 text-center text-xs text-slate-500">
+            Already registered?{" "}
+            <Link href="/auth/login" className="font-bold text-blue-600 hover:underline">
+              Sign in to your account
+            </Link>
+          </div>
         </div>
+
       </div>
     </div>
   );
