@@ -8,17 +8,22 @@ import uuid
 from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from app.models.exam import Exam
 from app.models.session import ExamSession
 from app.models.response import ExamResponse
-from app.models.question import Question, QuestionType
+from app.models.question import ExamQuestion, Question, QuestionType
 from app.services.sandbox_service import sandbox_service
 from app.services.ai_service import ai_service
 
 class GradingService:
     async def grade_session(self, db: AsyncSession, session_id: uuid.UUID) -> ExamSession:
         """Grades an exam session and computes total score."""
-        session = (await db.execute(select(ExamSession).where(ExamSession.id == session_id))).scalar_one_or_none()
+        session = (await db.execute(
+            select(ExamSession)
+            .options(selectinload(ExamSession.exam).selectinload(Exam.exam_questions).selectinload(ExamQuestion.question))
+            .where(ExamSession.id == session_id)
+        )).scalar_one_or_none()
         if not session:
             raise ValueError("Session not found")
         
@@ -26,14 +31,19 @@ class GradingService:
         responses = responses_query.scalars().all()
         
         total_score = 0.0
-        max_score = 0.0
+        exam_questions = session.exam.exam_questions if session.exam else []
+        question_map = {eq.question_id: eq for eq in exam_questions}
+        max_score = sum(
+            float(eq.points_override if eq.points_override is not None else eq.question.points)
+            for eq in exam_questions if eq.question is not None
+        )
         
         for response in responses:
-            question = (await db.execute(select(Question).where(Question.id == response.question_id))).scalar_one_or_none()
+            exam_question = question_map.get(response.question_id)
+            question = exam_question.question if exam_question else None
             if not question:
                 continue
-                
-            max_score += float(question.points)
+            question_points = float(exam_question.points_override if exam_question.points_override is not None else question.points)
             
             # Auto-grade based on question type
             marks = 0.0
@@ -44,15 +54,19 @@ class GradingService:
                 selected = response.response_data.get("selected_option_id") or response.response_data.get("selected")
                 correct = question.correct_answer.get("secret_key") if isinstance(question.correct_answer, dict) else question.correct_answer
                 if selected and correct and str(selected) == str(correct):
-                    marks = float(question.points)
+                    marks = question_points
                     is_correct = True
                     
             elif question.type == QuestionType.MCQ_MULTI:
-                selected_list = response.response_data.get("selected", [])
-                correct_list = question.correct_answer if isinstance(question.correct_answer, list) else []
+                selected_list = response.response_data.get("selected_option_ids") or response.response_data.get("selected", [])
+                correct_list = (
+                    question.correct_answer.get("selected_option_ids", [])
+                    if isinstance(question.correct_answer, dict)
+                    else question.correct_answer if isinstance(question.correct_answer, list) else []
+                )
                 # Exact match required for full points
                 if set(selected_list) == set(correct_list):
-                    marks = float(question.points)
+                    marks = question_points
                     is_correct = True
                 else:
                     # Optional: Add partial marks logic here
@@ -62,16 +76,15 @@ class GradingService:
                 # AI Grading for Essay
                 essay_text = response.response_data.get("text", "")
                 if essay_text:
-                    rubric = question.data.get("rubric", "Grade based on general comprehension and correctness.")
+                    rubric = question.rubric or "Grade based on general comprehension and correctness."
                     ai_result = await ai_service.grade_essay(
-            question_text=question.text,
+            question_text=question.content_rich_text,
             student_answer=essay_text,
             rubric=rubric
                     )
                     # Normalize AI score to question points
-                    marks = (ai_result["score"] / 100.0) * float(question.points)
-                    is_correct = marks > (float(question.points) * 0.5)
-                    response.feedback = ai_result["feedback"]
+                    marks = (ai_result["score"] / 100.0) * question_points
+                    is_correct = marks > (question_points * 0.5)
             elif question.type == QuestionType.CODING:
                 code = response.response_data.get("text") or response.response_data.get("code")
                 language = response.response_data.get("language") or "python"
@@ -102,13 +115,13 @@ class GradingService:
                                     passed = sum(1 for tr in res["test_results"] if tr.get("status") == "success")
                                     total_tc = len(res["test_results"])
                                     if total_tc > 0:
-                                        marks = float(question.points) * (passed / total_tc)
+                                        marks = question_points * (passed / total_tc)
                                         is_correct = (passed == total_tc)
                                     else:
-                                        marks = float(question.points)
+                                        marks = question_points
                                         is_correct = True
                                 elif res.get("status") == "success":
-                                    marks = float(question.points)
+                                    marks = question_points
                                     is_correct = True
                                 break
                             await asyncio.sleep(0.2)

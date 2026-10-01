@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import require_roles
 from app.core.database import get_db
 from app.models.exam import Exam
+from app.models.question import ExamQuestion
 from app.models.proctoring_event import ProctoringEvent
 from app.models.session import ExamSession
 from app.models.user import User, UserRole
@@ -437,19 +438,21 @@ async def get_my_results(
         joinedload(ExamSession.exam)
     ).where(
         ExamSession.candidate_id == current_user.id,
-        ExamSession.status.in_([SessionStatus.SUBMITTED, SessionStatus.AUTO_SUBMITTED])
+        ExamSession.status == SessionStatus.SUBMITTED,
     )
     result = await db.execute(query)
     sessions = result.scalars().all()
     
     return [
         {
-            "session_id": s.id,
+            "session_id": str(s.id),
             "exam_id": s.exam_id,
             "exam_title": s.exam.title,
-            "submitted_at": s.ended_at,
-            "total_score": s.current_risk_score, # We might need a separate 'total_score' field, but for now just basic output
-            "status": s.status.value
+            "submitted_at": s.submitted_at,
+            "total_score": s.total_score,
+            "max_score": s.max_score,
+            "percentage": s.percentage,
+            "results_published": s.results_published,
         }
         for s in sessions
     ]
@@ -479,7 +482,15 @@ async def get_my_result_detail(
     )).scalars().all()
     
     total_awarded = sum((r.marks_awarded or 0.0) for r in responses)
-    total_possible = sum(r.question.points for r in responses)
+    exam_questions = (await db.execute(
+        select(ExamQuestion)
+        .options(joinedload(ExamQuestion.question))
+        .where(ExamQuestion.exam_id == session.exam_id)
+    )).scalars().all()
+    total_possible = sum(
+        float(eq.points_override if eq.points_override is not None else eq.question.points)
+        for eq in exam_questions if eq.question is not None
+    )
     
     return {
         "session_id": session.id,

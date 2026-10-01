@@ -81,20 +81,20 @@ export default function CandidateResultsPage() {
                     </tr>
                   ) : (
                     results.map((res) => (
-                      <tr key={res.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={res.session_id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{res.exam_title}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{new Date(res.date).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">{res.score} ({res.percentage}%)</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{res.submitted_at ? new Date(res.submitted_at).toLocaleDateString() : "—"}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">{res.results_published ? `${res.total_score ?? 0} / ${res.max_score ?? 0} (${Number(res.percentage ?? 0).toFixed(1)}%)` : "Pending publication"}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                            res.status === 'passed' ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                            res.results_published ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
                           }`}>
-                            {res.status.toUpperCase()}
+                            {res.results_published ? "PUBLISHED" : "PENDING"}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button 
-                            onClick={() => router.push(`/candidate/results/${res.id}`)}
+                            onClick={() => router.push(`/candidate/results/${res.session_id}`)}
                             className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                           >
                             View Details <ArrowRight className="h-4 w-4" />
