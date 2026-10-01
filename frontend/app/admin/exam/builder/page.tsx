@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -82,14 +83,7 @@ export default function ExamBuilderPage() {
     try {
       setIsSubmitting(true);
       
-      // Attempt to create exam via API
-      // If endpoint doesn't exist, this will throw an error and we gracefully catch it
-      try {
-        await apiClient.post("/api/exams", formData);
-      } catch (apiError: any) {
-        console.warn("API Error, mocking success:", apiError);
-        // We mock a successful creation if the API doesn't exist
-      }
+      await apiClient.post("/api/exams", formData);
       
       setSuccess(true);
       setTimeout(() => {

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Union
 import uuid
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks
 import csv
@@ -14,6 +14,7 @@ from app.models.question import Question, QuestionType
 from app.models.user import User, UserRole
 from app.schemas.question import (
     QuestionAdminResponse,
+    QuestionCandidateResponse,
     QuestionCreate,
     QuestionUpdate,
 )
@@ -119,7 +120,7 @@ async def list_questions(
     return questions
 
 
-@router.get("/{question_id}", response_model=QuestionAdminResponse)
+@router.get("/{question_id}", response_model=Union[QuestionAdminResponse, QuestionCandidateResponse])
 async def get_question(
     question_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -133,6 +134,15 @@ async def get_question(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Question not found",
+        )
+    if current_user.role == UserRole.CANDIDATE:
+        return QuestionCandidateResponse(
+            id=question.id,
+            type=question.type,
+            title=question.title,
+            content_rich_text=question.content_rich_text,
+            options=question.options,
+            points=question.points,
         )
     return question
 
@@ -318,9 +328,9 @@ async def bulk_upload_questions(
             q = Question(
                 id=uuid.uuid4(),
                 title=row.get('title', '').strip(),
-                content=row.get('content', '').strip(),
+                content_rich_text=row.get('content', '').strip(),
                 type=QuestionType(row.get('type', 'multiple_choice')),
-                difficulty=QuestionDifficulty(row.get('difficulty', 'medium')),
+                difficulty=row.get('difficulty', 'MEDIUM').strip().upper(),
                 points=int(row.get('points', 10)),
                 options=row.get('options', '').split('|') if row.get('options') else [],
                 correct_answer=row.get('correct_answer', '').strip(),

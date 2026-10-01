@@ -15,10 +15,18 @@ interface ActiveSession {
   started_at: string;
 }
 
+interface SessionSignals {
+  warningCount: number;
+  lastWarning?: string;
+  cameraState: "tracking" | "attention" | "waiting";
+  latestFrame?: string;
+}
+
 export default function LiveProctoringDashboard() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
+  const [signals, setSignals] = useState<Record<string, SessionSignals>>({});
   const [error, setError] = useState<string | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(true);
 
@@ -36,7 +44,45 @@ export default function LiveProctoringDashboard() {
     const loadSessions = async () => {
       try {
         const data = await apiClient.get<ActiveSession[]>("/api/dashboard/active-sessions");
-        setSessions(data || []);
+        const activeSessions = data || [];
+        setSessions(activeSessions);
+
+        const signalEntries = await Promise.all(activeSessions.map(async (session) => {
+          try {
+            const eventData = await apiClient.get<{ items: Array<{ event_type: string; details?: { image_url?: string } }> }>(
+              `/api/proctoring/events/${session.id}?page_size=200`
+            );
+            const events = eventData.items || [];
+            const warnings = events.filter((event) => [
+              "FULLSCREEN_EXIT",
+              "TAB_BLUR",
+              "FACE_NOT_DETECTED",
+              "MULTIPLE_FACES",
+              "CAMERA_DENIED",
+            ].includes(event.event_type));
+            const cameraEvents = events.filter((event) => [
+              "FACE_DETECTED_OK",
+              "FACE_NOT_DETECTED",
+              "MULTIPLE_FACES",
+              "CAMERA_DENIED",
+            ].includes(event.event_type));
+            const lastCameraEvent = cameraEvents.at(-1)?.event_type;
+            const latestFrame = [...events].reverse().find((event) => event.details?.image_url)?.details?.image_url;
+            return [session.id, {
+              warningCount: warnings.length,
+              lastWarning: warnings.at(-1)?.event_type,
+              cameraState: lastCameraEvent === "FACE_DETECTED_OK"
+                ? "tracking"
+                : ["FACE_NOT_DETECTED", "MULTIPLE_FACES", "CAMERA_DENIED"].includes(lastCameraEvent || "")
+                  ? "attention"
+                  : "waiting",
+                  latestFrame,
+            } satisfies SessionSignals] as const;
+          } catch {
+            return [session.id, { warningCount: 0, cameraState: "waiting" } satisfies SessionSignals] as const;
+          }
+        }));
+        setSignals(Object.fromEntries(signalEntries));
       } catch (err) {
         console.error("Could not fetch active sessions", err);
         setSessions([]);
@@ -146,10 +192,17 @@ export default function LiveProctoringDashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sessions.map((session) => (
+              (() => {
+                const sessionSignals = signals[session.id] || { warningCount: 0, cameraState: "waiting" as const };
+                return (
               <div key={session.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
                 {/* Simulated Video Feed */}
                 <div className="bg-slate-900 aspect-video relative flex items-center justify-center">
-                  <Video className="h-10 w-10 text-slate-700" />
+                  {sessionSignals.latestFrame ? (
+                    <img src={sessionSignals.latestFrame} alt="Latest candidate camera frame" className="h-full w-full object-cover" />
+                  ) : (
+                    <Video className="h-10 w-10 text-slate-700" />
+                  )}
                   <div className="absolute top-3 left-3 flex items-center gap-2">
                     <span className="flex items-center rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
                       <span className="mr-1.5 h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
@@ -185,8 +238,18 @@ export default function LiveProctoringDashboard() {
                       View Details
                     </button>
                   </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className={`rounded-md border px-2 py-1 ${sessionSignals.cameraState === "tracking" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : sessionSignals.cameraState === "attention" ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                      AI camera: {sessionSignals.cameraState === "tracking" ? "Tracking" : sessionSignals.cameraState === "attention" ? "Attention" : "Waiting"}
+                    </div>
+                    <div className={`rounded-md border px-2 py-1 ${sessionSignals.warningCount ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                      Warnings: {sessionSignals.warningCount}
+                    </div>
+                  </div>
                 </div>
               </div>
+                );
+              })()
             ))}
           </div>
         )}

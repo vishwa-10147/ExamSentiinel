@@ -96,7 +96,7 @@ async def import_students(
                 email=email,
                 full_name=row.get("full_name", email.split("@")[0]),
                 role=UserRole.CANDIDATE,
-                roll_number=roll_number
+                roll_no=roll_number
             )
             
             # Use default password for bulk imports (in real app, trigger email reset)
@@ -107,7 +107,12 @@ async def import_students(
             imported_count += 1
             
             from app.services.email_service import email_service
-            email_service.send_welcome_email(user.email, user.full_name, "Student123!")
+            await email_service.send(
+                [user.email],
+                "ExamSentinel account created",
+                f"<p>Hello {user.full_name}, your account has been created.</p>",
+                "Your ExamSentinel account has been created.",
+            )
             
         await db.commit()
         return {"status": "success", "imported": imported_count}

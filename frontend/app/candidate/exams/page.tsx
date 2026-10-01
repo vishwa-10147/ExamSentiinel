@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
 import { BookOpen, Clock, Calendar, ChevronRight } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default function CandidateExamsPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();

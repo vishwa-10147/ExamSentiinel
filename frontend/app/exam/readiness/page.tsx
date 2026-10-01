@@ -1,9 +1,11 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { examService, ExamSummary } from "@/services/examService";
+import { apiClient } from "@/services/apiClient";
 
 function ExamReadinessContent() {
   const router = useRouter();
@@ -84,7 +86,7 @@ function ExamReadinessContent() {
     setNetworkStatus("checking");
     const start = Date.now();
     try {
-      await fetch("/api/health");
+      await apiClient.get("/api/health");
       const latency = Date.now() - start;
       if (latency < 1000) {
         setNetworkStatus("passed");

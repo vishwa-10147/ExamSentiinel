@@ -3,13 +3,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import * as blazeface from "@tensorflow-models/blazeface";
+import { apiClient } from "@/services/apiClient";
 
 interface FaceTrackerProps {
   onEventDetected: (eventType: string, details: any) => void;
   enabled: boolean;
+  sessionId?: string;
 }
 
-export default function FaceTracker({ onEventDetected, enabled }: FaceTrackerProps) {
+export default function FaceTracker({ onEventDetected, enabled, sessionId }: FaceTrackerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [model, setModel] = useState<blazeface.BlazeFaceModel | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export default function FaceTracker({ onEventDetected, enabled }: FaceTrackerPro
 
     let stream: MediaStream | null = null;
     let trackInterval: any;
+    let frameInterval: any;
 
     const startCamera = async () => {
       try {
@@ -43,6 +46,23 @@ export default function FaceTracker({ onEventDetected, enabled }: FaceTrackerPro
           videoRef.current.play();
         }
         isTracking.current = true;
+
+        frameInterval = setInterval(async () => {
+          if (!sessionId || !videoRef.current || !isTracking.current || videoRef.current.readyState < 2) return;
+          const canvas = document.createElement("canvas");
+          canvas.width = videoRef.current.videoWidth || 640;
+          canvas.height = videoRef.current.videoHeight || 480;
+          canvas.getContext("2d")?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+          try {
+            await apiClient.post(`/api/proctoring/evidence/${sessionId}`, {
+              image_base64: canvas.toDataURL("image/jpeg", 0.65),
+              event_type: "FACE_DETECTED_OK",
+              metadata: { source: "ai_vision", capture_type: "periodic_frame" },
+            });
+          } catch {
+            console.warn("Camera evidence upload failed");
+          }
+        }, 10000);
 
         trackInterval = setInterval(async () => {
           if (!videoRef.current || !isTracking.current) return;
@@ -75,6 +95,7 @@ export default function FaceTracker({ onEventDetected, enabled }: FaceTrackerPro
     return () => {
       isTracking.current = false;
       if (trackInterval) clearInterval(trackInterval);
+      if (frameInterval) clearInterval(frameInterval);
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }

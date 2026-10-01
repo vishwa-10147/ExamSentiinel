@@ -18,15 +18,15 @@ import FaceTracker from "@/components/FaceTracker";
 import { proctoringService } from "@/services/proctoringService";
 import { apiClient } from "@/services/apiClient";
 
+export const dynamic = "force-dynamic";
+
 export default function ExamTakingPage() {
   const params = useParams();
   const examId = params.id as string;
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
-    const [hasAcceptedInstructions, setHasAcceptedInstructions] = useState(false);
   const [examDetails, setExamDetails] = useState<any>(null);
-  const [agreeTerms, setAgreeTerms] = useState(false);
   const [session, setSession] = useState<SessionState | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +50,8 @@ export default function ExamTakingPage() {
 
   // Integrity warning flags
   const [blurWarning, setBlurWarning] = useState<boolean>(false);
+  const [fullscreenWarnings, setFullscreenWarnings] = useState(0);
+  const fullscreenWarningsRef = useRef(0);
 
   // Load / Start Session
   useEffect(() => {
@@ -58,8 +60,7 @@ export default function ExamTakingPage() {
       return;
     }
 
-    if (examId && !hasAcceptedInstructions) {
-      // Just load details first
+    if (examId && !examDetails && !session) {
       apiClient.get(`/api/exams/${examId}`).then(data => {
         setExamDetails(data);
         setLoading(false);
@@ -69,7 +70,7 @@ export default function ExamTakingPage() {
       });
     }
 
-    if (examId && hasAcceptedInstructions && !session) {
+    if (examId && examDetails && !session) {
       setLoading(true);
       examService
         .startSession(examId)
@@ -94,7 +95,7 @@ export default function ExamTakingPage() {
           setLoading(false);
         });
     }
-  }, [examId, isAuthenticated, authLoading, router, hasAcceptedInstructions, session]);
+  }, [examId, isAuthenticated, authLoading, router, examDetails, session]);
 
   const submitTelemetry = useCallback(
     (eventType: Parameters<typeof proctoringService.submitEvent>[1], details: Record<string, unknown> = {}) => {
@@ -114,7 +115,18 @@ export default function ExamTakingPage() {
       setTimeout(() => setBlurWarning(false), 4000);
     };
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) submitTelemetry("FULLSCREEN_EXIT");
+      if (document.fullscreenElement || !session || isSubmitted) return;
+
+      fullscreenWarningsRef.current += 1;
+      const warningCount = fullscreenWarningsRef.current;
+      setFullscreenWarnings(warningCount);
+      submitTelemetry("FULLSCREEN_EXIT", { warning_count: warningCount });
+
+      if (warningCount >= 2) {
+        void examService.submitSession(session.session_id)
+          .catch(() => undefined)
+          .finally(() => setIsSubmitted(true));
+      }
     };
     const handleCopy = () => submitTelemetry("COPY_ATTEMPT");
     const handlePaste = (event: ClipboardEvent) => {
@@ -177,7 +189,12 @@ export default function ExamTakingPage() {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
     };
-  }, [submitTelemetry]);
+  }, [session, isSubmitted, submitTelemetry]);
+
+  useEffect(() => {
+    if (!session || isSubmitted || document.fullscreenElement) return;
+    void document.documentElement.requestFullscreen?.().catch(() => undefined);
+  }, [session, isSubmitted]);
 
   // Debounced Answer Auto-Saver
   const queueSave = useCallback(
@@ -429,6 +446,12 @@ export default function ExamTakingPage() {
         </div>
       )}
 
+      {fullscreenWarnings > 0 && !isSubmitted && (
+        <div className="bg-red-900/90 border-b border-red-500 text-red-100 text-xs px-4 py-2 text-center font-semibold">
+          Fullscreen warning {fullscreenWarnings} of 2. Exiting fullscreen again will submit your exam automatically.
+        </div>
+      )}
+
       {/* Main Workspace Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Question Content (3 cols) */}
@@ -474,6 +497,7 @@ export default function ExamTakingPage() {
             <div className="p-3">
               <FaceTracker 
                 enabled={true} 
+                sessionId={session?.session_id}
                 onEventDetected={(eventType, details) => submitTelemetry(eventType as any, details)} 
               />
             </div>

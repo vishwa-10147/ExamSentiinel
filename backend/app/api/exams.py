@@ -207,6 +207,8 @@ async def get_exam(
                     title=q.title,
                     type=q.type.value,
                     points=float(pts),
+                    options=q.options,
+                    correct_answer=None if current_user.role == UserRole.CANDIDATE else q.correct_answer,
                 )
             )
 
@@ -340,10 +342,10 @@ async def publish_exam(
             detail="Exam not found",
         )
 
-    if not exam.exam_questions or len(exam.exam_questions) == 0:
+    if not exam.exam_questions or len(exam.exam_questions) < 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot publish exam with no questions assigned",
+            detail="An exam must have at least 10 questions assigned before it can be published",
         )
 
     exam.status = ExamStatus.PUBLISHED
@@ -520,41 +522,62 @@ async def bulk_import_questions(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
 ):
+    import json
     # Verify exam exists
     exam_res = await db.execute(select(Exam).where(Exam.id == exam_id))
     exam = exam_res.scalar_one_or_none()
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
         
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Only CSV files are supported for bulk import")
+    if not (file.filename.endswith('.csv') or file.filename.endswith('.json')):
+        raise HTTPException(status_code=400, detail="Only CSV or JSON files are supported for bulk import")
         
     content = await file.read()
     try:
-        text_content = content.decode('utf-8')
+        text_content = content.decode('utf-8-sig')
     except:
         text_content = content.decode('latin-1')
         
-    csv_reader = csv.DictReader(io.StringIO(text_content))
+    questions_data = []
+    
+    if file.filename.endswith('.json'):
+        try:
+            questions_data = json.loads(text_content)
+            if not isinstance(questions_data, list):
+                raise HTTPException(status_code=400, detail="JSON must contain a list of questions")
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON format")
+    else:
+        csv_reader = csv.DictReader(io.StringIO(text_content))
+        for row in csv_reader:
+            questions_data.append(row)
     
     questions_added = 0
-    for row in csv_reader:
-        # Expected columns: type, title, description, points, difficulty
-        q_type_str = row.get("type", "MCQ_SINGLE").strip().upper()
+    for idx, row in enumerate(questions_data):
+        # Expected columns: type, title, description, points, difficulty, options, correct_answer
+        q_type_str = str(row.get("type", "MCQ_SINGLE")).strip().upper()
         try:
             q_type = QuestionType(q_type_str)
         except ValueError:
             q_type = QuestionType.MCQ_SINGLE
             
-        title = row.get("title", "Untitled Question").strip()
-        desc = row.get("description", "").strip()
-        points_str = row.get("points", "1.0").strip()
+        title = str(row.get("title", "Untitled Question")).strip()
+        desc = str(row.get("description", title)).strip()
+        points_str = str(row.get("points", "1.0")).strip()
         try:
             points = float(points_str)
         except:
             points = 1.0
             
-        difficulty = row.get("difficulty", "MEDIUM").strip().upper()
+        difficulty = str(row.get("difficulty", "MEDIUM")).strip().upper()
+        options = row.get("options")
+        if isinstance(options, str) and file.filename.endswith('.csv'):
+            try:
+                options = json.loads(options)
+            except:
+                pass
+                
+        correct_answer = row.get("correct_answer")
         
         # Create Question
         q = Question(
@@ -564,24 +587,22 @@ async def bulk_import_questions(
             title=title,
             content_rich_text=desc,
             points=points,
-            difficulty=difficulty,
+            options=options,
+            correct_answer=correct_answer,
         )
         db.add(q)
         
-        # Create ExamQuestion link
+        # Link to exam
         eq = ExamQuestion(
-            exam_id=exam_id,
+            exam_id=exam.id,
             question_id=q.id,
-            order_index=questions_added
+            order_index=idx,
         )
         db.add(eq)
-        
         questions_added += 1
         
     await db.commit()
-    
-    return {"status": "success", "message": f"Successfully imported {questions_added} questions."}
-
+    return {"status": "success", "message": f"Successfully imported {questions_added} questions"}
 
 @router.post("/{exam_id}/generate-ai")
 async def generate_ai_questions(

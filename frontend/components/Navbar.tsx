@@ -39,6 +39,8 @@ export default function Navbar() {
     }
   };
 
+  const homeHref = isAuthenticated && user ? `/${user.role}/dashboard` : "/";
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -61,7 +63,7 @@ export default function Navbar() {
         {/* This implies ExamSentinel logo should be separate from the hamburger menu. Let's put ExamSentinel in the center or right. Let's put it on the right! */}
         
         <div className="flex items-center">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={homeHref} className="flex items-center gap-2" aria-label="ExamSentinel dashboard">
             <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="h-10 w-auto object-contain drop-shadow-sm" />
             <div>
               <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">ExamSentinel</span>

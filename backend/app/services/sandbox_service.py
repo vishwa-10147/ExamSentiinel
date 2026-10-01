@@ -27,7 +27,15 @@ class SandboxService:
             "sql": {"language": "sqlite3", "version": "3.36.0"}
         }
 
-    async def execute_async(self, language: str, source_code: str, stdin: str, timeout_sec: float, memory_mb: int) -> SandboxResult:
+    async def execute_async(
+        self,
+        language: str,
+        source_code: str,
+        stdin: str,
+        timeout_sec: float,
+        memory_mb: int,
+        database_setup: str = "",
+    ) -> SandboxResult:
         if language not in self.language_map:
             raise ValueError(f"Unsupported language: {language}")
 

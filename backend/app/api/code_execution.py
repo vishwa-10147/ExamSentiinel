@@ -62,11 +62,11 @@ async def execute_code(
             payload.memory_limit_mb,
             database_setup=database_setup
         )
-    except SandboxUnavailableError as exc:
+    except ValueError as exc:
         submission.status = "UNAVAILABLE"
         submission.result = {"reason": str(exc)}
         await db.commit()
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     submission.status = result.status
     submission.result = {
@@ -124,11 +124,11 @@ async def grade_code(
     for case in cases:
         try:
             result = await sandbox_service.execute_async(payload.language, payload.source_code, case.input_data, payload.time_limit_sec, payload.memory_limit_mb)
-        except SandboxUnavailableError as exc:
+        except ValueError as exc:
             submission.status = "UNAVAILABLE"
             submission.result = {"reason": str(exc)}
             await db.commit()
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         passed = result.status == "SUCCESS" and result.stdout.strip() == case.expected_output.strip()
         if passed:
             earned_weight += case.weight

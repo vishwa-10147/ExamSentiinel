@@ -27,6 +27,7 @@ from app.schemas.proctoring import (
 )
 from app.services.risk_engine import DEFAULT_RISK_WEIGHTS, risk_engine
 from app.services.computer_vision import computer_vision_service
+from app.services.storage_service import storage_service
 from app.websocket.manager import manager
 
 router = APIRouter(tags=["Proctoring"])

@@ -189,7 +189,7 @@ async def generate_plagiarism_report(
         .join(User, ExamSession.candidate_id == User.id)
         .join(Question, ExamResponse.question_id == Question.id)
         .where(ExamSession.exam_id == exam_id)
-        .where(Question.type == QuestionType.CODE)
+        .where(Question.type == QuestionType.CODING)
     )
     
     submissions_result = await db.execute(query)
