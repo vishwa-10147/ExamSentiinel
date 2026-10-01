@@ -183,7 +183,7 @@ export default function GradingDashboard() {
                         </div>
                         
                         <div className="p-4 overflow-x-hidden">
-                          {r.question_type === "CODE" ? (
+                          {r.question_type === "CODING" ? (
                             <pre className="bg-slate-950 text-slate-300 p-4 rounded-lg overflow-x-auto text-sm font-mono leading-relaxed shadow-inner max-w-full whitespace-pre-wrap break-all">
                               {r.response_data?.code || r.response_data?.text || "No code provided."}
                             </pre>

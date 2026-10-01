@@ -23,10 +23,9 @@ class AIGradingService:
         Returns {"suggested_marks": float, "feedback": str}
         """
         if not self.model:
-            # Fallback mock if no API key
             return {
-                "suggested_marks": max_points * 0.8,
-                "feedback": "[AI Mock] Good answer, but slightly incomplete."
+                "suggested_marks": 0.0,
+                "feedback": "AI grading is not configured. Grade this response manually."
             }
 
         prompt = f"""

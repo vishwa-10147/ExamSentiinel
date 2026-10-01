@@ -325,17 +325,48 @@ async def submit_grade(
 ):
     from app.models.response import ExamResponse
     
-    result = await db.execute(select(ExamResponse).where(ExamResponse.id == response_id))
+    from sqlalchemy.orm import joinedload
+    result = await db.execute(
+        select(ExamResponse)
+        .options(joinedload(ExamResponse.question))
+        .where(ExamResponse.id == response_id)
+    )
     resp = result.scalar_one_or_none()
     if not resp:
         raise HTTPException(status_code=404, detail="Response not found")
         
+    session = (await db.execute(select(ExamSession).where(ExamSession.id == resp.session_id))).scalar_one()
+    exam_question = (await db.execute(
+        select(ExamQuestion)
+        .where(ExamQuestion.exam_id == session.exam_id, ExamQuestion.question_id == resp.question_id)
+    )).scalar_one_or_none()
+    max_points = float(
+        exam_question.points_override
+        if exam_question and exam_question.points_override is not None
+        else resp.question.points
+    )
+    if payload.marks_awarded < 0 or payload.marks_awarded > max_points:
+        raise HTTPException(status_code=422, detail=f"marks_awarded must be between 0 and {max_points}")
+
     resp.marks_awarded = payload.marks_awarded
     resp.is_correct = payload.is_correct
     
     from datetime import datetime, timezone
     resp.graded_at = datetime.now(timezone.utc)
     
+    all_responses = (await db.execute(select(ExamResponse).where(ExamResponse.session_id == session.id))).scalars().all()
+    exam_questions = (await db.execute(
+        select(ExamQuestion)
+        .options(joinedload(ExamQuestion.question))
+        .where(ExamQuestion.exam_id == session.exam_id)
+    )).scalars().all()
+    session.total_score = sum(float(item.marks_awarded or 0) for item in all_responses)
+    session.max_score = sum(
+        float(item.points_override if item.points_override is not None else item.question.points)
+        for item in exam_questions
+        if item.question is not None
+    )
+    session.percentage = (session.total_score / session.max_score * 100) if session.max_score else 0
     await db.commit()
     return {"status": "success", "marks_awarded": resp.marks_awarded}
 
