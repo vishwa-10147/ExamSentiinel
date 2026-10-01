@@ -1,9 +1,10 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/services/apiClient";
 import {
   Settings,
   Shield,
@@ -21,6 +22,21 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [riskWeights, setRiskWeights] = useState<Record<string, number>>({
+    MULTIPLE_FACES: 8,
+    LARGE_PASTE: 5,
+    TAB_BLUR: 2,
+  });
+
+  useEffect(() => {
+    if (authLoading || !user || user.role !== "admin") return;
+    apiClient.get<Array<{ event_type: string; weight: number }>>("/api/proctoring/risk/weights")
+      .then((rows) => {
+        setRiskWeights((current) => rows.reduce((next, row) => ({ ...next, [row.event_type]: row.weight }), current));
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load risk settings."));
+  }, [authLoading, user]);
 
   // Protect route
   if (!authLoading && user && user.role !== "admin") {
@@ -28,14 +44,25 @@ export default function SettingsPage() {
     return null;
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (activeTab !== "risk" || !user) return;
     setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError(null);
+    try {
+      await Promise.all(Object.entries(riskWeights).map(([eventType, weight]) => apiClient.put("/api/proctoring/risk/weights", {
+        event_type: eventType,
+        weight,
+        is_active: true,
+        institution_id: user.institution_id || null,
+      })));
       setIsSaving(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
-    }, 800);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save risk settings.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -53,7 +80,7 @@ export default function SettingsPage() {
           
           <button 
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || activeTab !== "risk"}
             className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-70"
           >
             {isSaving ? (
@@ -63,9 +90,11 @@ export default function SettingsPage() {
             ) : (
               <Save className="w-5 h-5" />
             )}
-            {showSuccess ? "Saved!" : "Save Changes"}
+            {showSuccess ? "Saved!" : activeTab === "risk" ? "Save Risk Settings" : "Select Risk Engine to Save"}
           </button>
         </div>
+
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
         <div className="flex flex-col md:flex-row gap-8">
           {/* Tabs Sidebar */}
@@ -133,29 +162,27 @@ export default function SettingsPage() {
                   <p className="text-sm text-slate-500 mb-6">Adjust the weight of individual telemetry signals. Higher weights increase the candidate&apos;s total risk score faster.</p>
                   
                   <div className="space-y-6">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <label className="text-sm font-semibold text-slate-700">Multiple Faces Detected (Webcam)</label>
-                        <span className="text-sm font-bold text-blue-600">High Impact (8.0)</span>
+                    {[
+                      ["MULTIPLE_FACES", "Multiple Faces Detected (Webcam)"],
+                      ["LARGE_PASTE", "Code Paste Attempt (Clipboard)"],
+                      ["TAB_BLUR", "Browser Tab Blur"],
+                    ].map(([eventType, label]) => (
+                      <div key={eventType}>
+                        <div className="flex justify-between mb-1">
+                          <label className="text-sm font-semibold text-slate-700">{label}</label>
+                          <span className="text-sm font-bold text-blue-600">{(riskWeights[eventType] ?? 0).toFixed(1)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="10"
+                          step="0.5"
+                          value={riskWeights[eventType] ?? 0}
+                          onChange={(event) => setRiskWeights((current) => ({ ...current, [eventType]: Number(event.target.value) }))}
+                          className="w-full accent-blue-600"
+                        />
                       </div>
-                      <input type="range" min="1" max="10" defaultValue="8" className="w-full accent-blue-600" />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <label className="text-sm font-semibold text-slate-700">Code Paste Attempt (Clipboard)</label>
-                        <span className="text-sm font-bold text-blue-600">Medium Impact (5.0)</span>
-                      </div>
-                      <input type="range" min="1" max="10" defaultValue="5" className="w-full accent-blue-600" />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <label className="text-sm font-semibold text-slate-700">Browser Tab Blur</label>
-                        <span className="text-sm font-bold text-blue-600">Low Impact (2.0)</span>
-                      </div>
-                      <input type="range" min="1" max="10" defaultValue="2" className="w-full accent-blue-600" />
-                    </div>
+                    ))}
                   </div>
                 </div>
 
