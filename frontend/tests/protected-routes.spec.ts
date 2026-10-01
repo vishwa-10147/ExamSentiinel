@@ -7,6 +7,12 @@ test.describe("protected portal routes", () => {
     "/admin/settings",
     "/admin/exam/builder",
     "/admin/review",
+    "/admin/analytics",
+    "/admin/ai-test",
+    "/admin/live",
+    "/admin/questions",
+    "/admin/results",
+    "/admin/users",
     "/exam/readiness",
   ];
 
