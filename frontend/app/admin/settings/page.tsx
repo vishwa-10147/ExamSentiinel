@@ -48,7 +48,12 @@ export default function SettingsPage() {
     apiClient.get<typeof settings>("/api/admin/settings")
       .then(setSettings)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load platform settings."));
-    apiClient.get<Array<{ event_type: string; weight: number }>>("/api/proctoring/risk/weights")
+    
+    const riskUrl = user.institution_id
+      ? `/api/proctoring/risk/weights?institution_id=${user.institution_id}`
+      : "/api/proctoring/risk/weights";
+
+    apiClient.get<Array<{ event_type: string; weight: number }>>(riskUrl)
       .then((rows) => {
         setRiskWeights((current) => rows.reduce((next, row) => ({ ...next, [row.event_type]: row.weight }), current));
       })
@@ -64,19 +69,21 @@ export default function SettingsPage() {
     setError(null);
     try {
       await apiClient.put("/api/admin/settings", settings);
-      if (activeTab === "risk") {
-        await Promise.all(Object.entries(riskWeights).map(([eventType, weight]) => apiClient.put("/api/proctoring/risk/weights", {
-          event_type: eventType,
-          weight,
-          is_active: true,
-          institution_id: user.institution_id || null,
-        })));
-      }
+      await Promise.all(
+        Object.entries(riskWeights).map(([eventType, weight]) =>
+          apiClient.put("/api/proctoring/risk/weights", {
+            event_type: eventType,
+            weight,
+            is_active: true,
+            institution_id: user.institution_id || null,
+          })
+        )
+      );
       setIsSaving(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save risk settings.");
+      setError(err instanceof Error ? err.message : "Failed to save settings.");
     } finally {
       setIsSaving(false);
     }

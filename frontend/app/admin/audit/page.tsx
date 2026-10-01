@@ -1,11 +1,11 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import { History, Shield, Activity, Filter, Download, User as UserIcon, Monitor } from "lucide-react";
+import { History, Shield, Activity, Download, User as UserIcon, Monitor, Search, X } from "lucide-react";
 
 interface AuditLog {
   id: string;
@@ -24,6 +24,7 @@ export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -50,6 +51,42 @@ export default function AuditPage() {
     void fetchLogs();
   }, [isLoading, user]);
 
+  const filteredLogs = useMemo(() => {
+    if (!searchQuery.trim()) return logs;
+    const query = searchQuery.toLowerCase().trim();
+    return logs.filter((log) => {
+      return (
+        log.user.toLowerCase().includes(query) ||
+        log.action.toLowerCase().includes(query) ||
+        log.role.toLowerCase().includes(query) ||
+        log.ip_address.toLowerCase().includes(query) ||
+        (log.details && log.details.toLowerCase().includes(query))
+      );
+    });
+  }, [logs, searchQuery]);
+
+  const handleExportCSV = () => {
+    if (filteredLogs.length === 0) return;
+    const headers = ["Timestamp", "Action", "User", "Role", "IP Address", "Status", "Details"];
+    const rows = filteredLogs.map(log => [
+      `"${log.timestamp}"`,
+      `"${log.action.replace(/"/g, '""')}"`,
+      `"${log.user.replace(/"/g, '""')}"`,
+      `"${log.role}"`,
+      `"${log.ip_address}"`,
+      `"${log.status}"`,
+      `"${(log.details || "").replace(/"/g, '""')}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (isLoading || !user) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -61,7 +98,7 @@ export default function AuditPage() {
   if (user.role !== "admin") {
     return (
       <div className="flex-1 w-full">
-<div className="flex-1 p-8 text-center text-red-500 font-semibold">
+        <div className="flex-1 p-8 text-center text-red-500 font-semibold">
           Access Denied. Admins only.
         </div>
       </div>
@@ -70,7 +107,7 @@ export default function AuditPage() {
 
   return (
     <div className="flex-1 w-full">
-<main className="flex-1 flex flex-col overflow-y-auto">
+      <main className="flex-1 flex flex-col overflow-y-auto">
         <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-8">
@@ -80,15 +117,15 @@ export default function AuditPage() {
                 System Audit Logs
               </h1>
               <p className="text-sm text-slate-500 mt-1">
-                Immutable record of all system events, user actions, and security alerts.
+                Immutable record of all system events, user actions, IP addresses, and security alerts.
               </p>
             </div>
             <div className="flex gap-2">
-              <button className="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
-                <Filter className="h-4 w-4" />
-                Filter
-              </button>
-              <button className="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
+              <button 
+                onClick={handleExportCSV}
+                disabled={filteredLogs.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
                 <Download className="h-4 w-4" />
                 Export CSV
               </button>
@@ -99,11 +136,38 @@ export default function AuditPage() {
             <div className="mb-6 rounded-lg bg-amber-50 p-4 border border-amber-200 text-sm text-amber-800 flex items-start gap-3">
               <Activity className="h-5 w-5 shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-amber-900">Live feed disconnected</h3>
+                <h3 className="font-semibold text-amber-900">Live feed notice</h3>
                 <p>{error}</p>
               </div>
             </div>
           )}
+
+          {/* Search bar */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full sm:max-w-md">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search by user name, action, role, or IP address..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="block w-full pl-9 pr-8 py-2 border border-slate-300 rounded-lg text-sm bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="text-xs text-slate-500 font-medium self-end sm:self-auto">
+              Showing {filteredLogs.length} of {logs.length} audit entries
+            </div>
+          </div>
 
           {/* Table Card */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -132,14 +196,14 @@ export default function AuditPage() {
                         Loading logs...
                       </td>
                     </tr>
-                  ) : logs.length === 0 ? (
+                  ) : filteredLogs.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500">
-                        No audit events found.
+                        No audit events match your search criteria.
                       </td>
                     </tr>
                   ) : (
-                    logs.map((log) => {
+                    filteredLogs.map((log) => {
                       const dateObj = new Date(log.timestamp);
                       const dateStr = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
                       const timeStr = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });

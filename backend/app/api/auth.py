@@ -159,11 +159,24 @@ async def login(
             detail="User account is inactive. Please contact your administrator.",
         )
 
+    # Generate a fresh session ID for single-browser login enforcement
+    session_id = str(uuid.uuid4())
+    user.current_session_id = session_id
+    db.add(user)
+
+    # Revoke all previous refresh tokens for this user so old browser sessions cannot refresh
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
+
     token_data = {
         "user_id": str(user.id),
         "email": user.email,
         "role": user.role.value,
         "institution_id": str(user.institution_id) if user.institution_id else None,
+        "sid": session_id,
     }
 
     access_token = create_access_token(data=token_data)
@@ -185,7 +198,7 @@ async def login(
         action="USER_LOGIN",
         resource_type="auth",
         resource_id=str(user.id),
-        details={"email": user.email, "role": user.role.value},
+        details={"email": user.email, "role": user.role.value, "sid": session_id},
         user_id=user.id,
         institution_id=user.institution_id,
         request=request,
@@ -254,6 +267,15 @@ async def refresh_access_token(
             detail="Inactive user account",
         )
 
+    # Validate single session ID
+    token_sid = payload.get("sid")
+    if token_sid and user.current_session_id and token_sid != user.current_session_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Logged in from another browser/session. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     # Check refresh token JTI in persistent storage
     jti = payload.get("jti")
     if not jti:
@@ -293,11 +315,13 @@ async def refresh_access_token(
     # Invalidate current refresh token (single-use rotation)
     token_record.revoked = True
 
+    effective_sid = user.current_session_id or token_sid
     token_data = {
         "user_id": str(user.id),
         "email": user.email,
         "role": user.role.value,
         "institution_id": str(user.institution_id) if user.institution_id else None,
+        "sid": effective_sid,
     }
 
     new_access_token = create_access_token(data=token_data)
@@ -340,6 +364,8 @@ async def logout(
     db: AsyncSession = Depends(get_db),
 ):
     """Revoke all active refresh tokens for the authenticated user and record audit log."""
+    current_user.current_session_id = None
+    db.add(current_user)
     await db.execute(
         update(RefreshToken)
         .where(RefreshToken.user_id == current_user.id)

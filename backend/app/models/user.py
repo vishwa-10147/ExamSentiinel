@@ -52,6 +52,7 @@ class User(TimeStampedUUIDModel):
     phone: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     display_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    current_session_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     # Batch Relationship
     batch_id: Mapped[Optional[uuid.UUID]] = mapped_column(

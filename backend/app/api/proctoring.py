@@ -427,14 +427,15 @@ async def get_risk_weights(
 ):
     """Get current risk weight configuration.
 
-    If ``institution_id`` is provided, returns institution-specific overrides
-    plus global defaults.  Otherwise returns only global rows.
+    If ``institution_id`` is provided or current user has an institution, returns institution-specific overrides
+    plus global defaults. Otherwise returns only global rows.
     """
+    target_inst_id = institution_id or current_user.institution_id
     filters = []
-    if institution_id is not None:
+    if target_inst_id is not None:
         filters.append(
             or_(
-                RiskWeight.institution_id == institution_id,
+                RiskWeight.institution_id == target_inst_id,
                 RiskWeight.institution_id.is_(None),
             )
         )
@@ -448,7 +449,13 @@ async def get_risk_weights(
     )
     rows = result.scalars().all()
 
-    return [RiskWeightConfig.model_validate(r) for r in rows]
+    # Prefer institution-specific row over global default for each event_type
+    merged: dict[str, RiskWeight] = {}
+    for r in rows:
+        if r.event_type not in merged or r.institution_id is not None:
+            merged[r.event_type] = r
+
+    return [RiskWeightConfig.model_validate(r) for r in merged.values()]
 
 @router.post("/dev/analyze-frame")
 async def dev_analyze_webcam_frame(

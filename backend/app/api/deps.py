@@ -1,3 +1,4 @@
+import ipaddress
 from typing import AsyncGenerator, Callable, List, Optional
 import uuid
 from fastapi import Depends, HTTPException, Request, status
@@ -14,6 +15,47 @@ from app.models.audit_log import AuditLog
 
 # HTTP Bearer security scheme
 bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def extract_client_ip(request: Optional[Request]) -> Optional[str]:
+    """Extract real client IP address robustly across Cloudflare, AWS, Nginx, and reverse proxies."""
+    if not request:
+        return None
+
+    # Priority 1: Cloudflare CDN / WAF header
+    cf_ip = request.headers.get("CF-Connecting-IP")
+    if cf_ip and cf_ip.strip():
+        return cf_ip.strip()
+
+    # Priority 2: Akamai / Enterprise Proxy header
+    true_client_ip = request.headers.get("True-Client-IP")
+    if true_client_ip and true_client_ip.strip():
+        return true_client_ip.strip()
+
+    # Priority 3: Nginx / HAProxy / Traefik header
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip and real_ip.strip():
+        return real_ip.strip()
+
+    # Priority 4: X-Forwarded-For header (comma separated proxy chain)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        for ip in parts:
+            try:
+                ip_obj = ipaddress.ip_address(ip)
+                if not ip_obj.is_private and not ip_obj.is_loopback and not ip_obj.is_link_local:
+                    return ip
+            except ValueError:
+                continue
+        if parts:
+            return parts[0]
+
+    # Priority 5: Direct TCP socket client host
+    if request.client:
+        return request.client.host
+
+    return None
 
 
 async def get_current_user(
@@ -87,6 +129,15 @@ async def get_current_user(
             detail="Inactive user account",
         )
 
+    # Single session enforcement: invalidate old browser sessions when a new login occurs
+    token_sid = payload.get("sid")
+    if token_sid and user.current_session_id and token_sid != user.current_session_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Logged in from another browser/session. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     return user
 
 
@@ -135,9 +186,8 @@ async def log_audit_event(
     request: Optional[Request] = None,
 ) -> AuditLog:
     """Helper to record immutable audit log entries with safe user_agent truncation."""
-    ip_address = request.client.host if request and request.client else None
+    ip_address = extract_client_ip(request)
     raw_user_agent = request.headers.get("user-agent") if request else None
-    # Truncate user_agent to 500 characters to avoid VARCHAR(512) database overflow errors
     user_agent = raw_user_agent[:500] if raw_user_agent else None
 
     audit_entry = AuditLog(
@@ -165,12 +215,7 @@ def RateLimiter(calls: int, period: int):
     Uses MULTI/EXEC pipeline to ensure atomicity.
     """
     async def rate_limit_dependency(request: Request):
-        client_ip = request.client.host if request.client else "127.0.0.1"
-        # Fallback to forwarded headers if behind proxy
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            client_ip = forwarded.split(",")[0]
-            
+        client_ip = extract_client_ip(request) or "127.0.0.1"
         key = f"rate_limit:{request.url.path}:{client_ip}"
         now = time.time()
         

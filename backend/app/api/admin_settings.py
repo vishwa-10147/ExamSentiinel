@@ -2,7 +2,9 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.api.deps import get_db, require_roles
 from app.models.institution import Institution
@@ -40,7 +42,23 @@ class AdminSettingsUpdate(BaseModel):
 
 async def _get_institution(current_user: User, db: AsyncSession) -> Institution:
     if not current_user.institution_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Admin is not assigned to an institution")
+        result = await db.execute(select(Institution).limit(1))
+        institution = result.scalars().first()
+        if not institution:
+            institution = Institution(
+                name="Default Sentinel Institution",
+                code="DEFAULT",
+                domain="sentinel.edu",
+                is_active=True,
+                settings=DEFAULT_SETTINGS,
+            )
+            db.add(institution)
+            await db.commit()
+            await db.refresh(institution)
+        current_user.institution_id = institution.id
+        await db.commit()
+        return institution
+
     institution = await db.get(Institution, current_user.institution_id)
     if institution is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Institution not found")
@@ -79,6 +97,7 @@ async def update_admin_settings(
         institution.name = changes.pop("institution_name")
     settings = {**DEFAULT_SETTINGS, **(institution.settings or {}), **changes}
     institution.settings = settings
+    flag_modified(institution, "settings")
     await db.commit()
     await db.refresh(institution)
     return _to_response(institution)

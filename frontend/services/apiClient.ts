@@ -88,8 +88,18 @@ class ApiClient {
       headers,
     });
 
-    // Handle token expiration & automatic refresh
+    // Handle token expiration & single-session displacement
     if (response.status === 401 && !endpoint.includes("/auth/login") && !endpoint.includes("/auth/refresh")) {
+      const cloneData = await response.clone().json().catch(() => ({}));
+      if (typeof cloneData?.detail === "string" && cloneData.detail.includes("Logged in from another browser")) {
+        this.clearTokens();
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("user_profile");
+          window.location.href = "/auth/login?reason=session_terminated";
+        }
+        throw new Error(cloneData.detail);
+      }
+
       const refreshed = await this.tryRefreshToken();
       if (refreshed) {
         // Retry the request with new token
@@ -103,6 +113,10 @@ class ApiClient {
           throw new Error(errorData.detail || `Request failed with status ${retryResponse.status}`);
         }
         return retryResponse.json();
+      } else if (typeof window !== "undefined") {
+        this.clearTokens();
+        window.localStorage.removeItem("user_profile");
+        window.location.href = "/auth/login";
       }
     }
 

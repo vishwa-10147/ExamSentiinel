@@ -278,6 +278,8 @@ async def admin_update_user(
             user.role = UserRole(user_in["role"])
         except ValueError:
             pass
+    if "is_active" in user_in:
+        user.is_active = bool(user_in["is_active"])
     if "password" in user_in and user_in["password"]:
         user.hashed_password = get_password_hash(user_in["password"])
         
@@ -285,3 +287,26 @@ async def admin_update_user(
     await db.commit()
     await db.refresh(user)
     return user
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_200_OK)
+async def admin_delete_user(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN])),
+):
+    """Delete a user account permanently (Admin only)."""
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own admin account",
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    target_user = result.scalar_one_or_none()
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    await db.delete(target_user)
+    await db.commit()
+    return {"status": "success", "message": "User deleted successfully"}

@@ -5,7 +5,7 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient, UserProfile } from "@/services/apiClient";
-import { Users, Plus, Shield, Mail, Search, Trash2, Edit } from "lucide-react";
+import { Users, Plus, Shield, Mail, Search, Trash2, Edit, CheckCircle, XCircle } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 
 export default function UsersPage() {
@@ -28,6 +28,7 @@ export default function UsersPage() {
     email: "",
     role: "candidate",
     password: "",
+    is_active: true,
   });
   
   const [isSaving, setIsSaving] = useState(false);
@@ -75,6 +76,7 @@ export default function UsersPage() {
       email: "",
       role: "candidate",
       password: "",
+      is_active: true,
     });
     setIsModalOpen(true);
   };
@@ -86,9 +88,40 @@ export default function UsersPage() {
       full_name: u.full_name,
       email: u.email,
       role: u.role,
-      password: "", // Only populate if they want to override
+      password: "",
+      is_active: u.is_active ?? true,
     });
     setIsModalOpen(true);
+  };
+
+  const handleToggleStatus = async (u: UserProfile) => {
+    try {
+      const updatedStatus = !u.is_active;
+      await apiClient.put(`/api/users/${u.id}`, { is_active: updatedStatus });
+      toast.success(`User state changed to ${updatedStatus ? "Active" : "Inactive"}`);
+      void fetchUsers();
+    } catch (err: any) {
+      console.error("Failed to toggle status", err);
+      toast.error(err.response?.data?.detail || "Failed to update user status");
+    }
+  };
+
+  const handleDeleteUser = async (u: UserProfile) => {
+    if (user?.id === u.id) {
+      toast.error("You cannot delete your own admin account");
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to permanently delete user "${u.full_name}" (${u.email})?`)) {
+      return;
+    }
+    try {
+      await apiClient.delete(`/api/users/${u.id}`);
+      toast.success("User deleted successfully");
+      void fetchUsers();
+    } catch (err: any) {
+      console.error("Failed to delete user", err);
+      toast.error(err.response?.data?.detail || "Failed to delete user");
+    }
   };
 
   const handleSave = async () => {
@@ -100,11 +133,11 @@ export default function UsersPage() {
     setIsSaving(true);
     try {
       if (isEditMode && editingUserId) {
-        // Build payload, omit password if empty
         const payload: any = {
           full_name: formData.full_name,
           email: formData.email,
           role: formData.role,
+          is_active: formData.is_active,
         };
         if (formData.password.trim() !== "") {
           payload.password = formData.password;
@@ -113,7 +146,6 @@ export default function UsersPage() {
         await apiClient.put(`/api/users/${editingUserId}`, payload);
         toast.success("User updated successfully");
       } else {
-        // Adding user
         if (!formData.password) {
           toast.error("Password is required for new users");
           setIsSaving(false);
@@ -125,7 +157,7 @@ export default function UsersPage() {
       setIsModalOpen(false);
       void fetchUsers();
     } catch (err: any) {
-      console.error(err);
+      console.error("Failed to save user", err);
       toast.error(err.response?.data?.detail || "Failed to save user");
     } finally {
       setIsSaving(false);
@@ -143,7 +175,7 @@ export default function UsersPage() {
   if (user.role !== "admin") {
     return (
       <div className="flex-1 w-full">
-<div className="flex-1 p-8 text-center text-red-500 font-semibold mt-10">
+        <div className="flex-1 p-8 text-center text-red-500 font-semibold mt-10">
           Access Denied. Admins only.
         </div>
       </div>
@@ -153,7 +185,7 @@ export default function UsersPage() {
   return (
     <div className="flex-1 w-full">
       <Toaster position="top-right" />
-<main className="flex-1 flex flex-col overflow-y-auto">
+      <main className="flex-1 flex flex-col overflow-y-auto">
         <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-8">
@@ -163,7 +195,7 @@ export default function UsersPage() {
                 User Management
               </h1>
               <p className="text-sm text-slate-500 mt-1">
-                Manage system access, roles, and user accounts.
+                Manage system access, roles, active status, and user accounts.
               </p>
             </div>
             <button
@@ -236,7 +268,7 @@ export default function UsersPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="h-10 w-10 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold uppercase">
-                              {u.full_name.charAt(0)}
+                              {u.full_name ? u.full_name.charAt(0) : "U"}
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-slate-900">{u.full_name}</div>
@@ -253,26 +285,31 @@ export default function UsersPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                            u.is_active 
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-slate-100 text-slate-600 border border-slate-200"
-                          }`}>
+                          <button
+                            onClick={() => handleToggleStatus(u)}
+                            title="Click to toggle Active / Inactive state"
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition cursor-pointer hover:opacity-80 ${
+                              u.is_active 
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-slate-100 text-slate-600 border border-slate-200"
+                            }`}
+                          >
                             <span className={`h-1.5 w-1.5 rounded-full ${u.is_active ? "bg-emerald-500" : "bg-slate-400"}`}></span>
                             {u.is_active ? "Active" : "Inactive"}
-                          </span>
+                          </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button 
                             onClick={() => handleOpenEditModal(u)}
                             className="text-slate-400 hover:text-blue-600 transition-colors mr-3" 
-                            title="Edit"
+                            title="Edit User"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button 
+                            onClick={() => handleDeleteUser(u)}
                             className="text-slate-400 hover:text-red-600 transition-colors" 
-                            title="Delete"
+                            title="Delete User"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -293,7 +330,7 @@ export default function UsersPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-900">{isEditMode ? "Edit User" : "Add New User"}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-500">
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-500 text-xl font-bold">
                 &times;
               </button>
             </div>
@@ -318,18 +355,31 @@ export default function UsersPage() {
                   placeholder="john@example.com" 
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                <select 
-                  value={formData.role}
-                  onChange={(e) => setFormData(prev => ({...prev, role: e.target.value}))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="proctor">Proctor</option>
-                  <option value="reviewer">Reviewer</option>
-                  <option value="candidate">Candidate</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                  <select 
+                    value={formData.role}
+                    onChange={(e) => setFormData(prev => ({...prev, role: e.target.value}))}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="proctor">Proctor</option>
+                    <option value="reviewer">Reviewer</option>
+                    <option value="candidate">Candidate</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                  <select 
+                    value={formData.is_active ? "active" : "inactive"}
+                    onChange={(e) => setFormData(prev => ({...prev, is_active: e.target.value === "active"}))}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
