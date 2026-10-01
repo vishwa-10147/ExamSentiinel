@@ -28,6 +28,14 @@ export default function SettingsPage() {
     LARGE_PASTE: 5,
     TAB_BLUR: 2,
   });
+  const [settings, setSettings] = useState({
+    institution_name: "",
+    support_email: "",
+    timezone: "UTC",
+    enforce_admin_2fa: true,
+    evidence_retention_days: 30,
+    critical_risk_email_alerts: true,
+  });
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || user?.role !== "admin")) {
@@ -37,6 +45,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (authLoading || !user || user.role !== "admin") return;
+    apiClient.get<typeof settings>("/api/admin/settings")
+      .then(setSettings)
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load platform settings."));
     apiClient.get<Array<{ event_type: string; weight: number }>>("/api/proctoring/risk/weights")
       .then((rows) => {
         setRiskWeights((current) => rows.reduce((next, row) => ({ ...next, [row.event_type]: row.weight }), current));
@@ -48,16 +59,19 @@ export default function SettingsPage() {
   if (authLoading || !user || user.role !== "admin") return null;
 
   const handleSave = async () => {
-    if (activeTab !== "risk" || !user) return;
+    if (!user) return;
     setIsSaving(true);
     setError(null);
     try {
-      await Promise.all(Object.entries(riskWeights).map(([eventType, weight]) => apiClient.put("/api/proctoring/risk/weights", {
-        event_type: eventType,
-        weight,
-        is_active: true,
-        institution_id: user.institution_id || null,
-      })));
+      await apiClient.put("/api/admin/settings", settings);
+      if (activeTab === "risk") {
+        await Promise.all(Object.entries(riskWeights).map(([eventType, weight]) => apiClient.put("/api/proctoring/risk/weights", {
+          event_type: eventType,
+          weight,
+          is_active: true,
+          institution_id: user.institution_id || null,
+        })));
+      }
       setIsSaving(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
@@ -83,7 +97,7 @@ export default function SettingsPage() {
           
           <button 
             onClick={handleSave}
-            disabled={isSaving || activeTab !== "risk"}
+            disabled={isSaving}
             className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-70"
           >
             {isSaving ? (
@@ -93,7 +107,7 @@ export default function SettingsPage() {
             ) : (
               <Save className="w-5 h-5" />
             )}
-            {showSuccess ? "Saved!" : activeTab === "risk" ? "Save Risk Settings" : "Select Risk Engine to Save"}
+            {showSuccess ? "Saved!" : "Save Settings"}
           </button>
         </div>
 
@@ -138,20 +152,21 @@ export default function SettingsPage() {
                 <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Institution Name</label>
-                    <input type="text" defaultValue="Sentinel University" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                    <input type="text" value={settings.institution_name} onChange={(event) => setSettings({ ...settings, institution_name: event.target.value })} className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Support Email</label>
-                    <input type="email" defaultValue="support@sentinel.edu" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                    <input type="email" value={settings.support_email} onChange={(event) => setSettings({ ...settings, support_email: event.target.value })} className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                   </div>
 
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Default Timezone</label>
-                    <select className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-                      <option>UTC (Coordinated Universal Time)</option>
-                      <option>EST (Eastern Standard Time)</option>
-                      <option>PST (Pacific Standard Time)</option>
+                    <select value={settings.timezone} onChange={(event) => setSettings({ ...settings, timezone: event.target.value })} className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                      <option value="UTC">UTC (Coordinated Universal Time)</option>
+                      <option value="Asia/Kolkata">India Standard Time</option>
+                      <option value="America/New_York">Eastern Time</option>
+                      <option value="America/Los_Angeles">Pacific Time</option>
                     </select>
                   </div>
                 </div>
@@ -220,7 +235,7 @@ export default function SettingsPage() {
                       <p className="text-sm text-slate-500">Require two-factor authentication for proctors and reviewers.</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <input type="checkbox" checked={settings.enforce_admin_2fa} onChange={(event) => setSettings({ ...settings, enforce_admin_2fa: event.target.checked })} className="sr-only peer" />
                       <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
@@ -230,10 +245,10 @@ export default function SettingsPage() {
                       <p className="font-semibold text-slate-900">Video Evidence Retention</p>
                       <p className="text-sm text-slate-500">How long to store webcam snapshots for flagged exams.</p>
                     </div>
-                    <select className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none">
-                      <option>30 Days</option>
-                      <option>90 Days</option>
-                      <option>1 Year</option>
+                    <select value={settings.evidence_retention_days} onChange={(event) => setSettings({ ...settings, evidence_retention_days: Number(event.target.value) })} className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none">
+                      <option value={30}>30 Days</option>
+                      <option value={90}>90 Days</option>
+                      <option value={365}>1 Year</option>
                     </select>
                   </div>
                 </div>
@@ -251,7 +266,7 @@ export default function SettingsPage() {
                       <p className="text-sm text-slate-500">Email lead proctors immediately when a candidate hits Critical risk.</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <input type="checkbox" checked={settings.critical_risk_email_alerts} onChange={(event) => setSettings({ ...settings, critical_risk_email_alerts: event.target.checked })} className="sr-only peer" />
                       <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
