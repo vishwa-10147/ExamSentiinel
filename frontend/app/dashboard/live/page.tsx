@@ -1,8 +1,11 @@
 "use client";
+
 export const dynamic = "force-dynamic";
+
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { ShieldCheck, Loader2 } from "lucide-react";
 
 export default function LiveRedirect() {
   const router = useRouter();
@@ -10,17 +13,31 @@ export default function LiveRedirect() {
 
   useEffect(() => {
     if (!isLoading) {
-      if (user && (user.role === "admin" || user.role === "proctor")) {
-        router.push("/" + user.role + "/live");
+      if (user && user.role) {
+        const role = user.role.toLowerCase();
+        if (role === "admin" || role === "proctor") {
+          router.replace("/admin/live");
+        } else {
+          router.replace("/candidate/dashboard");
+        }
       } else {
-        router.push("/dashboard");
+        router.replace("/auth/login");
       }
     }
   }, [user, isLoading, router]);
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-slate-50">
-      <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-slate-950 text-white space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 bg-blue-600/20 border border-blue-500/30 rounded-xl">
+          <ShieldCheck className="h-8 w-8 text-blue-400 animate-pulse" />
+        </div>
+        <span className="text-xl font-bold tracking-tight text-white">ExamSentinel</span>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+        <span>Connecting to Live Proctoring Center...</span>
+      </div>
     </div>
   );
 }
