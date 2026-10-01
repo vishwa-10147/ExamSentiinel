@@ -82,7 +82,7 @@ export default function CandidateResultsPage() {
                   ) : (
                     results.map((res) => (
                       <tr key={res.session_id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{res.exam_title}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{res.exam_name || res.exam_title || "Examination"}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{res.submitted_at ? new Date(res.submitted_at).toLocaleDateString() : "—"}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">{res.results_published ? `${res.total_score ?? 0} / ${res.max_score ?? 0} (${Number(res.percentage ?? 0).toFixed(1)}%)` : "Pending publication"}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
