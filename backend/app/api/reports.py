@@ -107,8 +107,6 @@ async def exam_integrity_pdf(
     from reportlab.pdfgen import canvas
 
     exam, rows = await _load_exam_report(exam_id, db)
-    output = StringIO()
-    pdf_bytes = bytearray()
     from io import BytesIO
 
     buffer = BytesIO()
@@ -130,6 +128,95 @@ async def exam_integrity_pdf(
         content=buffer.getvalue(),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{exam.id}-integrity.pdf"'},
+    )
+
+
+@router.get("/session/{session_id}/pdf")
+async def session_audit_pdf(
+    session_id: uuid.UUID,
+    current_user: User = Depends(require_roles(_REPORT_ROLES)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export a multi-page detailed session audit report for evaluators."""
+    result = await db.execute(
+        select(ExamSession)
+        .options(selectinload(ExamSession.exam), selectinload(ExamSession.candidate))
+        .where(ExamSession.id == session_id)
+    )
+    session_obj = result.scalar_one_or_none()
+    if not session_obj:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    events_res = await db.execute(
+        select(ProctoringEvent)
+        .where(ProctoringEvent.session_id == session_id)
+        .order_by(ProctoringEvent.created_at.asc())
+    )
+    events = events_res.scalars().all()
+
+    from io import BytesIO
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    styles = getSampleStyleSheet()
+
+    header_style = ParagraphStyle('Header', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=20, leading=24, textColor=colors.HexColor('#0f172a'))
+    sub_style = ParagraphStyle('SubHeader', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=12, leading=16, textColor=colors.HexColor('#2563eb'))
+    text_style = ParagraphStyle('BodyText', parent=styles['Normal'], fontName='Helvetica', fontSize=10, leading=14, textColor=colors.HexColor('#334155'))
+
+    candidate_name = session_obj.candidate.full_name if session_obj.candidate else "Candidate"
+    candidate_email = session_obj.candidate.email if session_obj.candidate else "N/A"
+    exam_title = session_obj.exam.title if session_obj.exam else "Exam"
+
+    elements = [
+        Paragraph("EXAMSENTINEL AUDIT REPORT", sub_style),
+        Spacer(1, 4),
+        Paragraph(f"Proctored Session Audit: {candidate_name}", header_style),
+        Spacer(1, 10),
+        Paragraph(f"Candidate Email: {candidate_email} &nbsp;|&nbsp; Exam: <b>{exam_title}</b>", text_style),
+        Paragraph(f"Session ID: {session_id} &nbsp;|&nbsp; Overall Risk Level: <b>{session_obj.risk_level}</b> ({session_obj.current_risk_score:.1f})", text_style),
+        Spacer(1, 15),
+        Paragraph("Chronological Integrity Telemetry Log", sub_style),
+        Spacer(1, 8),
+    ]
+
+    table_data = [["Timestamp", "Event Type", "Severity", "Details"]]
+    for evt in events:
+        table_data.append([
+            evt.created_at.strftime("%H:%M:%S") if evt.created_at else "",
+            evt.event_type[:24],
+            evt.severity or "INFO",
+            (evt.details.get("message") if isinstance(evt.details, dict) else str(evt.details or ""))[:35]
+        ])
+
+    if len(table_data) == 1:
+        table_data.append(["N/A", "NO_EVENTS_LOGGED", "INFO", "Session completed cleanly with zero flags."])
+
+    t = Table(table_data, colWidths=[80, 160, 80, 220])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f1f5f9')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+    ]))
+    elements.append(t)
+
+    doc.build(elements)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="AuditReport_{str(session_id)[:8]}.pdf"'},
     )
 
 

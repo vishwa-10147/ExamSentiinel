@@ -75,12 +75,33 @@ export default function CandidateResultDetailPage() {
           <p className="text-slate-400 text-sm">Session ID: <span className="font-mono text-slate-300">{sessionId}</span></p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 sm:p-5 border border-white/10 text-center min-w-[200px] w-full md:w-auto">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Final Grade</div>
-          <div className="text-3xl font-extrabold text-white">
-            {totalAwarded} <span className="text-lg font-normal text-slate-400">/ {totalPossible}</span>
+        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 sm:p-5 border border-white/10 text-center min-w-[200px] w-full md:w-auto space-y-3">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Final Grade</div>
+            <div className="text-3xl font-extrabold text-white">
+              {totalAwarded} <span className="text-lg font-normal text-slate-400">/ {totalPossible}</span>
+            </div>
+            <div className="text-xs font-medium text-emerald-400 mt-1">{percentage}% Aggregate Score</div>
           </div>
-          <div className="text-xs font-medium text-emerald-400 mt-1">{percentage}% Aggregate Score</div>
+
+          <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/results/session/${sessionId}/certificate`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+            >
+              <Award className="w-3.5 h-3.5" /> Download Certificate
+            </a>
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/reports/session/${sessionId}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition-all border border-slate-700"
+            >
+              <FileText className="w-3.5 h-3.5" /> PDF Audit Report
+            </a>
+          </div>
         </div>
       </div>
 

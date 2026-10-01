@@ -22,7 +22,17 @@ function ExamReadinessContent() {
   const [micStatus, setMicStatus] = useState<"pending" | "checking" | "passed" | "failed">("pending");
   const [fullscreenStatus, setFullscreenStatus] = useState<"pending" | "passed">("pending");
   const [networkStatus, setNetworkStatus] = useState<"pending" | "checking" | "passed">("pending");
+  const [multiMonitorStatus, setMultiMonitorStatus] = useState<"passed" | "warning">("passed");
   const [consentAgreed, setConsentAgreed] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isExtended = (window.screen as any).isExtended || (window.screen as any).availWidth > window.screen.width;
+      if (isExtended) {
+        setMultiMonitorStatus("warning");
+      }
+    }
+  }, []);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -259,6 +269,31 @@ function ExamReadinessContent() {
                 >
                   Test Connection
                 </button>
+              )}
+            </div>
+
+            {/* 4. Multi-Monitor Display Check */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-indigo-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 002-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Display & Monitor Topology</h3>
+                  <p className="text-xs text-slate-400">Single active display monitor recommended</p>
+                </div>
+              </div>
+
+              {multiMonitorStatus === "passed" ? (
+                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold">
+                  ✓ Single Display
+                </span>
+              ) : (
+                <span className="px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-semibold">
+                  ⚠ Extended Display Detected
+                </span>
               )}
             </div>
           </div>
