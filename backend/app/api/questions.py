@@ -216,6 +216,8 @@ async def submit_question_code(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from app.services.sandbox_service import sandbox_service
+    
     # Fetch question and get correct_answer
     result = await db.execute(select(Question).where(Question.id == question_id))
     question = result.scalar_one_or_none()
@@ -223,80 +225,61 @@ async def submit_question_code(
         raise HTTPException(status_code=404, detail="Question not found")
         
     correct_answer = question.correct_answer or {}
-    test_cases = correct_answer.get("test_cases", [])
-    
+    test_cases = []
+    if isinstance(correct_answer, dict):
+        test_cases = correct_answer.get("test_cases", [])
+    elif isinstance(correct_answer, list):
+        test_cases = correct_answer
+
+    # If no test cases configured, provide a default echo test case
     if not test_cases:
-        return CodeSubmitResponse(status="success", overall_passed=True, test_results=[])
+        test_cases = [{"input": "", "output": ""}]
 
-    inputs = [tc.get("input", "") for tc in test_cases]
-    expected_outputs = [tc.get("output", "") for tc in test_cases]
+    lang = req.language.lower()
+    if lang == "c++":
+        lang = "cpp"
 
-    # Queue to execution engine
-    job_id = str(uuid.uuid4())
-    queue_name = "examsentinel:sandbox:queue"
-    result_key = f"examsentinel:sandbox:result:{job_id}"
-    
-    r = redis.from_url(str(settings.REDIS_URL))
-    payload = json.dumps({
-        "job_id": job_id,
-        "language": req.language.lower(),
-        "code": req.code,
-        "test_cases": inputs
-    })
-    await r.rpush(queue_name, payload)
-    
-    # Wait for execution worker to process and write to result_key
-    worker_result = None
-    import asyncio
-    for _ in range(150):
-        res_bytes = await r.get(result_key)
-        if res_bytes:
-            worker_result = json.loads(res_bytes)
-            break
-        await asyncio.sleep(0.1)
-    await r.aclose()
-        
-    if not worker_result:
-        raise HTTPException(status_code=500, detail="Execution engine timeout")
-
-    # Evaluate results
     test_results = []
     overall_passed = True
-    
-    worker_tc_results = worker_result.get("test_results", [])
-    
+
     for i, tc in enumerate(test_cases):
-        if i < len(worker_tc_results):
-            wtc = worker_tc_results[i]
-            actual = wtc.get("stdout", "").strip()
-            expected = str(tc.get("output", "")).strip()
-            passed = (wtc.get("status") == "success" and actual == expected)
+        input_data = str(tc.get("input", ""))
+        expected = str(tc.get("output", "")).strip()
+
+        try:
+            exec_res = await sandbox_service.execute_async(
+                language=lang,
+                source_code=req.code,
+                stdin=input_data,
+                timeout_sec=5.0,
+                memory_mb=128
+            )
+            actual = exec_res.stdout.strip()
+            passed = (exec_res.status == "success" and (actual == expected or not expected))
             if not passed:
                 overall_passed = False
-                
+
             test_results.append(TestResult(
-                input=str(tc.get("input", "")),
+                input=input_data,
                 expected=expected,
                 actual=actual,
                 passed=passed,
-                status=wtc.get("status", "error"),
-                wall_time_ms=wtc.get("wall_time_ms", 0.0),
-                error=wtc.get("stderr", "")
+                status=exec_res.status,
+                wall_time_ms=float(exec_res.wall_time_ms),
+                error=exec_res.stderr
             ))
-        else:
+        except Exception as e:
             overall_passed = False
             test_results.append(TestResult(
-                input=str(tc.get("input", "")),
-                expected=str(tc.get("output", "")),
+                input=input_data,
+                expected=expected,
                 actual="",
                 passed=False,
-                status="missing",
+                status="error",
                 wall_time_ms=0.0,
-                error="Test case execution failed to return"
+                error=str(e)
             ))
 
-    # Here we would normally record the submission in the database for the Heatmap!
-    
     return CodeSubmitResponse(
         status="success",
         overall_passed=overall_passed,
