@@ -1,5 +1,6 @@
 import csv
 import io
+import secrets
 import uuid
 from typing import List
 
@@ -12,6 +13,8 @@ from app.core.database import get_db
 from app.models.question import Question, QuestionType, ExamQuestion
 from app.models.user import User, UserRole
 from app.services.roll_parser import default_parser
+from app.services.email_service import email_service
+from app.services.email_templates import get_welcome_template
 
 router = APIRouter(prefix="/imports", tags=["Imports"])
 
@@ -72,6 +75,11 @@ async def import_students(
 ):
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported")
+    if not email_service.configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Student import requires configured email delivery so each student can receive secure credentials.",
+        )
         
     content = await file.read()
     try:
@@ -99,20 +107,27 @@ async def import_students(
                 roll_no=roll_number
             )
             
-            # Use default password for bulk imports (in real app, trigger email reset)
+            temporary_password = secrets.token_urlsafe(18)
             from app.core.security import get_password_hash
-            user.hashed_password = get_password_hash("Student123!")
+            user.hashed_password = get_password_hash(temporary_password)
             
             db.add(user)
             imported_count += 1
             
-            from app.services.email_service import email_service
-            await email_service.send(
+            delivered = await email_service.send(
                 [user.email],
                 "ExamSentinel account created",
-                f"<p>Hello {user.full_name}, your account has been created.</p>",
-                "Your ExamSentinel account has been created.",
+                get_welcome_template(
+                    user.full_name,
+                    user.email,
+                    temporary_password,
+                    "https://examsentinel-frontend.onrender.com/auth/login",
+                ),
+                f"Hello {user.full_name}, your ExamSentinel account has been created. "
+                f"Temporary password: {temporary_password}",
             )
+            if not delivered:
+                raise RuntimeError(f"Welcome email could not be delivered to {user.email}")
             
         await db.commit()
         return {"status": "success", "imported": imported_count}
