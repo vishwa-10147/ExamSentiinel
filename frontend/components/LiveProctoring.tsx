@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
@@ -199,7 +200,7 @@ export default function LiveProctoringDashboard() {
                 {/* Simulated Video Feed */}
                 <div className="bg-slate-900 aspect-video relative flex items-center justify-center">
                   {sessionSignals.latestFrame ? (
-                    <img src={sessionSignals.latestFrame} alt="Latest candidate camera frame" className="h-full w-full object-cover" />
+                    <Image src={sessionSignals.latestFrame} alt="Latest candidate camera frame" fill sizes="(max-width: 768px) 100vw, 33vw" unoptimized className="object-cover" />
                   ) : (
                     <Video className="h-10 w-10 text-slate-700" />
                   )}

@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
@@ -109,13 +109,13 @@ export default function ManageExamPage() {
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const showToast = (message: string, type: "info" | "success" | "warning" = "info") => {
+  const showToast = useCallback((message: string, type: "info" | "success" | "warning" = "info") => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
-  };
+  }, []);
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -152,7 +152,7 @@ export default function ManageExamPage() {
       }
     };
     void loadCohort();
-  }, [examId, authLoading, user, cohortFilters]);
+  }, [examId, authLoading, user, cohortFilters, showToast]);
 
   const handleCohortEnrollment = async () => {
     try {
@@ -171,7 +171,7 @@ export default function ManageExamPage() {
     }
   };
 
-  const fetchExam = async () => {
+  const fetchExam = useCallback(async () => {
     try {
       const response: any = await apiClient.get(`/api/exams/${examId}`);
       if (response && response.id) {
@@ -187,7 +187,7 @@ export default function ManageExamPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [examId, showToast]);
 
   useEffect(() => {
     if (!authLoading && user && !["admin", "proctor"].includes(user.role)) {
@@ -198,7 +198,7 @@ export default function ManageExamPage() {
     if (examId) {
       fetchExam();
     }
-  }, [examId, user, authLoading, router]);
+  }, [examId, user, authLoading, router, fetchExam]);
 
   // Filter candidates based on search query and status filter
   const filteredCandidates = useMemo(() => {

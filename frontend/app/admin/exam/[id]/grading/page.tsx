@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { apiClient } from "@/services/apiClient";
 import { toast } from "react-hot-toast";
@@ -12,11 +12,7 @@ export default function GradingDashboard() {
   const [plagiarismFlags, setPlagiarismFlags] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [examId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch submissions
@@ -35,7 +31,11 @@ export default function GradingDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [examId]);
+
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const submitGrade = async (responseId: string, marks: number, isCorrect: boolean) => {
     try {
