@@ -2,36 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 15, 23, 42;
-  --background-start-rgb: 248, 250, 252;
-  --background-end-rgb: 255, 255, 255;
+@layer base {
+  :root {
+    --foreground-rgb: 15, 23, 42;
+    --background-start-rgb: 248, 250, 252;
+    --background-end-rgb: 255, 255, 255;
+  }
+
+  .dark {
+    --foreground-rgb: 248, 250, 252;
+    --background-start-rgb: 11, 15, 25;
+    --background-end-rgb: 6, 9, 17;
+  }
+
+  body {
+    color: rgb(var(--foreground-rgb));
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgb(var(--background-end-rgb))
+      )
+      rgb(var(--background-start-rgb));
+    min-height: 100vh;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Sleek custom scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-700/80 rounded-full transition-colors hover:bg-slate-400 dark:hover:bg-slate-600;
+  }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-  min-height: 100vh;
+@layer utilities {
+  /* Dynamic Glassmorphism Card Panels */
+  .glass-card {
+    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all duration-300;
+  }
+
+  .glass-card-hover {
+    @apply glass-card hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-0.5 hover:border-blue-500/30 dark:hover:border-blue-500/40;
+  }
+
+  .glass-panel {
+    @apply bg-slate-900/90 dark:bg-slate-950/90 backdrop-blur-xl border border-slate-800 shadow-2xl;
+  }
+
+  /* Sleek Gradient Text */
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400;
+  }
+
+  .text-gradient-emerald {
+    @apply bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent dark:from-emerald-400 dark:to-teal-300;
+  }
+
+  .text-gradient-rose {
+    @apply bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent dark:from-rose-400 dark:to-pink-400;
+  }
+
+  /* Micro-interactions & animations */
+  .hover-lift {
+    @apply transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-glow hover:border-blue-400/50;
+  }
+
+  /* Custom Status Badges with glowing LED indicators */
+  .badge-low {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 dark:border-emerald-500/30 shadow-sm shadow-emerald-500/5;
+  }
+
+  .badge-medium {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 dark:border-amber-500/30 shadow-sm shadow-amber-500/5;
+  }
+
+  .badge-high {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-500/20 dark:border-orange-500/30 shadow-sm shadow-orange-500/5;
+  }
+
+  .badge-critical {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 dark:border-rose-500/40 shadow-sm shadow-rose-500/20 animate-pulse;
+  }
+
+  /* Live Radar Grid overlay for proctoring camera feeds */
+  .radar-grid {
+    background-size: 24px 24px;
+    background-image: 
+      linear-gradient(to right, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+  }
 }
 
-/* Custom badge styling */
-.badge-low {
-  @apply bg-emerald-100 text-emerald-800 border border-emerald-300;
-}
-
-.badge-medium {
-  @apply bg-amber-100 text-amber-800 border border-amber-300;
-}
-
-.badge-high {
-  @apply bg-orange-100 text-orange-800 border border-orange-300;
-}
-
-.badge-critical {
-  @apply bg-rose-100 text-rose-800 border border-rose-300 animate-pulse;
-}

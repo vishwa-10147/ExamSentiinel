@@ -42,14 +42,15 @@ export default function Navbar() {
   const homeHref = isAuthenticated && user ? `/${user.role}/dashboard` : "/";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/95 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md transition-all shadow-sm">
+      <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-4">
             {isAuthenticated && (
               <button
                 onClick={toggleSidebar}
-                className="p-2 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/80 transition-all duration-200"
                 aria-label="Toggle Sidebar"
               >
                 <Menu className="h-6 w-6" />
@@ -58,15 +59,11 @@ export default function Navbar() {
           </div>
         </div>
         
-        {/* We moved the profile to Sidebar, but we want the logo in the center or right? */}
-        {/* "the navbutton should work only for navigation and it should be on tehe navigation side but not examsentinel" */}
-        {/* This implies ExamSentinel logo should be separate from the hamburger menu. Let's put ExamSentinel in the center or right. Let's put it on the right! */}
-        
         <div className="flex items-center">
-          <Link href={homeHref} className="flex items-center gap-2" aria-label="ExamSentinel dashboard">
-            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="h-10 w-auto object-contain drop-shadow-sm" />
+          <Link href={homeHref} className="flex items-center gap-2.5 group" aria-label="ExamSentinel dashboard">
+            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="h-10 w-auto object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105" />
             <div>
-              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">ExamSentinel</span>
+              <span className="text-xl font-extrabold tracking-tight text-gradient-primary">ExamSentinel</span>
             </div>
           </Link>
         </div>
