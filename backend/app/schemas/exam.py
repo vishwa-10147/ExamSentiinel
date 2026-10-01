@@ -67,6 +67,8 @@ class ExamQuestionDetail(BaseModel):
     title: str
     type: str
     points: float
+    options: Optional[Any] = None
+    correct_answer: Optional[Any] = None
 
     model_config = ConfigDict(from_attributes=True)
 
