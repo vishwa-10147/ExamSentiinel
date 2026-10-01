@@ -490,10 +490,14 @@ async def upload_evidence(
     new_event = ProctoringEvent(
         id=uuid.uuid4(),
         session_id=session_id,
+        candidate_id=session.candidate_id,
+        exam_id=session.exam_id,
         event_type=payload.event_type,
-        timestamp=datetime.now(timezone.utc),
+        category=EventCategory.WEBCAM,
+        severity=EventSeverity.INFO,
         details={"image_url": image_url, **(payload.metadata or {})},
-        risk_score_delta=0.0
+        snapshot_url=image_url or None,
+        client_timestamp=datetime.now(timezone.utc),
     )
     db.add(new_event)
     await db.commit()

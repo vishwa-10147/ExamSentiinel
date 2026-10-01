@@ -470,6 +470,7 @@ export default function ExamTakingPage() {
               onPrev={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
               isFirst={currentQuestionIndex === 0}
               isLast={currentQuestionIndex === questions.length - 1}
+              sessionId={session?.session_id}
             />
           ) : (
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">

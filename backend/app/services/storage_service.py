@@ -18,8 +18,8 @@ class StorageService:
     def upload_base64_image(self, base64_str: str, prefix: str = "evidence") -> str:
         """Uploads a base64 image to S3 and returns the public URL."""
         if not self.enabled:
-            logger.info("[STORAGE MOCK] Image upload skipped (AWS_BUCKET_NAME not set)")
-            return "https://mock-storage.local/evidence.jpg"
+            logger.warning("Evidence storage is not configured; recording the event without an image")
+            return ""
 
         try:
             # Strip header if present (e.g. data:image/jpeg;base64,...)

@@ -24,6 +24,7 @@ interface QuestionCardProps {
   onPrev: () => void;
   isFirst: boolean;
   isLast: boolean;
+  sessionId?: string;
 }
 
 export const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -39,25 +40,23 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   onPrev,
   isFirst,
   isLast,
+  sessionId,
 }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [output, setOutput] = useState<string[]>([]);
   const [activeLang, setActiveLang] = useState("python");
 
-  const runCode = async () => {
+  const runCode = async (languageOverride = activeLang) => {
     if (!responseData?.text) return;
     setIsExecuting(true);
     setOutput(["Executing code..."]);
     try {
-      // Ensure we extract session_id from URL or pass it down. 
-      // For now, we assume window.location parsing or it's fetched. 
-      // Actually, QuestionCard doesn't know session_id. Let's just pull it from pathname.
-      const sessionId = window.location.pathname.split("/").pop();
+      if (!sessionId) throw new Error("Exam session is not ready");
       
       const data = await apiClient.post<any>("/api/code/execute", {
         session_id: sessionId,
         question_id: question.id,
-        language: activeLang,
+        language: languageOverride,
         source_code: responseData.text
       });
       let outLines: string[] = [];
@@ -264,7 +263,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   onClick={() => {
                      const old = activeLang;
                      setActiveLang("sql");
-                     runCode().then(() => setActiveLang(old));
+                     runCode("sql").then(() => setActiveLang(old));
                   }}
                   disabled={isExecuting}
                   className="px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/40 rounded text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
@@ -322,7 +321,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   </span>
                   <select 
                     value={activeLang}
-                    onChange={(e) => setActiveLang(e.target.value)}
+                    onChange={(e) => {
+                      setActiveLang(e.target.value);
+                      onAnswerChange({ text: responseData?.text || "", language: e.target.value });
+                    }}
                     className="bg-slate-900 border border-slate-700 text-xs text-white rounded px-2 py-1 outline-none"
                   >
                     <option value="python">Python</option>
@@ -333,7 +335,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   </select>
                 </div>
                 <button 
-                  onClick={runCode}
+                  onClick={() => runCode()}
                   disabled={isExecuting}
                   className="px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/40 rounded text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
                 >
@@ -347,7 +349,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   theme="vs-dark"
                   language={activeLang}
                   value={responseData?.text || "# Write your code here\\n"}
-                  onChange={(val) => onAnswerChange({ text: val || "" })}
+                  onChange={(val) => onAnswerChange({ text: val || "", language: activeLang })}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 14,
