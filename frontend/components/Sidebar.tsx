@@ -63,28 +63,34 @@ export default function Sidebar() {
   };
 
   const navItems = [
+    // Shared / Role-specific Dashboards
     { label: "Dashboard", href: `/${user?.role || 'candidate'}/dashboard`, icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
-    { label: "Live Proctoring", href: `/${user?.role || 'proctor'}/live`, icon: Video, roles: ["admin", "proctor"] },
+    
+    // Proctor / Admin routes
+    { label: "Live Proctoring", href: `/${user?.role === 'admin' ? 'admin' : 'proctor'}/live`, icon: Video, roles: ["admin", "proctor"] },
+    
+    // Admin routes
     { label: "Exam Center", href: "/admin/exam", icon: ClipboardList, roles: ["admin"] },
     { label: "Question Bank", href: "/admin/questions", icon: Library, roles: ["admin"] },
     { label: "Results", href: "/admin/results", icon: FileCheck2, roles: ["admin"] },
     { label: "Review Queue", href: "/admin/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
-
     { label: "Broadcast", href: "/admin/broadcast", icon: Mail, roles: ["admin"] },
     { label: "Audit Logs", href: "/admin/audit", icon: History, roles: ["admin"] },
     { label: "User Management", href: "/admin/users", icon: Users, roles: ["admin"] },
-    { label: "Settings", href: "/admin/settings", icon: Settings,
-  ScanFace, roles: ["admin"] },
+    { label: "Settings", href: "/admin/settings", icon: Settings, roles: ["admin"] },
     
     // Candidate routes
     { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
+    { label: "Practice Lab", href: "/candidate/practice", icon: Code2, roles: ["candidate"] },
+    { label: "Problem Set", href: "/candidate/problems", icon: Library, roles: ["candidate"] },
     { label: "My Results", href: "/candidate/results", icon: FileCheck2, roles: ["candidate"] },
     { label: "Leaderboard", href: "/candidate/leaderboard", icon: Trophy, roles: ["candidate"] },
     { label: "My Profile", href: "/candidate/profile", icon: User, roles: ["candidate"] },
   ];
 
+  const currentRole = user?.role || "candidate";
   const filteredItems = navItems.filter((item) =>
-    user?.role ? item.roles.includes(user.role) : false
+    item.roles.includes(currentRole)
   );
 
   return (
