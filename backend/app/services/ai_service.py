@@ -1,5 +1,6 @@
 import os
 import json
+import httpx
 from typing import List, Dict, Any
 from app.core.logging import logger
 
@@ -13,14 +14,19 @@ class AIService:
         multiple-choice questions formatted as JSON.
         """
         if not self.api_key:
-            logger.warning("OPENAI_API_KEY not configured. Returning mock AI generated questions.")
-            return self._generate_mock_questions(syllabus_text, question_count)
+            raise RuntimeError("AI question generation is not configured. Set OPENAI_API_KEY to enable it.")
 
-        # In a real implementation, we would use the `openai` Python package or `langchain`.
-        # For now, we simulate the LLM call asynchronously if the key exists.
-        logger.info(f"Calling OpenAI to generate {question_count} questions based on syllabus...")
-        # TODO: Implement OpenAI ChatCompletion call here
-        return self._generate_mock_questions(syllabus_text, question_count)
+        prompt = (
+            f"Create exactly {question_count} multiple-choice questions from this syllabus:\n{syllabus_text}\n"
+            "Return only a JSON object with a questions array. Each item must contain text, points, data with an options array "
+            "of objects containing id and text, and correct_answer with secret_key."
+        )
+        content = await self._chat(prompt)
+        parsed = json.loads(content)
+        questions = parsed.get("questions") if isinstance(parsed, dict) else parsed
+        if not isinstance(questions, list) or len(questions) != question_count:
+            raise ValueError("AI returned an invalid question set")
+        return questions
 
     async def grade_essay(self, question_text: str, student_answer: str, rubric: str) -> Dict[str, Any]:
         """
@@ -28,17 +34,30 @@ class AIService:
         and returns a score and feedback string.
         """
         if not self.api_key:
-            logger.warning("OPENAI_API_KEY not configured. Returning mock AI essay grade.")
-            return {
-                "score": 85.0,
-                "feedback": "This is a mock AI grade. The student demonstrated basic understanding but lacked depth in certain areas."
-            }
-            
-        # TODO: Implement OpenAI ChatCompletion call here
-        return {
-            "score": 90.0,
-            "feedback": "AI Graded: Excellent grasp of the core concepts described in the rubric."
-        }
+            raise RuntimeError("AI essay grading is not configured. Set OPENAI_API_KEY to enable it.")
+
+        content = await self._chat(
+            "Grade this answer and return only JSON with numeric score from 0 to 100 and feedback string.\n"
+            f"Question: {question_text}\nRubric: {rubric}\nAnswer: {student_answer}"
+        )
+        result = json.loads(content)
+        return {"score": max(0.0, min(float(result["score"]), 100.0)), "feedback": str(result["feedback"])}
+
+    async def _chat(self, prompt: str) -> str:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                json={
+                    "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.2,
+                    "response_format": {"type": "json_object"},
+                },
+            )
+            response.raise_for_status()
+            payload = response.json()
+            return payload["choices"][0]["message"]["content"]
 
     def _generate_mock_questions(self, syllabus: str, count: int) -> List[Dict[str, Any]]:
         questions = []

@@ -30,23 +30,19 @@ export default function LabExamPage() {
     setIsRunning(true);
     setOutput(["Dispatching to secure execution cluster..."]);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/sandbox/execute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ language, source_code: code, stdin: "", time_limit_sec: 5.0, memory_limit_mb: 256 })
+      const data = await apiClient.post<{ stdout?: string; stderr?: string }>("/api/sandbox/execute", {
+        language,
+        code,
+        stdin: "",
       });
-      const data = await res.json();
-      if (res.ok) {
+      if (data) {
         setOutput(data.stdout ? data.stdout.split("\n") : []);
         if (data.stderr) {
-          setOutput(prev => [...prev, ...data.stderr.split("\n")]);
+          setOutput(prev => [...prev, ...data.stderr!.split("\n")]);
         }
-      } else {
-        setOutput(["Execution failed.", JSON.stringify(data)]);
       }
     } catch (err) {
-      setOutput(["Connection error. Please try again."]);
+      setOutput([err instanceof Error ? err.message : "Connection error. Please try again."]);
     } finally {
       setIsRunning(false);
     }

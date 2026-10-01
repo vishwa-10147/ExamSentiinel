@@ -19,9 +19,25 @@ export default function ReviewDetailPage() {
   useEffect(() => {
     const fetchReview = async () => {
       try {
-        const response: any = await apiClient.get(`/api/reviews/${id}`);
+        const [response, evidence]: any[] = await Promise.all([
+          apiClient.get(`/api/reviews/${id}`),
+          apiClient.get(`/api/reviews/${id}/evidence`),
+        ]);
         if (response && response.id) {
-          setReview(response);
+          setReview({
+            ...response,
+            candidateName: response.candidate_id,
+            candidateId: response.candidate_id,
+            examName: response.exam_id,
+            date: response.created_at,
+            riskScore: response.risk_score_at_creation,
+            timeline: (evidence?.events || []).map((event: any) => ({
+              id: event.id,
+              time: new Date(event.created_at).toLocaleString(),
+              type: event.severity || event.category || "INFO",
+              description: event.event_type,
+            })),
+          });
         } else {
           setError('Review not found.');
         }
@@ -40,9 +56,8 @@ export default function ReviewDetailPage() {
   const handleAction = async (action: 'DISMISS' | 'CONFIRM' | 'ESCALATE') => {
     setSubmitting(true);
     try {
-      await apiClient.post(`/reviews/${id}/action`, { action });
-      // Simulate success and redirect
-      router.push('/review');
+      await apiClient.post(`/api/reviews/${id}/actions`, { action });
+      router.push('/admin/review');
     } catch (err) {
       console.error('Failed to submit action:', err);
       setError('Failed to submit action. Please try again.');

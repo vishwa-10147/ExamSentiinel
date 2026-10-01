@@ -12,6 +12,9 @@ from app.api.deps import get_db, log_audit_event, require_roles
 from app.core.security import get_password_hash, verify_password
 from app.models.institution import Institution
 from app.models.user import User, UserRole
+from app.models.audit_log import AuditLog
+from sqlalchemy.orm import joinedload
+import json
 from app.schemas.user import UserCreate, UserResponse, UserUpdate, UserPasswordUpdate
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -179,6 +182,39 @@ async def get_my_activity(
         "max_streak": 0,
         "daily_counts": {str(row.date): row.count for row in rows}
     }
+
+
+@router.get("/audit", response_model=List[dict])
+async def list_audit_logs(
+    limit: int = 100,
+    offset: int = 0,
+    current_user: User = Depends(require_roles([UserRole.ADMIN])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return recent audit events for the admin audit console."""
+    limit = min(max(limit, 1), 500)
+    offset = max(offset, 0)
+    result = await db.execute(
+        select(AuditLog)
+        .options(joinedload(AuditLog.user))
+        .order_by(AuditLog.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    logs = result.scalars().unique().all()
+    return [
+        {
+            "id": str(log.id),
+            "timestamp": log.created_at.isoformat(),
+            "action": log.action,
+            "user": log.user.full_name if log.user else "System",
+            "role": log.user.role.value if log.user else "system",
+            "ip_address": log.ip_address or "—",
+            "status": "error" if log.action.endswith("_FAILED") else "success",
+            "details": json.dumps(log.details) if log.details else None,
+        }
+        for log in logs
+    ]
 
 @router.put("/me", response_model=UserResponse)
 async def update_user_me(

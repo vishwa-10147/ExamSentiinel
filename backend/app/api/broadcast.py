@@ -16,6 +16,7 @@ router = APIRouter(prefix="/admin/broadcast", tags=["Broadcast"])
 
 class BroadcastRequest(BaseModel):
     target_role: Optional[UserRole] = None
+    all_users: bool = False
     exam_id: Optional[uuid.UUID] = None
     user_ids: Optional[List[uuid.UUID]] = None
     subject: str
@@ -29,7 +30,12 @@ async def send_broadcast(
 ):
     emails = set()
     
-    # 1. Target Role
+    # 1. Target all users or a specific role.
+    if payload.all_users:
+        result = await db.execute(select(User))
+        for u in result.scalars().all():
+            emails.add(u.email)
+
     if payload.target_role:
         result = await db.execute(select(User).where(User.role == payload.target_role))
         for u in result.scalars().all():

@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import React, { useState } from "react";
 import Editor from "@monaco-editor/react";
 import { Play, RotateCcw, Terminal, Code2, CheckCircle2, ChevronDown } from "lucide-react";
+import { apiClient } from "@/services/apiClient";
 
 const DEFAULT_CODES: Record<string, string> = {
   python: `# Welcome to ExamSentinel Practice Playground
@@ -127,21 +128,11 @@ export default function PracticeCodingPage() {
     setActiveTab("console");
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/sandbox/execute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          language: language,
-          code: code,
-          stdin: customInput || undefined
-        }),
+      const data = await apiClient.post<{ stdout?: string; stderr?: string }>("/api/sandbox/execute", {
+        language,
+        code,
+        stdin: customInput || undefined,
       });
-
-      if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
-      }
-
-      const data = await res.json();
       
       let outLines: string[] = [];
       
@@ -160,7 +151,7 @@ export default function PracticeCodingPage() {
 
       setOutput(outLines.filter((line: string) => line.trim() !== ""));
     } catch (err: any) {
-      setOutput([`Execution failed: ${err.message}`, "Could not reach the execution server."]);
+      setOutput([`Execution failed: ${err instanceof Error ? err.message : "Unknown error"}`]);
     } finally {
       setIsRunning(false);
     }

@@ -16,10 +16,16 @@ export default function ReviewQueuePage() {
     const fetchReviews = async () => {
       try {
         const response: any = await apiClient.get('/api/reviews');
-        if (response && Array.isArray(response)) {
-          setReviews(response);
-        } else if (response && response.items) {
-          setReviews(response.items);
+        const items = Array.isArray(response) ? response : response?.items || [];
+        if (items.length) {
+          setReviews(items.map((item: any) => ({
+            ...item,
+            candidateName: item.candidate_id,
+            candidateId: item.candidate_id,
+            examName: item.exam_id,
+            date: item.created_at,
+            riskScore: item.risk_score_at_creation,
+          })));
         } else {
           setReviews([]);
         }

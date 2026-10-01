@@ -33,7 +33,8 @@ export default function BroadcastPage() {
     setSending(true);
     try {
       await apiClient.post("/api/admin/broadcast", {
-        target: recipient,
+        all_users: recipient === "all",
+        target_role: recipient === "all" ? undefined : recipient.slice(0, -1),
         subject,
         body
       });
@@ -42,17 +43,10 @@ export default function BroadcastPage() {
       setBody("");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to send broadcast. Simulating success instead.");
-      // Mocking success
-      setTimeout(() => {
-        toast.success("Broadcast sent successfully! (Mock)");
-        setSubject("");
-        setBody("");
-        setSending(false);
-      }, 1000);
-      return;
+      toast.error(error instanceof Error ? error.message : "Failed to send broadcast.");
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   return (

@@ -1,12 +1,17 @@
-import google.generativeai as genai
 import os
+import re
 from typing import Dict, Any
+
+try:
+    import google.generativeai as genai
+except ImportError:  # Optional integration; the API remains usable without Gemini.
+    genai = None
 
 class AIGradingService:
     def __init__(self):
         # Configure Gemini API
         api_key = os.getenv("GEMINI_API_KEY")
-        if api_key:
+        if api_key and genai is not None:
             genai.configure(api_key=api_key)
             self.model = genai.GenerativeModel("gemini-2.0-flash")
         else:
@@ -40,15 +45,14 @@ SCORE: <number>
 FEEDBACK: <text>
 """
         try:
-            # Note: For async, we should ideally use generate_content_async but wrapping sync for now
-            response = self.model.generate_content(prompt)
+            response = await self.model.generate_content_async(prompt)
             text = response.text
             
-            score_line = [line for line in text.split('\\n') if line.startswith("SCORE:")]
-            feedback_line = [line for line in text.split('\\n') if line.startswith("FEEDBACK:")]
+            score_match = re.search(r"^\\s*SCORE\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)", text, re.MULTILINE | re.IGNORECASE)
+            feedback_match = re.search(r"^\\s*FEEDBACK\\s*:\\s*(.+)$", text, re.MULTILINE | re.IGNORECASE)
             
-            score = float(score_line[0].split("SCORE:")[1].strip()) if score_line else 0.0
-            feedback = feedback_line[0].split("FEEDBACK:")[1].strip() if feedback_line else "No feedback generated."
+            score = float(score_match.group(1)) if score_match else 0.0
+            feedback = feedback_match.group(1).strip() if feedback_match else "No feedback generated."
             
             # Clamp score
             score = max(0.0, min(float(score), max_points))
@@ -60,7 +64,7 @@ FEEDBACK: <text>
         except Exception as e:
             return {
                 "suggested_marks": 0.0,
-                "feedback": f"AI Grading Failed: {str(e)}"
+                "feedback": "AI grading failed. Please grade this response manually."
             }
 
 ai_grader = AIGradingService()

@@ -43,19 +43,20 @@ export default function CreateUserPage() {
 
     try {
       await apiClient.post("/api/users", {
-        ...formData,
-        generatePassword
+        full_name: formData.fullName,
+        email: formData.email,
+        role: formData.role,
+        department: formData.department || undefined,
+        batch_year: formData.batchYear ? Number(formData.batchYear) : undefined,
+        roll_no: formData.rollNumber || undefined,
       });
       toast.success("User created successfully!");
       router.push("/admin/users");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to create user. Simulating success instead.");
-      // Mocking success
-      setTimeout(() => {
-        toast.success("User created successfully! (Mock)");
-        router.push("/admin/users");
-      }, 1000);
+      toast.error(error instanceof Error ? error.message : "Failed to create user.");
+    } finally {
+      setLoading(false);
     }
   };
 

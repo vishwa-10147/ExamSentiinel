@@ -709,10 +709,13 @@ async def generate_ai_questions(
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
 
-    questions_data = await ai_service.generate_questions_from_syllabus(
-        syllabus_text=request.syllabus_text,
-        question_count=request.question_count
-    )
+    try:
+        questions_data = await ai_service.generate_questions_from_syllabus(
+            syllabus_text=request.syllabus_text,
+            question_count=request.question_count
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     
     # Save them to the DB
     from app.models.question import Question, QuestionType
