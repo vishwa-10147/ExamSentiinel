@@ -68,11 +68,17 @@ export default function CandidateExamsPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {exams.map((exam) => (
-                <div key={exam.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                (() => {
+                  const now = Date.now();
+                  const start = new Date(exam.start_window).getTime();
+                  const end = new Date(exam.end_window).getTime();
+                  const availability = now < start ? "SCHEDULED" : now <= end ? "AVAILABLE" : "CLOSED";
+                  const canStart = availability === "AVAILABLE";
+                  return <div key={exam.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="font-semibold text-lg text-slate-900 line-clamp-1">{exam.title}</h3>
-                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-                      LIVE NOW
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${canStart ? "bg-emerald-50 text-emerald-700" : availability === "SCHEDULED" ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-600"}`}>
+                      {availability}
                     </span>
                   </div>
                   <div className="space-y-2 mb-6">
@@ -80,23 +86,25 @@ export default function CandidateExamsPage() {
                       <Clock className="h-4 w-4 mr-2" />
                       {exam.duration_minutes} minutes
                     </div>
-                    {exam.start_time && (
+                    {exam.start_window && (
                       <div className="flex items-center text-sm text-slate-500">
                         <Calendar className="h-4 w-4 mr-2" />
-                        {new Date(exam.start_time).toLocaleString()}
+                        {new Date(exam.start_window).toLocaleString()}
                       </div>
                     )}
                   </div>
                   <div className="mt-auto">
                     <button 
                       onClick={() => router.push(`/exam/${exam.id}`)}
-                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-colors"
+                      disabled={!canStart}
+                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-colors disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
-                      Start Exam
+                      {canStart ? "Start Exam" : availability === "SCHEDULED" ? "Not Started" : "Closed"}
                       <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
-                </div>
+                </div>;
+                })()
               ))}
             </div>
           )}
