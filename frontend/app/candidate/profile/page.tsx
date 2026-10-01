@@ -9,6 +9,10 @@ import { User, Mail, Save, Lock, Phone } from "lucide-react";
 import { ActivityHeatmap } from "@/components/ActivityHeatmap";
 import { toast } from "react-hot-toast";
 
+const DEPARTMENT_OPTIONS = ["CSM", "CSB", "CSE"];
+const SECTION_OPTIONS = ["1", "2", "3", "4", "5"];
+const PASS_OUT_YEAR_OPTIONS = Array.from({ length: 9 }, (_, index) => String(2027 + index));
+
 export default function CandidateProfilePage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -181,15 +185,24 @@ export default function CandidateProfilePage() {
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Branch / Department</label>
-                      <input type="text" value={profileData.department} onChange={(e) => setProfileData({...profileData, department: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Computer Science" />
+                      <select value={profileData.department} onChange={(e) => setProfileData({...profileData, department: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                        <option value="">Select branch</option>
+                        {DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Section</label>
-                      <input type="text" value={profileData.section} onChange={(e) => setProfileData({...profileData, section: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="A" />
+                      <select value={profileData.section} onChange={(e) => setProfileData({...profileData, section: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                        <option value="">Select section</option>
+                        {SECTION_OPTIONS.map((section) => <option key={section} value={section}>{section}</option>)}
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Batch Year</label>
-                      <input type="number" value={profileData.batch_year} onChange={(e) => setProfileData({...profileData, batch_year: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="2026" />
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Pass-out Year</label>
+                      <select value={profileData.batch_year} onChange={(e) => setProfileData({...profileData, batch_year: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                        <option value="">Select year</option>
+                        {PASS_OUT_YEAR_OPTIONS.map((year) => <option key={year} value={year}>{year}</option>)}
+                      </select>
                     </div>
                   </div>
                 </div>
