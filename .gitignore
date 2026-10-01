@@ -39,10 +39,11 @@ coverage.xml
 *.cover
 .hypothesis/
 
-# Next.js
+# Next.js & TypeScript
 .next/
 out/
 .next-env.d.ts
+*.tsbuildinfo
 
 # Environment Variables
 .env
