@@ -64,7 +64,7 @@ export default function LeaderboardPage() {
   return (
     <div className="flex-1 p-8 overflow-auto">
         
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="w-full max-w-7xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">

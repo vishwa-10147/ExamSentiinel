@@ -32,7 +32,7 @@ import {
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { isSidebarOpen, toggleSidebar } = useSidebar();
+  const { isSidebarOpen, toggleSidebar, setSidebarOpen } = useSidebar();
   const [health, setHealth] = useState<HealthCheckResponse | null>(null);
 
   useEffect(() => {
@@ -88,7 +88,14 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className={`sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? "w-64 p-4 border-r translate-x-0 opacity-100" : "w-0 p-0 border-r-0 -translate-x-full opacity-0 overflow-hidden"}`}>
+    <>
+      <button
+        type="button"
+        aria-label="Close navigation"
+        onClick={() => setSidebarOpen(false)}
+        className={`${isSidebarOpen ? "fixed inset-0 top-16 z-30 bg-slate-900/20 md:hidden" : "hidden"}`}
+      />
+      <aside className={`fixed md:sticky top-16 left-0 z-40 md:z-auto h-[calc(100vh-4rem)] overflow-y-auto border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? "w-64 p-4 border-r translate-x-0 opacity-100" : "w-0 p-0 border-r-0 -translate-x-full opacity-0 overflow-hidden"}`}>
       <div className="space-y-6">
         <div>
           <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 dark:text-slate-400">
@@ -160,7 +167,8 @@ export default function Sidebar() {
           )}
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 

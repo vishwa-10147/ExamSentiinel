@@ -104,7 +104,7 @@ export default function CandidateProfilePage() {
 
   return (
       <main className="flex-1 flex flex-col overflow-y-auto">
-        <div className="p-6 sm:p-8 max-w-4xl mx-auto w-full">
+        <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           <div className="mb-8">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
               <User className="h-6 w-6 text-blue-600" />
