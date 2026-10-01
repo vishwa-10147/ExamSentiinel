@@ -59,25 +59,4 @@ class AIService:
             payload = response.json()
             return payload["choices"][0]["message"]["content"]
 
-    def _generate_mock_questions(self, syllabus: str, count: int) -> List[Dict[str, Any]]:
-        questions = []
-        for i in range(count):
-            questions.append({
-                "type": "MULTIPLE_CHOICE",
-                "text": f"Mock AI Generated Question {i+1} based on provided syllabus material.",
-                "points": 10,
-                "data": {
-                    "options": [
-                        {"id": "opt_a", "text": "Mock Option A"},
-                        {"id": "opt_b", "text": "Mock Option B (Correct)"},
-                        {"id": "opt_c", "text": "Mock Option C"},
-                        {"id": "opt_d", "text": "Mock Option D"}
-                    ]
-                },
-                "correct_answer": {
-                    "secret_key": "opt_b"
-                }
-            })
-        return questions
-
 ai_service = AIService()

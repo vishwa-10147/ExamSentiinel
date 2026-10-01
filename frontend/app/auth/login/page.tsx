@@ -165,12 +165,14 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-slate-600">
-              <p className="font-semibold text-slate-800">Demo accounts</p>
-              <p><span className="font-medium">Admin:</span> admin@sentinel.edu</p>
-              <p><span className="font-medium">Candidate:</span> candidate@sentinel.edu</p>
-              <p>Password: DemoPass123!</p>
-            </div>
+            {process.env.NODE_ENV !== "production" && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold text-slate-800">Development demo accounts</p>
+                <p><span className="font-medium">Admin:</span> admin@sentinel.edu</p>
+                <p><span className="font-medium">Candidate:</span> candidate@sentinel.edu</p>
+                <p>Password: DemoPass123!</p>
+              </div>
+            )}
 
             
           </>
