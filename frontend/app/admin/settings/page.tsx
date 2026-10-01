@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   
   const [activeTab, setActiveTab] = useState("general");
@@ -30,6 +30,12 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
+    if (!authLoading && (!isAuthenticated || user?.role !== "admin")) {
+      router.replace("/auth/login");
+    }
+  }, [authLoading, isAuthenticated, user, router]);
+
+  useEffect(() => {
     if (authLoading || !user || user.role !== "admin") return;
     apiClient.get<Array<{ event_type: string; weight: number }>>("/api/proctoring/risk/weights")
       .then((rows) => {
@@ -39,10 +45,7 @@ export default function SettingsPage() {
   }, [authLoading, user]);
 
   // Protect route
-  if (!authLoading && user && user.role !== "admin") {
-    router.push("/dashboard");
-    return null;
-  }
+  if (authLoading || !user || user.role !== "admin") return null;
 
   const handleSave = async () => {
     if (activeTab !== "risk" || !user) return;

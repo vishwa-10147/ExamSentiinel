@@ -3,16 +3,25 @@ export const dynamic = "force-dynamic";
 
 import React, { useState, useEffect } from 'react';
 import { apiClient } from "@/services/apiClient";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, Filter, AlertTriangle, Clock } from "lucide-react";
 
 export default function ReviewQueuePage() {
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('ALL');
 
   useEffect(() => {
+    if (authLoading || !isAuthenticated || !user || !["admin", "proctor", "reviewer"].includes(user.role)) {
+      if (!authLoading) router.replace(isAuthenticated ? "/dashboard" : "/auth/login");
+      return;
+    }
+
     const fetchReviews = async () => {
       try {
         const response: any = await apiClient.get('/api/reviews');
@@ -38,7 +47,10 @@ export default function ReviewQueuePage() {
       }
     };
     fetchReviews();
-  }, []);
+  }, [authLoading, isAuthenticated, user, router]);
+
+  if (authLoading || !user) return <main className="p-8 text-slate-500">Loading review queue...</main>;
+  if (!isAuthenticated || !["admin", "proctor", "reviewer"].includes(user.role)) return null;
 
   const filteredReviews = reviews.filter(r => filter === 'ALL' || r.status === filter);
 
