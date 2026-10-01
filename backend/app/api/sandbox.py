@@ -1,13 +1,10 @@
-import uuid
-import json
-import asyncio
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-import redis.asyncio as redis
-from app.core.config import settings
 
-router = APIRouter()
+from app.services.sandbox_service import sandbox_service
+
+router = APIRouter(prefix="/sandbox", tags=["Sandbox"])
 
 class CodeExecutionRequest(BaseModel):
     language: str
@@ -20,44 +17,38 @@ class CodeExecutionResponse(BaseModel):
     stdout: str = ""
     stderr: str = ""
     test_results: Optional[List[Dict[str, Any]]] = None
+    wall_time_ms: Optional[int] = 0
 
 @router.post("/execute", response_model=CodeExecutionResponse)
 async def execute_code(req: CodeExecutionRequest):
     """
-    Submits code to the isolated execution engine and waits for the result.
-    If test_cases is provided, runs the code against each test case input sequentially.
+    Submits code to the isolated execution engine (Piston sandbox) and returns execution results.
+    Enforces a strict 5.0 second timeout and 128MB memory limit per run.
     """
-    job_id = str(uuid.uuid4())
-    queue_name = "examsentinel:sandbox:queue"
-    result_key = f"examsentinel:sandbox:result:{job_id}"
-    
-    r = redis.from_url(str(settings.REDIS_URL))
-    
+    if not req.code.trim():
+        raise HTTPException(status_code=400, detail="Source code cannot be empty.")
+
+    if len(req.code) > 10000:
+        raise HTTPException(status_code=400, detail="Source code exceeds maximum allowed size (10,000 characters).")
+
+    lang = req.language.lower()
+    if lang not in ["python", "javascript", "java", "c", "cpp", "c++", "go", "rust", "sql"]:
+        raise HTTPException(status_code=400, detail=f"Unsupported language: {req.language}")
+
     try:
-        # Push to queue
-        payload = json.dumps({
-            "job_id": job_id,
-            "language": req.language.lower(),
-            "code": req.code,
-            "test_cases": req.test_cases,
-            "stdin": req.stdin
-        })
-        await r.rpush(queue_name, payload)
-        
-        # Poll for result (timeout 15s total, grading multiple cases might take longer)
-        for _ in range(75):
-            result_bytes = await r.get(result_key)
-            if result_bytes:
-                result = json.loads(result_bytes)
-                return CodeExecutionResponse(
-                    status=result.get("status", "error"),
-                    stdout=result.get("stdout", ""),
-                    stderr=result.get("stderr", ""),
-                    test_results=result.get("test_results")
-                )
-            await asyncio.sleep(0.2)
-            
-        # If we exit the loop, it timed out waiting for the worker
-        raise HTTPException(status_code=504, detail="Execution engine did not respond in time.")
-    finally:
-        await r.aclose()
+        result = await sandbox_service.execute_async(
+            language=lang,
+            source_code=req.code,
+            stdin=req.stdin or "",
+            timeout_sec=5.0,
+            memory_mb=128
+        )
+        return CodeExecutionResponse(
+            status=result.status,
+            stdout=result.stdout,
+            stderr=result.stderr,
+            wall_time_ms=result.wall_time_ms
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Code execution failed: {str(e)}")
+
