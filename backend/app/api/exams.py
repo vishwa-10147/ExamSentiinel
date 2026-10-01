@@ -736,3 +736,31 @@ async def generate_ai_questions(
     await db.commit()
     
     return {"message": f"Successfully generated and added {len(created_questions)} questions via AI.", "count": len(created_questions)}
+
+
+@router.delete("/{exam_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_exam(
+    exam_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN])),
+):
+    """Delete an examination (Admin only)."""
+    result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = result.scalar_one_or_none()
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+
+    await log_audit_event(
+        db=db,
+        action="EXAM_DELETED",
+        resource_type="exam",
+        resource_id=str(exam.id),
+        details={"title": exam.title},
+        user_id=current_user.id,
+        institution_id=current_user.institution_id,
+    )
+    
+    await db.delete(exam)
+    await db.commit()
+    return None
+
