@@ -74,12 +74,7 @@ async def start_exam_session(
         )
         enrollment = enroll_res.scalar_one_or_none()
         if not enrollment:
-            inst_allowed = (
-                exam.institution_id is None
-                or current_user.institution_id is None
-                or exam.institution_id == current_user.institution_id
-            )
-            if inst_allowed:
+            if exam.status == ExamStatus.PUBLISHED:
                 enrollment = ExamEnrollment(
                     exam_id=payload.exam_id,
                     candidate_id=current_user.id,
@@ -87,6 +82,7 @@ async def start_exam_session(
                 )
                 db.add(enrollment)
                 await db.flush()
+                logger.info(f"Auto-enrolled candidate {current_user.id} into published exam {exam.id}")
             else:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
