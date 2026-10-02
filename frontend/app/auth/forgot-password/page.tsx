@@ -13,7 +13,6 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
-  ArrowLeft
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { apiClient } from "@/services/apiClient";
@@ -21,7 +20,7 @@ import { apiClient } from "@/services/apiClient";
 export default function ForgotPasswordPage() {
   const router = useRouter();
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -30,6 +29,7 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Step 1: Request OTP for registered email
   const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -51,7 +51,8 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  // Step 2: Verify 6-digit PIN/OTP Code
+  const handleVerifyPIN = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -59,6 +60,26 @@ export default function ForgotPasswordPage() {
       setError("Please enter a valid 6-digit OTP passcode.");
       return;
     }
+
+    setIsSubmitting(true);
+    try {
+      await apiClient.post("/api/auth/verify-forgot-otp", {
+        email: email.trim(),
+        otp_code: otpCode,
+      });
+      toast.success("Security PIN verified! Please set your new password.");
+      setStep(3);
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || err?.message || "Invalid or expired OTP code.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 3: Set New Password
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
     if (!newPassword || newPassword.length < 8) {
       setError("New password must be at least 8 characters long.");
@@ -75,7 +96,7 @@ export default function ForgotPasswordPage() {
       toast.success("Password reset successfully! Please log in.");
       router.push("/auth/login");
     } catch (err: any) {
-      setError(err?.response?.data?.detail || err?.message || "Failed to reset password. Check OTP code.");
+      setError(err?.response?.data?.detail || err?.message || "Failed to reset password.");
     } finally {
       setIsSubmitting(false);
     }
@@ -111,12 +132,16 @@ export default function ForgotPasswordPage() {
 
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2.5 text-xs text-slate-200">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>Step 1: Dispatches 6-Digit Verification Code</span>
+                <CheckCircle2 className={`h-4 w-4 shrink-0 ${step >= 1 ? "text-emerald-400" : "text-slate-500"}`} />
+                <span>Step 1: Verify Registered Email</span>
               </div>
               <div className="flex items-center gap-2.5 text-xs text-slate-200">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>Step 2: Set Strong Encrypted Password</span>
+                <CheckCircle2 className={`h-4 w-4 shrink-0 ${step >= 2 ? "text-emerald-400" : "text-slate-500"}`} />
+                <span>Step 2: Verify 6-Digit PIN Code</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-xs text-slate-200">
+                <CheckCircle2 className={`h-4 w-4 shrink-0 ${step >= 3 ? "text-emerald-400" : "text-slate-500"}`} />
+                <span>Step 3: Set New Encrypted Password</span>
               </div>
             </div>
           </div>
@@ -131,12 +156,14 @@ export default function ForgotPasswordPage() {
           <div>
             <div className="mb-6">
               <h3 className="text-2xl font-bold text-slate-900">
-                {step === 1 ? "Forgot Password" : "Set New Password"}
+                {step === 1 ? "Forgot Password" : step === 2 ? "Verify Security PIN" : "Set New Password"}
               </h3>
               <p className="text-slate-500 text-xs sm:text-sm mt-1">
                 {step === 1
                   ? "Provide your email address to receive an authentication OTP code."
-                  : `Enter the 6-digit OTP code sent to ${email}`}
+                  : step === 2
+                  ? `Enter the 6-digit PIN / OTP code sent to ${email}`
+                  : `PIN verified! Enter your new account password for ${email}`}
               </p>
             </div>
 
@@ -147,7 +174,7 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-            {step === 1 ? (
+            {step === 1 && (
               /* Step 1 Form */
               <form onSubmit={handleRequestOTP} className="space-y-4">
                 <div>
@@ -184,12 +211,14 @@ export default function ForgotPasswordPage() {
                   )}
                 </button>
               </form>
-            ) : (
-              /* Step 2 Form */
-              <form onSubmit={handleResetPassword} className="space-y-4">
+            )}
+
+            {step === 2 && (
+              /* Step 2 Form: PIN Code Only */
+              <form onSubmit={handleVerifyPIN} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                    6-Digit OTP Code
+                    6-Digit PIN Code
                   </label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
@@ -201,12 +230,44 @@ export default function ForgotPasswordPage() {
                       maxLength={6}
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                      placeholder="123456"
+                      placeholder="Enter 6-digit code"
                       className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none text-center tracking-[0.4em] text-lg font-mono font-bold"
                     />
                   </div>
                 </div>
 
+                <button
+                  type="submit"
+                  disabled={isSubmitting || otpCode.length !== 6}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-bold text-white shadow-md hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 transition"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Verifying PIN...
+                    </>
+                  ) : (
+                    "Verify PIN Code"
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(1);
+                    setOtpCode("");
+                  }}
+                  disabled={isSubmitting}
+                  className="w-full text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+                >
+                  ← Back to Email Step
+                </button>
+              </form>
+            )}
+
+            {step === 3 && (
+              /* Step 3 Form: New Password */
+              <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
                     New Password
@@ -220,7 +281,7 @@ export default function ForgotPasswordPage() {
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Minimum 8 characters"
                       className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
                     />
                     <button
@@ -235,7 +296,7 @@ export default function ForgotPasswordPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || otpCode.length !== 6 || newPassword.length < 8}
+                  disabled={isSubmitting || newPassword.length < 8}
                   className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-bold text-white shadow-md hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 transition"
                 >
                   {isSubmitting ? (
@@ -251,14 +312,13 @@ export default function ForgotPasswordPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setStep(1);
-                    setOtpCode("");
+                    setStep(2);
                     setNewPassword("");
                   }}
                   disabled={isSubmitting}
                   className="w-full text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
                 >
-                  ← Back to Request OTP
+                  ← Back to PIN Verification
                 </button>
               </form>
             )}
@@ -276,3 +336,4 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+

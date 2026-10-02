@@ -14,9 +14,7 @@ import {
   KeyRound,
   Eye,
   EyeOff,
-  Zap,
   CheckCircle2,
-  Cpu,
   ArrowRight
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -48,16 +46,6 @@ export default function LoginPage() {
     }
   }, []);
 
-  const fillDemo = (role: "admin" | "candidate") => {
-    if (role === "admin") {
-      setEmail("admin@sentinel.edu");
-      setPassword("DemoPass123!");
-    } else {
-      setEmail("candidate@sentinel.edu");
-      setPassword("DemoPass123!");
-    }
-    toast.success(`Populated ${role.toUpperCase()} demo credentials`);
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -313,32 +301,6 @@ export default function LoginPage() {
               </form>
             )}
 
-            {/* One-Click Quick Demo Accounts Bar */}
-            {!requires2fa && (
-              <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center">
-                  Quick Demo Filler
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fillDemo("admin")}
-                    className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-left transition"
-                  >
-                    <div className="text-xs font-bold text-slate-800">Admin Demo</div>
-                    <div className="text-[10px] text-slate-500 font-mono truncate">admin@sentinel.edu</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fillDemo("candidate")}
-                    className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-left transition"
-                  >
-                    <div className="text-xs font-bold text-slate-800">Student Demo</div>
-                    <div className="text-[10px] text-slate-500 font-mono truncate">candidate@sentinel.edu</div>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="mt-6 text-center text-xs text-slate-500">

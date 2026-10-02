@@ -35,6 +35,10 @@ class ResetPasswordRequest(BaseModel):
     otp_code: str
     new_password: str
 
+class VerifyForgotOTPRequest(BaseModel):
+    email: str
+    otp_code: str
+
 class OTPVerifyRequest(BaseModel):
     user_id: uuid.UUID
     otp_code: str
@@ -400,13 +404,17 @@ async def forgot_password(
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalar_one_or_none()
     if not user:
-        # Silently succeed to prevent email enumeration
-        return {"status": "success", "message": "If an account exists, an OTP has been sent."}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No registered account found with this email address. Please check your email or register."
+        )
         
     otp_code = str(random.randint(100000, 999999))
     r = redis.from_url(str(settings.REDIS_URL))
     await r.setex(f"auth:forgot:{user.id}", 300, otp_code)
     await r.aclose()
+    
+    logger.info(f"=== [AUTH OTP LOG] Password Reset OTP generated for {user.email}: {otp_code} ===")
     
     html_body = get_base_template(
         f"<h3>Password reset request</h3><p>Your one-time password is <strong>{otp_code}</strong>.</p>"
@@ -416,22 +424,51 @@ async def forgot_password(
         f"Your ExamSentinel password reset OTP is {otp_code}. "
         "It expires in 5 minutes."
     )
-    delivered = await email_service.send(
+    delivered, error_reason = await email_service.send_with_reason(
         [user.email],
         "ExamSentinel password reset OTP",
         html_body,
         text_body,
     )
     if not delivered:
-        logger.warning("Password reset OTP generated but email delivery is unavailable")
+        logger.warning(f"Password reset OTP generated for {user.email}, but email delivery failed: {error_reason}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unable to send OTP email: {error_reason}"
+        )
     
-    return {"status": "success", "message": "If an account exists, an OTP has been sent."}
+    return {"status": "success", "message": "Verification OTP has been sent to your email address."}
+
+
+@router.post("/verify-forgot-otp")
+async def verify_forgot_otp(
+    payload: VerifyForgotOTPRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid request or expired user session.")
+        
+    r = redis.from_url(str(settings.REDIS_URL))
+    cached_otp = await r.get(f"auth:forgot:{user.id}")
+    await r.aclose()
+    
+    if not cached_otp or cached_otp.decode() != payload.otp_code:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired 6-digit OTP code. Please verify the code or request a new one."
+        )
+        
+    return {"status": "success", "message": "OTP code verified successfully."}
+
 
 @router.post("/reset-password")
 async def reset_password(
     payload: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
+
     result = await db.execute(select(User).where(User.email == payload.email.lower()))
     user = result.scalar_one_or_none()
     if not user:
