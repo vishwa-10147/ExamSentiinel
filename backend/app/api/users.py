@@ -331,32 +331,35 @@ async def admin_delete_user(
     try:
         from app.models.exam import Exam, ExamEnrollment
         from app.models.session import ExamSession
-        from app.models.response import CandidateResponse
+        from app.models.response import ExamResponse
         from app.models.code_submission import CodeSubmission
         from app.models.refresh_token import RefreshToken
         from app.models.proctoring_event import ProctoringEvent
-        from app.models.review_case import ReviewCase
-        from app.models.question import Question
+        from app.models.review_case import ReviewCase, ReviewAction
         from app.models.audit_log import AuditLog
         from sqlalchemy import delete, update
 
-        # Delete candidate responses linked to user's sessions
+        # Delete responses linked to user's exam sessions
         session_ids_res = await db.execute(select(ExamSession.id).where(ExamSession.candidate_id == user_id))
         session_ids = [row[0] for row in session_ids_res.all()]
         if session_ids:
-            await db.execute(delete(CandidateResponse).where(CandidateResponse.session_id.in_(session_ids)))
+            await db.execute(delete(ExamResponse).where(ExamResponse.session_id.in_(session_ids)))
 
-        # Delete dependent records
+        # Delete dependent records where user is candidate or owner
         await db.execute(delete(ExamEnrollment).where(ExamEnrollment.candidate_id == user_id))
         await db.execute(delete(ExamSession).where(ExamSession.candidate_id == user_id))
         await db.execute(delete(CodeSubmission).where(CodeSubmission.candidate_id == user_id))
         await db.execute(delete(RefreshToken).where(RefreshToken.user_id == user_id))
         await db.execute(delete(ProctoringEvent).where(ProctoringEvent.candidate_id == user_id))
+        await db.execute(delete(ReviewAction).where(ReviewAction.reviewer_id == user_id))
         await db.execute(delete(ReviewCase).where(ReviewCase.candidate_id == user_id))
 
-        # Nullify foreign key references in parent models
+        # Nullify foreign key references in parent models where user is creator/reviewer
         await db.execute(update(Exam).where(Exam.created_by == user_id).values({Exam.created_by: None}))
         await db.execute(update(AuditLog).where(AuditLog.user_id == user_id).values({AuditLog.user_id: None}))
+        await db.execute(update(ProctoringEvent).where(ProctoringEvent.reviewed_by == user_id).values({ProctoringEvent.reviewed_by: None}))
+        await db.execute(update(ReviewCase).where(ReviewCase.assigned_reviewer_id == user_id).values({ReviewCase.assigned_reviewer_id: None}))
+        await db.execute(update(ReviewCase).where(ReviewCase.resolved_by == user_id).values({ReviewCase.resolved_by: None}))
 
         # Log audit trail
         await log_audit_event(
