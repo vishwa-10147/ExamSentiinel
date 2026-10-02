@@ -14,7 +14,7 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
   lastSavedAt,
 }) => {
   return (
-    <div className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700">
+    <div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full bg-slate-900 text-white border border-slate-700 shadow-sm whitespace-nowrap shrink-0">
       {status === "saving" && (
         <>
           <span className="relative flex h-2.5 w-2.5">
