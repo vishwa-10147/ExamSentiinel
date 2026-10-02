@@ -92,7 +92,16 @@ class ExamService {
   }
 
   public async startSession(examId: string): Promise<SessionState> {
-    return apiClient.post<SessionState>("/api/exam/sessions/start", { exam_id: examId });
+    try {
+      return await apiClient.post<SessionState>("/api/exam/sessions/start", { exam_id: examId });
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || err?.message || "";
+      if (err?.response?.status === 403 && (detail.includes("not enrolled") || detail.includes("enrolled"))) {
+        await this.enrollCandidate(examId, []);
+        return await apiClient.post<SessionState>("/api/exam/sessions/start", { exam_id: examId });
+      }
+      throw err;
+    }
   }
 
   public async getSessionState(sessionId: string): Promise<SessionState> {

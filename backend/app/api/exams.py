@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.models.exam import Exam, ExamEnrollment, ExamEnrollmentStatus, ExamStatus
 from app.models.question import ExamQuestion, Question
 from app.models.user import User, UserRole
+from app.services.ai_service import ai_service
 from app.schemas.exam import (
     ExamCreate,
     ExamDetailResponse,
@@ -463,15 +464,18 @@ async def enroll_candidates(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found")
 
     # If candidate, can only enroll self
+    target_ids = enroll_in.candidate_ids
     if current_user.role == UserRole.CANDIDATE:
-        if enroll_in.candidate_ids != [current_user.id]:
+        if not target_ids or target_ids == [current_user.id]:
+            target_ids = [current_user.id]
+        else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Candidates may only enroll themselves",
             )
 
     created_enrollments = []
-    for cand_id in enroll_in.candidate_ids:
+    for cand_id in target_ids:
         # Check user exists
         user_res = await db.execute(select(User).where(User.id == cand_id))
         user = user_res.scalar_one_or_none()

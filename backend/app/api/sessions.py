@@ -64,7 +64,7 @@ async def start_exam_session(
             detail="Exam is not published yet",
         )
 
-    # 3. Check enrollment for candidates (auto-enroll if published and eligible)
+    # 3. Check enrollment for candidates
     if current_user.role == UserRole.CANDIDATE:
         enroll_res = await db.execute(
             select(ExamEnrollment).where(
@@ -74,20 +74,10 @@ async def start_exam_session(
         )
         enrollment = enroll_res.scalar_one_or_none()
         if not enrollment:
-            if exam.status == ExamStatus.PUBLISHED:
-                enrollment = ExamEnrollment(
-                    exam_id=payload.exam_id,
-                    candidate_id=current_user.id,
-                    status=ExamEnrollmentStatus.ENROLLED,
-                )
-                db.add(enrollment)
-                await db.flush()
-                logger.info(f"Auto-enrolled candidate {current_user.id} into published exam {exam.id}")
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Candidate is not enrolled in this exam",
-                )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Candidate is not enrolled in this exam",
+            )
 
     start_utc = ensure_utc(exam.start_window)
     end_utc = ensure_utc(exam.end_window)
