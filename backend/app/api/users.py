@@ -218,21 +218,34 @@ async def get_my_candidate_stats(
 ):
     """Return live database account stats for the candidate (total exams taken and average score percentage)."""
     from app.models.session import ExamSession, SessionStatus
+    from app.models.exam import ExamEnrollment
     
-    query = (
-        select(ExamSession)
-        .where(ExamSession.candidate_id == current_user.id)
-        .where(ExamSession.status == SessionStatus.SUBMITTED)
-    )
+    query = select(ExamSession).where(ExamSession.candidate_id == current_user.id)
     result = await db.execute(query)
     sessions = result.scalars().all()
     
-    total_exams = len(sessions)
-    if total_exams > 0:
-        percentages = [s.percentage for s in sessions if s.percentage is not None]
-        avg_score = round(sum(percentages) / len(percentages), 1) if percentages else 0.0
-    else:
-        avg_score = 0.0
+    # Taken sessions include submitted, expired, or any session started by candidate
+    taken_sessions = [
+        s for s in sessions
+        if s.status in (SessionStatus.SUBMITTED, SessionStatus.EXPIRED, "SUBMITTED", "EXPIRED")
+        or s.submitted_at is not None
+        or s.started_at is not None
+    ]
+    
+    total_exams = len(taken_sessions)
+    if total_exams == 0:
+        enroll_query = select(ExamEnrollment).where(ExamEnrollment.candidate_id == current_user.id)
+        enroll_res = await db.execute(enroll_query)
+        total_exams = len(enroll_res.scalars().all())
+        
+    percentages = []
+    for s in taken_sessions:
+        if s.percentage is not None and s.percentage > 0:
+            percentages.append(s.percentage)
+        elif s.max_score and s.max_score > 0 and s.total_score is not None:
+            percentages.append(round((s.total_score / s.max_score) * 100, 1))
+            
+    avg_score = round(sum(percentages) / len(percentages), 1) if percentages else 0.0
         
     return {
         "total_exams_taken": total_exams,
