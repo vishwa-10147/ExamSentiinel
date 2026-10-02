@@ -130,6 +130,11 @@ function ExamReadinessContent() {
 
   const handleStartExam = async () => {
     if (!isReady || !examId) return;
+    try {
+      await examService.enrollCandidate(examId, []);
+    } catch {
+      // Ignore if already enrolled or admin
+    }
     router.push(`/exam/${examId}`);
   };
 

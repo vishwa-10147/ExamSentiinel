@@ -72,9 +72,10 @@ export default function ExamTakingPage() {
 
     if (examId && examDetails && !session) {
       setLoading(true);
-      examService
-        .startSession(examId)
-        .then((sessionData) => {
+      const initSession = async () => {
+        try {
+          await examService.enrollCandidate(examId, []).catch(() => undefined);
+          const sessionData = await examService.startSession(examId);
           setSession(sessionData);
           setResponses(sessionData.responses || {});
 
@@ -88,12 +89,14 @@ export default function ExamTakingPage() {
           if (sessionData.status === "SUBMITTED") {
             setIsSubmitted(true);
           }
-          setLoading(false);
-        })
-        .catch((err) => {
+        } catch (err: any) {
           setError(err.message || "Failed to initialize exam session.");
+        } finally {
           setLoading(false);
-        });
+        }
+      };
+
+      void initSession();
     }
   }, [examId, isAuthenticated, authLoading, router, examDetails, session]);
 
