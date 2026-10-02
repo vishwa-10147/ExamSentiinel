@@ -260,7 +260,8 @@ async def update_password_me(
 @router.put("/{user_id}", response_model=UserResponse)
 async def admin_update_user(
     user_id: uuid.UUID,
-    user_in: dict,  # Using dict directly to bypass strict schema for now since we just defined it inline
+    user_in: dict,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN])),
 ):
@@ -269,10 +270,11 @@ async def admin_update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
+    old_role = user.role.value if user.role else "candidate"
     if "full_name" in user_in and user_in["full_name"]:
         user.full_name = user_in["full_name"]
     if "email" in user_in and user_in["email"]:
-        user.email = user_in["email"]
+        user.email = user_in["email"].strip().lower()
     if "role" in user_in and user_in["role"]:
         try:
             user.role = UserRole(user_in["role"])
@@ -284,6 +286,24 @@ async def admin_update_user(
         user.hashed_password = get_password_hash(user_in["password"])
         
     db.add(user)
+
+    if old_role != user.role.value:
+        await log_audit_event(
+            db=db,
+            action="USER_ROLE_UPDATED",
+            resource_type="user",
+            resource_id=str(user.id),
+            details={
+                "email": user.email,
+                "previous_role": old_role,
+                "new_role": user.role.value,
+                "updated_by": str(current_user.id),
+            },
+            user_id=current_user.id,
+            institution_id=current_user.institution_id,
+            request=request,
+        )
+
     await db.commit()
     await db.refresh(user)
     return user
