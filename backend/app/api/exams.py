@@ -745,24 +745,50 @@ async def generate_ai_questions(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     
     # Save them to the DB
-    from app.models.question import Question, QuestionType
+    from app.models.question import Question, QuestionType, ExamQuestion
+
+    # Get current max order_index for this exam
+    max_order_res = await db.execute(
+        select(func.max(ExamQuestion.order_index)).where(ExamQuestion.exam_id == exam_id)
+    )
+    max_order = max_order_res.scalar()
+    start_order = (max_order + 1) if max_order is not None else 0
+
     created_questions = []
     for idx, q_data in enumerate(questions_data):
+        q_text = q_data.get("text") or q_data.get("question") or q_data.get("content_rich_text") or "Generated Question"
+        q_title = q_data.get("title") or f"Question {start_order + idx + 1}"
+        q_options = q_data.get("options") or (q_data.get("data", {}).get("options") if isinstance(q_data.get("data"), dict) else None)
+        q_correct = q_data.get("correct_answer")
+        try:
+            q_points = float(q_data.get("points", 1.0))
+        except (ValueError, TypeError):
+            q_points = 1.0
+
         new_q = Question(
-            exam_id=exam_id,
-            type=QuestionType.MULTIPLE_CHOICE,
-            text=q_data["text"],
-            points=q_data.get("points", 10),
-            order_index=idx,
-            data=q_data["data"],
-            correct_answer=q_data["correct_answer"]
+            id=uuid.uuid4(),
+            institution_id=current_user.institution_id,
+            type=QuestionType.MCQ_SINGLE,
+            title=q_title,
+            content_rich_text=q_text,
+            points=q_points,
+            options=q_options,
+            correct_answer=q_correct,
         )
         db.add(new_q)
+
+        eq = ExamQuestion(
+            exam_id=exam.id,
+            question_id=new_q.id,
+            order_index=start_order + idx,
+        )
+        db.add(eq)
         created_questions.append(new_q)
         
     await db.commit()
     
     return {"message": f"Successfully generated and added {len(created_questions)} questions via AI.", "count": len(created_questions)}
+
 
 
 @router.delete("/{exam_id}", status_code=status.HTTP_204_NO_CONTENT)

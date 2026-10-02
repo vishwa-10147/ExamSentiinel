@@ -54,7 +54,7 @@ export default function AIGenerateModal({
           <button 
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -62,8 +62,8 @@ export default function AIGenerateModal({
 
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-6 overflow-y-auto">
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg flex items-start text-sm border border-red-100">
-              <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+            <div className="bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/50 p-3 rounded-lg flex items-start text-sm border border-red-100">
+              <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5 text-red-500 dark:text-red-400" />
               <span>{error}</span>
             </div>
           )}
@@ -72,12 +72,12 @@ export default function AIGenerateModal({
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Syllabus / Source Text
             </label>
-            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2">Paste lecture notes, syllabus, or raw text to generate questions from.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Paste lecture notes, syllabus, or raw text to generate questions from.</p>
             <textarea
               value={syllabus}
               onChange={(e) => setSyllabus(e.target.value)}
               rows={8}
-              className="w-full px-3 py-2 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-shadow resize-y"
+              className="w-full px-3 py-2 bg-white dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-shadow resize-y"
               placeholder="e.g. Introduction to Data Structures: Arrays, Linked Lists, Trees..."
               disabled={isSubmitting}
             />
@@ -93,7 +93,7 @@ export default function AIGenerateModal({
               max={20}
               value={questionCount}
               onChange={(e) => setQuestionCount(parseInt(e.target.value) || 1)}
-              className="w-full sm:w-1/3 px-3 py-2 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-shadow"
+              className="w-full sm:w-1/3 px-3 py-2 bg-white dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-shadow"
               disabled={isSubmitting}
             />
           </div>

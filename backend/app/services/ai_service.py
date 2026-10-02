@@ -18,13 +18,17 @@ class AIService:
 
         prompt = (
             f"Create exactly {question_count} multiple-choice questions from this syllabus:\n{syllabus_text}\n"
-            "Return only a JSON object with a questions array. Each item must contain text, points, data with an options array "
-            "of objects containing id and text, and correct_answer with secret_key."
+            "Return only a JSON object with a 'questions' array. Each item must contain:\n"
+            "- title: short question title (e.g. 'Binary Search Trees')\n"
+            "- text: the full question statement\n"
+            "- points: numerical points (e.g. 1.0)\n"
+            "- options: array of objects like [{\"id\": \"A\", \"text\": \"Option A\"}, {\"id\": \"B\", \"text\": \"Option B\"}, {\"id\": \"C\", \"text\": \"Option C\"}, {\"id\": \"D\", \"text\": \"Option D\"}]\n"
+            "- correct_answer: option string id corresponding to the correct option (e.g. \"A\")\n"
         )
         content = await self._chat(prompt)
         parsed = json.loads(content)
         questions = parsed.get("questions") if isinstance(parsed, dict) else parsed
-        if not isinstance(questions, list) or len(questions) != question_count:
+        if not isinstance(questions, list) or len(questions) == 0:
             raise ValueError("AI returned an invalid question set")
         return questions
 
