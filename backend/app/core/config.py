@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    # Resend Email API Key
+    RESEND_API_KEY: str = ""
+
+
     # CORS
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",

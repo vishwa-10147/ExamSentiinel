@@ -7,9 +7,14 @@ import urllib.request
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import asyncio
+from app.core.config import settings
 from app.core.logging import logger
 
 class EmailService:
+    @property
+    def resend_key(self) -> str:
+        return (os.getenv("RESEND_API_KEY") or getattr(settings, "RESEND_API_KEY", "") or "").strip().strip('"').strip("'")
+
     @property
     def enabled(self) -> bool:
         return os.getenv("ENABLE_EMAILS", "false").lower() == "true"
@@ -40,11 +45,11 @@ class EmailService:
     @property
     def configured(self) -> bool:
         """Whether outbound email has been explicitly enabled and configured."""
-        return self.enabled and bool(self.smtp_host or os.getenv("RESEND_API_KEY"))
+        return self.enabled and bool(self.smtp_host or self.resend_key)
 
     def _send_via_resend(self, to_address: str, subject: str, html_body: str, text_body: str) -> tuple[bool, str]:
         """Send email via Resend HTTPS REST API (Port 443 - Bypasses cloud host firewall port 25/465/587 blocks)."""
-        api_key = os.getenv("RESEND_API_KEY", "")
+        api_key = self.resend_key
         if not api_key:
             return False, "No RESEND_API_KEY configured"
 
@@ -66,7 +71,6 @@ class EmailService:
 
         if not from_email.startswith("ExamSentinel") and "<" not in from_email:
             from_email = f"ExamSentinel <{from_email}>"
-
 
         payload = {
             "from": from_email,
@@ -112,11 +116,12 @@ class EmailService:
             return False, reason
 
         # 1. Primary check: Resend HTTPS API (Port 443 - Never blocked on Render/Heroku/AWS)
-        if os.getenv("RESEND_API_KEY"):
+        if self.resend_key:
             resend_ok, resend_msg = self._send_via_resend(to_address, subject, html_body, text_body)
             if resend_ok:
                 return True, resend_msg
             logger.warning(f"Resend HTTPS API failed: {resend_msg}. Attempting SMTP fallback...")
+
 
         if not self.smtp_host:
             reason = "Email delivery enabled but no SMTP_HOST or RESEND_API_KEY configured."
