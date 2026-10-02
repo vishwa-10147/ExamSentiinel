@@ -396,7 +396,8 @@ async def get_current_user_profile(
     """Retrieve currently authenticated user profile and roles."""
     return current_user
 
-@router.post("/forgot-password", dependencies=[Depends(RateLimiter(calls=3, period=600))])
+@router.post("/forgot-password", dependencies=[Depends(RateLimiter(calls=15, period=300))])
+
 async def forgot_password(
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
