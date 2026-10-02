@@ -157,10 +157,15 @@ async def get_my_activity(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Get submissions per day for the last 15 weeks
-    cutoff_date = datetime.utcnow() - timedelta(days=105)
+    from app.models.session import ExamSession
+    from app.models.response import ExamResponse
     
-    query = (
+    # Get activity per day for the last 15 weeks (105 days)
+    cutoff_date = datetime.utcnow() - timedelta(days=105)
+    daily_counts: Dict[str, int] = {}
+
+    # 1. Query Code Submissions
+    code_query = (
         select(
             cast(CodeSubmission.created_at, Date).label("date"),
             func.count(CodeSubmission.id).label("count")
@@ -169,18 +174,40 @@ async def get_my_activity(
         .where(CodeSubmission.created_at >= cutoff_date)
         .group_by(cast(CodeSubmission.created_at, Date))
     )
-    result = await db.execute(query)
-    rows = result.all()
+    code_res = await db.execute(code_query)
+    for row in code_res.all():
+        if row.date:
+            daily_counts[str(row.date)] = daily_counts.get(str(row.date), 0) + row.count
+
+    # 2. Query Exam Sessions started/submitted
+    session_query = (
+        select(
+            cast(ExamSession.started_at, Date).label("date"),
+            func.count(ExamSession.id).label("count")
+        )
+        .where(ExamSession.candidate_id == current_user.id)
+        .where(ExamSession.started_at >= cutoff_date)
+        .group_by(cast(ExamSession.started_at, Date))
+    )
+    session_res = await db.execute(session_query)
+    for row in session_res.all():
+        if row.date:
+            daily_counts[str(row.date)] = daily_counts.get(str(row.date), 0) + row.count
+
+    # 3. Calculate total problems solved / questions answered
+    resp_query = select(func.count(ExamResponse.id)).join(ExamSession).where(ExamSession.candidate_id == current_user.id)
+    resp_count = (await db.execute(resp_query)).scalar() or 0
     
-    # Calculate stats
-    stats_query = select(func.count(func.distinct(CodeSubmission.session_id))).where(CodeSubmission.candidate_id == current_user.id)
-    problems_solved = (await db.execute(stats_query)).scalar() or 0
+    code_count_query = select(func.count(CodeSubmission.id)).where(CodeSubmission.candidate_id == current_user.id)
+    code_count = (await db.execute(code_count_query)).scalar() or 0
+
+    problems_solved = resp_count + code_count
     
     return {
         "problems_solved": problems_solved,
         "current_streak": 0,
         "max_streak": 0,
-        "daily_counts": {str(row.date): row.count for row in rows}
+        "daily_counts": daily_counts
     }
 
 
