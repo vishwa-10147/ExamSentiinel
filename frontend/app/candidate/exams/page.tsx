@@ -67,7 +67,10 @@ export default function CandidateExamsPage() {
           apiClient.get<any[]>("/api/results/history").catch(() => []),
         ]);
 
-        setExams(Array.isArray(examsData) ? examsData : []);
+        const publishedExams = Array.isArray(examsData)
+          ? examsData.filter((e) => e.status && (e.status.toUpperCase() === "PUBLISHED" || e.status.toUpperCase() === "LIVE"))
+          : [];
+        setExams(publishedExams);
         
         const map: Record<string, string> = {};
         if (Array.isArray(historyData)) {

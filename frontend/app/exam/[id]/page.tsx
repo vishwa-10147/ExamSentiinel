@@ -61,11 +61,16 @@ export default function ExamTakingPage() {
     }
 
     if (examId && !examDetails && !session) {
-      apiClient.get(`/api/exams/${examId}`).then(data => {
+      apiClient.get<any>(`/api/exams/${examId}`).then(data => {
+        if (data.status && data.status.toUpperCase() !== "PUBLISHED" && data.status.toUpperCase() !== "LIVE") {
+          setError("This examination is currently unpublished or in draft mode and cannot be launched.");
+          setLoading(false);
+          return;
+        }
         setExamDetails(data);
         setLoading(false);
       }).catch(err => {
-        setError("Failed to load exam details.");
+        setError(err?.message || "Failed to load exam details.");
         setLoading(false);
       });
     }

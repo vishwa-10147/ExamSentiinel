@@ -262,8 +262,14 @@ async def get_session_state(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
     # Only session candidate or admin/proctor can access
-    if current_user.role == UserRole.CANDIDATE and session.candidate_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    if current_user.role == UserRole.CANDIDATE:
+        if session.candidate_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        if session.exam and session.exam.status != ExamStatus.PUBLISHED:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Exam has been unpublished by administrator and is no longer accessible",
+            )
 
     # Extract all data before potential commit
     exam = session.exam

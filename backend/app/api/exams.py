@@ -117,19 +117,23 @@ async def list_exams(
     )
 
     if current_user.role == UserRole.CANDIDATE:
-        # Candidates see exams they are enrolled in or published exams
+        # Candidates MUST only see exams with PUBLISHED status
+        query = query.where(Exam.status == ExamStatus.PUBLISHED)
+
         enrollment_query = select(ExamEnrollment.exam_id).where(
             ExamEnrollment.candidate_id == current_user.id
         )
         enrolled_res = await db.execute(enrollment_query)
         enrolled_exam_ids = [row[0] for row in enrolled_res.all()]
 
+        any_enrollment_subquery = select(ExamEnrollment.exam_id)
+
         if enrolled_exam_ids:
             query = query.where(
-                (Exam.id.in_(enrolled_exam_ids)) | (Exam.status == ExamStatus.PUBLISHED)
+                (Exam.id.in_(enrolled_exam_ids)) | (~Exam.id.in_(any_enrollment_subquery))
             )
         else:
-            query = query.where(Exam.status == ExamStatus.PUBLISHED)
+            query = query.where(~Exam.id.in_(any_enrollment_subquery))
 
     if status_filter:
         query = query.where(Exam.status == status_filter)
@@ -192,11 +196,11 @@ async def get_exam(
             detail="Exam not found",
         )
 
-    # Candidate check
-    if current_user.role == UserRole.CANDIDATE and exam.status == ExamStatus.DRAFT:
+    # Candidate check - strictly require PUBLISHED status
+    if current_user.role == UserRole.CANDIDATE and exam.status != ExamStatus.PUBLISHED:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Exam is in draft mode and not accessible to candidates",
+            detail="Exam is currently unpublished or in draft mode and not accessible to candidates",
         )
 
     assigned = []

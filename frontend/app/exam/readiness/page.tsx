@@ -47,7 +47,11 @@ function ExamReadinessContent() {
       examService
         .getExam(examId)
         .then((data) => {
-          setExam(data);
+          if (data.status && data.status.toUpperCase() !== "PUBLISHED" && data.status.toUpperCase() !== "LIVE") {
+            setError("This examination is currently unpublished or in draft mode and cannot be launched.");
+          } else {
+            setExam(data);
+          }
           setLoading(false);
         })
         .catch((err) => {
