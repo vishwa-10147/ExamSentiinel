@@ -59,8 +59,21 @@ class EmailService:
         msg.attach(part2)
 
         try:
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
+            import socket
+            target_host = self.smtp_host
+            try:
+                addr_info = socket.getaddrinfo(self.smtp_host, self.smtp_port, socket.AF_INET, socket.SOCK_STREAM)
+                if addr_info:
+                    target_host = addr_info[0][4][0]
+            except Exception as resolve_err:
+                logger.warning(f"IPv4 resolution fallback warning: {resolve_err}")
+
+            with smtplib.SMTP(timeout=10) as server:
+                server.connect(target_host, self.smtp_port)
+                server._host = self.smtp_host
+                server.ehlo()
                 server.starttls()
+                server.ehlo()
                 if self.smtp_user and self.smtp_pass:
                     server.login(self.smtp_user, self.smtp_pass)
                 server.sendmail(self.sender, to_address, msg.as_string())
@@ -70,6 +83,7 @@ class EmailService:
             reason = f"SMTP Email failed: {str(e)}"
             logger.error(reason)
             return False, reason
+
 
     async def send(self, to_addresses: list[str], subject: str, html_body: str, text_body: str = "") -> bool:
         success, _ = await self.send_with_reason(to_addresses, subject, html_body, text_body)
