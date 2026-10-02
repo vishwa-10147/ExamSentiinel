@@ -334,7 +334,7 @@ async def admin_delete_user(
         from app.models.response import CandidateResponse
         from app.models.code_submission import CodeSubmission
         from app.models.refresh_token import RefreshToken
-        from app.models.proctoring_event import ProctoringEvent, ProctorLog
+        from app.models.proctoring_event import ProctoringEvent
         from app.models.review_case import ReviewCase
         from app.models.question import Question
         from app.models.audit_log import AuditLog
@@ -352,7 +352,6 @@ async def admin_delete_user(
         await db.execute(delete(CodeSubmission).where(CodeSubmission.candidate_id == user_id))
         await db.execute(delete(RefreshToken).where(RefreshToken.user_id == user_id))
         await db.execute(delete(ProctoringEvent).where(ProctoringEvent.candidate_id == user_id))
-        await db.execute(delete(ProctorLog).where(ProctorLog.candidate_id == user_id))
         await db.execute(delete(ReviewCase).where(ReviewCase.candidate_id == user_id))
 
         # Nullify foreign key references
