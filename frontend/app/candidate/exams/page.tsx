@@ -36,9 +36,10 @@ export default function CandidateExamsPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
+  const [completedMap, setCompletedMap] = useState<Record<string, string>>({}); // exam_id -> session_id
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filter, setFilter] = useState<"ALL" | "AVAILABLE" | "SCHEDULED">("ALL");
+  const [filter, setFilter] = useState<"ALL" | "AVAILABLE" | "SCHEDULED" | "COMPLETED">("ALL");
 
   const [now, setNow] = useState<number>(Date.now());
 
@@ -58,11 +59,25 @@ export default function CandidateExamsPage() {
   useEffect(() => {
     if (isLoading || !user) return;
     
-    const fetchExams = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await apiClient.get<Exam[]>("/api/exams");
-        setExams(Array.isArray(data) ? data : []);
+        const [examsData, historyData] = await Promise.all([
+          apiClient.get<Exam[]>("/api/exams").catch(() => []),
+          apiClient.get<any[]>("/api/results/history").catch(() => []),
+        ]);
+
+        setExams(Array.isArray(examsData) ? examsData : []);
+        
+        const map: Record<string, string> = {};
+        if (Array.isArray(historyData)) {
+          historyData.forEach((h: any) => {
+            if (h.exam_id && h.session_id) {
+              map[h.exam_id] = h.session_id;
+            }
+          });
+        }
+        setCompletedMap(map);
       } catch (err: any) {
         console.error("Failed to fetch exams", err);
         toast.error("Failed to load your examinations.");
@@ -72,7 +87,7 @@ export default function CandidateExamsPage() {
       }
     };
     
-    fetchExams();
+    fetchData();
   }, [isLoading, user]);
 
   if (isLoading || !user) {
@@ -113,10 +128,23 @@ export default function CandidateExamsPage() {
 
   // Calculate availability status
   const processedExams = exams.map((exam) => {
+    const isCompleted = !!completedMap[exam.id];
+    const sessionId = completedMap[exam.id];
+
+    if (isCompleted) {
+      return {
+        ...exam,
+        availability: "COMPLETED" as const,
+        sessionId,
+        countdownText: "Completed",
+        canStart: false,
+      };
+    }
+
     const start = parseDate(exam.start_window);
     const end = parseDate(exam.end_window);
 
-    let availability: "AVAILABLE" | "SCHEDULED" | "CLOSED" = "CLOSED";
+    let availability: "AVAILABLE" | "SCHEDULED" | "CLOSED" | "COMPLETED" = "CLOSED";
     let countdownText = "";
 
     if (now < start) {
@@ -149,7 +177,16 @@ export default function CandidateExamsPage() {
       (exam.description && exam.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
     if (!matchesSearch) return false;
-    if (filter !== "ALL" && exam.availability !== filter) return false;
+
+    if (filter === "COMPLETED") {
+      return exam.availability === "COMPLETED";
+    }
+
+    // In ALL, AVAILABLE, SCHEDULED tabs: hide COMPLETED exams so candidates see only active/upcoming ones!
+    if (exam.availability === "COMPLETED") return false;
+
+    if (filter === "AVAILABLE") return exam.availability === "AVAILABLE";
+    if (filter === "SCHEDULED") return exam.availability === "SCHEDULED";
 
     return true;
   });
@@ -166,9 +203,15 @@ export default function CandidateExamsPage() {
               My Scheduled Examinations
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Browse available assessments, check start windows, and launch proctored exams.
+              Browse available assessments, check start windows, launch proctored exams, and view past results.
             </p>
           </div>
+          <button
+            onClick={() => router.push("/candidate/results")}
+            className="self-start sm:self-auto px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+          >
+            <ShieldCheck className="h-4 w-4" /> View All Exam Results →
+          </button>
         </div>
 
         {/* Filter and Search Bar */}
@@ -185,7 +228,7 @@ export default function CandidateExamsPage() {
           </div>
 
           <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg w-full sm:w-auto overflow-x-auto">
-            {(["ALL", "AVAILABLE", "SCHEDULED"] as const).map((f) => (
+            {(["ALL", "AVAILABLE", "SCHEDULED", "COMPLETED"] as const).map((f) => (
               <button
                 key={f}
                 type="button"
@@ -196,7 +239,7 @@ export default function CandidateExamsPage() {
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                {f === "ALL" ? "All Exams" : f === "AVAILABLE" ? "Available Now" : "Upcoming"}
+                {f === "ALL" ? "Active Exams" : f === "AVAILABLE" ? "Available Now" : f === "SCHEDULED" ? "Upcoming" : "Completed"}
               </button>
             ))}
           </div>
@@ -214,7 +257,7 @@ export default function CandidateExamsPage() {
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               {searchTerm || filter !== "ALL"
                 ? "No exams match your current search or filter criteria."
-                : "No exams are currently assigned or published for your cohort."}
+                : "No exams are currently assigned or active for your cohort."}
             </p>
           </div>
         ) : (
@@ -231,14 +274,16 @@ export default function CandidateExamsPage() {
                     </h3>
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold shrink-0 border ${
-                        exam.canStart
+                        exam.availability === "COMPLETED"
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : exam.canStart
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : exam.availability === "SCHEDULED"
                           ? "bg-blue-50 text-blue-700 border-blue-200"
                           : "bg-slate-100 text-slate-600 border-slate-200"
                       }`}
                     >
-                      {exam.canStart ? "AVAILABLE NOW" : exam.availability}
+                      {exam.availability === "COMPLETED" ? "COMPLETED" : exam.canStart ? "AVAILABLE NOW" : exam.availability}
                     </span>
                   </div>
 
@@ -271,29 +316,39 @@ export default function CandidateExamsPage() {
                 </div>
 
                 <div className="pt-2">
-                  <button
-                    onClick={() => router.push(`/exam/readiness?exam_id=${exam.id}`)}
-                    disabled={!exam.canStart}
-                    className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-md transition disabled:cursor-not-allowed ${
-                      exam.canStart
-                        ? "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-emerald-200"
-                        : "bg-slate-100 text-slate-500 border border-slate-200 disabled:shadow-none"
-                    }`}
-                  >
-                    {exam.canStart ? (
-                      <>
-                        <PlayCircle className="h-4 w-4" /> Start Exam & Check System
-                      </>
-                    ) : exam.availability === "SCHEDULED" ? (
-                      <>
-                        <Clock className="h-4 w-4 text-blue-600 animate-pulse" />
-                        <span>{exam.countdownText}</span>
-                      </>
-                    ) : (
-                      "Exam Window Closed"
-                    )}
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+                  {exam.availability === "COMPLETED" ? (
+                    <button
+                      onClick={() => router.push(exam.sessionId ? `/candidate/results/${exam.sessionId}` : "/candidate/results")}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 px-4 py-2.5 text-sm font-bold text-white shadow-md transition"
+                    >
+                      <CheckCircle2 className="h-4 w-4" /> View Detailed Results & Score
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push(`/exam/readiness?exam_id=${exam.id}`)}
+                      disabled={!exam.canStart}
+                      className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-md transition disabled:cursor-not-allowed ${
+                        exam.canStart
+                          ? "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-emerald-200"
+                          : "bg-slate-100 text-slate-500 border border-slate-200 disabled:shadow-none"
+                      }`}
+                    >
+                      {exam.canStart ? (
+                        <>
+                          <PlayCircle className="h-4 w-4" /> Start Exam & Check System
+                        </>
+                      ) : exam.availability === "SCHEDULED" ? (
+                        <>
+                          <Clock className="h-4 w-4 text-blue-600 animate-pulse" />
+                          <span>{exam.countdownText}</span>
+                        </>
+                      ) : (
+                        "Exam Window Closed"
+                      )}
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

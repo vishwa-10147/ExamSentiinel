@@ -335,13 +335,13 @@ export default function ExamTakingPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-300">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-700">
         <div className="flex items-center gap-3">
-          <svg className="animate-spin h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span>Initializing secure examination session...</span>
+          <span className="font-medium text-sm">Initializing secure examination session...</span>
         </div>
       </div>
     );
@@ -349,20 +349,20 @@ export default function ExamTakingPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center">
-          <div className="h-12 w-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white border border-slate-200 shadow-xl rounded-2xl p-6 text-center">
+          <div className="h-12 w-12 rounded-full bg-red-50 text-red-500 border border-red-100 flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h2 className="text-lg font-bold text-white mb-2">Exam Launch Issue</h2>
-          <p className="text-sm text-slate-400 mb-6">{error}</p>
+          <h2 className="text-lg font-bold text-slate-900 mb-2">Exam Launch Issue</h2>
+          <p className="text-sm text-slate-600 mb-6">{error}</p>
           <button
-            onClick={() => router.push("/dashboard")}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold"
+            onClick={() => router.push("/candidate/exams")}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
           >
-            Back to Dashboard
+            Back to Examinations
           </button>
         </div>
       </div>
@@ -372,42 +372,49 @@ export default function ExamTakingPage() {
   // Completion Screen
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center shadow-2xl">
-          <div className="h-16 w-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-lg w-full bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-xl">
+          <div className="h-16 w-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-extrabold text-white mb-2">Exam Submitted Successfully</h2>
-          <p className="text-slate-400 text-sm mb-6">
-            Your responses have been securely transmitted and encrypted. The evaluation and human review process is
-            now underway.
+          <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Exam Submitted Successfully</h2>
+          <p className="text-slate-600 text-sm mb-6">
+            Your responses have been securely transmitted and encrypted. The evaluation and review process is now underway.
           </p>
 
-          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-left text-xs space-y-2 mb-6 text-slate-300">
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left text-xs space-y-2 mb-6 text-slate-700">
             <div className="flex justify-between">
               <span className="text-slate-500">Exam:</span>
-              <span className="font-semibold">{session?.exam_title}</span>
+              <span className="font-semibold text-slate-900">{session?.exam_title}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Session ID:</span>
-              <span className="font-mono text-slate-400">{session?.session_id}</span>
+              <span className="font-mono text-slate-600">{session?.session_id}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Questions Answered:</span>
-              <span className="text-emerald-400 font-semibold">
+              <span className="text-emerald-700 font-bold">
                 {Object.keys(responses).length} of {session?.total_questions}
               </span>
             </div>
           </div>
 
-          <button
-            onClick={() => router.push("/exam/completed")}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/30"
-          >
-            Finish & Return to Dashboard
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => router.push(`/candidate/results/${session?.session_id}`)}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-blue-500/20"
+            >
+              View Exam Results
+            </button>
+            <button
+              onClick={() => router.push("/candidate/exams")}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+            >
+              Return to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -432,19 +439,19 @@ export default function ExamTakingPage() {
   const unansweredCount = questions.length - answeredCount;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans select-none">
       {/* Top Banner Navigation */}
-      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white text-sm">
+            <span className="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-white text-sm shadow-sm">
               ES
             </span>
             <div>
-              <h1 className="text-sm font-bold text-white truncate max-w-[200px] sm:max-w-md">
+              <h1 className="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-md">
                 {session?.exam_title}
               </h1>
-              <p className="text-[11px] text-slate-400">Exam Sentinel Candidate Environment</p>
+              <p className="text-[11px] text-slate-500 font-medium">Exam Sentinel Proctored Environment</p>
             </div>
           </div>
 
@@ -461,7 +468,7 @@ export default function ExamTakingPage() {
 
             <button
               onClick={() => setIsSubmitModalOpen(true)}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-emerald-600/30"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20"
             >
               Submit Exam
             </button>
@@ -471,17 +478,17 @@ export default function ExamTakingPage() {
 
       {/* Blur Warning Notification */}
       {blurWarning && (
-        <div className="bg-amber-900/90 border-b border-amber-500 text-amber-200 text-xs px-4 py-2 text-center font-semibold animate-pulse flex items-center justify-center gap-2">
-          <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+        <div className="bg-amber-500 text-white text-xs px-4 py-2.5 text-center font-bold animate-pulse flex items-center justify-center gap-2 shadow-sm">
+          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
-          Warning: Browser focus lost! Switching windows or tabs is recorded as an integrity event.
+          Warning: Browser focus lost! Switching windows or tabs is recorded as an integrity security event.
         </div>
       )}
 
       {fullscreenWarnings > 0 && !isSubmitted && (
-        <div className="bg-red-900/90 border-b border-red-500 text-red-100 text-xs px-4 py-2 text-center font-semibold">
-          Fullscreen warning {fullscreenWarnings} of 2. Exiting fullscreen again will submit your exam automatically.
+        <div className="bg-red-600 text-white text-xs px-4 py-2 text-center font-bold">
+          Fullscreen warning {fullscreenWarnings} of 2. Exiting fullscreen again will auto-submit your examination.
         </div>
       )}
 
@@ -506,7 +513,7 @@ export default function ExamTakingPage() {
               sessionId={session?.session_id}
             />
           ) : (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500 shadow-sm">
               No questions found in this examination.
             </div>
           )}
@@ -521,14 +528,14 @@ export default function ExamTakingPage() {
             onSelectQuestion={(idx) => setCurrentQuestionIndex(idx)}
           />
           
-          <div className="mt-6 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <div className="bg-slate-950 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-300 flex items-center gap-2">
+          <div className="mt-6 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                Live Proctoring
+                Live Proctoring Stream
               </span>
             </div>
-            <div className="p-3">
+            <div className="p-3 bg-white">
               <FaceTracker 
                 enabled={true} 
                 sessionId={session?.session_id}

@@ -20,7 +20,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
     const resp = responses[qId];
     if (!resp || !resp.response_data) return false;
     const data = resp.response_data;
-    if (data.selected_option_id) return true;
+    if (data.selected_option_id !== undefined && data.selected_option_id !== null && String(data.selected_option_id).trim() !== "") return true;
     if (Array.isArray(data.selected_option_ids) && data.selected_option_ids.length > 0) return true;
     if (typeof data.text === "string" && data.text.trim().length > 0) return true;
     return false;
@@ -35,22 +35,22 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
   const unansweredCount = questions.length - answeredCount;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col h-full">
-      <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Question Palette</h3>
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col h-full shadow-sm">
+      <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Question Palette</h3>
 
       {/* Legend & Stats */}
-      <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-        <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
-          <div className="text-xs text-slate-400">Answered</div>
-          <div className="text-lg font-bold text-emerald-400">{answeredCount}</div>
+      <div className="grid grid-cols-3 gap-2 mb-5 text-center">
+        <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
+          <div className="text-[11px] font-semibold text-emerald-700">Answered</div>
+          <div className="text-lg font-bold text-emerald-800">{answeredCount}</div>
         </div>
-        <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
-          <div className="text-xs text-slate-400">Unanswered</div>
-          <div className="text-lg font-bold text-slate-300">{unansweredCount}</div>
+        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+          <div className="text-[11px] font-semibold text-slate-500">Unanswered</div>
+          <div className="text-lg font-bold text-slate-700">{unansweredCount}</div>
         </div>
-        <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
-          <div className="text-xs text-slate-400">Flagged</div>
-          <div className="text-lg font-bold text-amber-400">{flaggedCount}</div>
+        <div className="bg-amber-50 p-2.5 rounded-xl border border-amber-100">
+          <div className="text-[11px] font-semibold text-amber-700">Flagged</div>
+          <div className="text-lg font-bold text-amber-800">{flaggedCount}</div>
         </div>
       </div>
 
@@ -61,16 +61,16 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
           const answered = isAnswered(q.id);
           const flagged = isFlagged(q.id);
 
-          let buttonClasses = "relative h-10 w-10 flex items-center justify-center rounded-lg font-semibold text-xs transition-all ";
+          let buttonClasses = "relative h-10 w-10 flex items-center justify-center rounded-xl font-bold text-xs transition-all ";
 
           if (active) {
-            buttonClasses += "ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-950 font-bold ";
+            buttonClasses += "ring-2 ring-blue-600 ring-offset-2 ring-offset-white font-extrabold shadow-md ";
           }
 
           if (answered) {
-            buttonClasses += "bg-emerald-600/90 text-white hover:bg-emerald-500 ";
+            buttonClasses += "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 ";
           } else {
-            buttonClasses += "bg-slate-800 text-slate-300 hover:bg-slate-700 ";
+            buttonClasses += "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 ";
           }
 
           return (
@@ -82,7 +82,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
             >
               {idx + 1}
               {flagged && (
-                <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-amber-500 rounded-full border-2 border-slate-900 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
                   <span className="block h-1 w-1 bg-white rounded-full"></span>
                 </span>
               )}
