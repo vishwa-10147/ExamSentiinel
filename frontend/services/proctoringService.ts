@@ -3,13 +3,19 @@ import { apiClient } from "./apiClient";
 export type ProctoringEventType =
   | "TAB_BLUR"
   | "TAB_FOCUS"
+  | "VISIBILITY_HIDDEN"
   | "FULLSCREEN_EXIT"
   | "PASTE_ATTEMPT"
   | "COPY_ATTEMPT"
+  | "CUT_ATTEMPT"
+  | "SECURITY_KEY_BLOCKED"
   | "RIGHT_CLICK"
   | "RESIZE"
   | "NETWORK_DISCONNECT"
-  | "NETWORK_RECONNECT";
+  | "NETWORK_RECONNECT"
+  | "MULTIPLE_FACES"
+  | "NO_FACE"
+  | "LOOKING_AWAY";
 
 export interface ProctoringEventResult {
   session_id: string;

@@ -103,8 +103,34 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     .split(/\s+/)
     .filter(Boolean).length;
 
+  const normalizeOptions = (rawOptions: any): Array<{ id: string; text: string }> => {
+    if (!rawOptions) return [];
+    let opts = rawOptions;
+    if (typeof opts === "string") {
+      try {
+        opts = JSON.parse(opts);
+      } catch {
+        opts = [rawOptions];
+      }
+    }
+    if (!Array.isArray(opts)) return [];
+    return opts.map((opt, idx) => {
+      if (typeof opt === "string" || typeof opt === "number") {
+        return { id: String(opt), text: String(opt) };
+      }
+      if (opt && typeof opt === "object") {
+        const id = String(opt.id ?? opt.value ?? opt.text ?? idx);
+        const text = String(opt.text ?? opt.label ?? opt.value ?? opt.id ?? "");
+        return { id, text };
+      }
+      return { id: String(idx), text: String(opt) };
+    });
+  };
+
+  const normalizedOptions = normalizeOptions(question.options);
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col justify-between min-h-[500px] shadow-lg">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col justify-between min-h-[500px] shadow-lg select-none">
       <div>
         {/* Header Bar */}
         <div className="flex flex-wrap items-center justify-between pb-4 mb-4 border-b border-slate-800 gap-2">
@@ -161,61 +187,70 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
         {/* Answer Options / Inputs */}
         <div className="space-y-3 mt-4">
-          {question.type === "MCQ_SINGLE" && question.options && (
-            <div className="space-y-2">
-              {question.options.map((opt) => {
-                const selected = responseData?.selected_option_id === opt.id;
-                return (
-                  <label
-                    key={opt.id}
-                    onClick={() => handleSingleOption(opt.id)}
-                    className={`flex items-center gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${
-                      selected
-                        ? "bg-indigo-950/50 border-indigo-500 text-white shadow-sm"
-                        : "bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={`question_${question.id}`}
-                      checked={selected}
-                      onChange={() => handleSingleOption(opt.id)}
-                      className="text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900 border-slate-600"
-                    />
-                    <span className="text-sm">{opt.text}</span>
-                  </label>
-                );
-              })}
+          {question.type === "MCQ_SINGLE" && (
+            <div className="space-y-2.5">
+              {normalizedOptions.length === 0 ? (
+                <p className="text-xs text-slate-500 italic">No options provided for this question.</p>
+              ) : (
+                normalizedOptions.map((opt) => {
+                  const selected = String(responseData?.selected_option_id) === String(opt.id);
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => handleSingleOption(opt.id)}
+                      className={`flex items-center gap-3.5 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        selected
+                          ? "bg-indigo-950/70 border-indigo-500 text-white shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500/50"
+                          : "bg-slate-800/60 border-slate-700 text-slate-200 hover:bg-slate-800 hover:border-slate-600"
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                        selected ? "border-indigo-400 bg-indigo-600" : "border-slate-500 bg-slate-900"
+                      }`}>
+                        {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <span className="text-sm font-medium leading-normal">{opt.text}</span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           )}
 
-          {question.type === "MCQ_MULTI" && question.options && (
-            <div className="space-y-2">
+          {question.type === "MCQ_MULTI" && (
+            <div className="space-y-2.5">
               <p className="text-xs text-slate-400 italic mb-1">Select all options that apply:</p>
-              {question.options.map((opt) => {
-                const checked =
-                  Array.isArray(responseData?.selected_option_ids) &&
-                  responseData.selected_option_ids.includes(opt.id);
-                return (
-                  <label
-                    key={opt.id}
-                    onClick={() => handleMultiOption(opt.id)}
-                    className={`flex items-center gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${
-                      checked
-                        ? "bg-indigo-950/50 border-indigo-500 text-white"
-                        : "bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => handleMultiOption(opt.id)}
-                      className="text-indigo-600 rounded focus:ring-indigo-500 h-4 w-4 bg-slate-900 border-slate-600"
-                    />
-                    <span className="text-sm">{opt.text}</span>
-                  </label>
-                );
-              })}
+              {normalizedOptions.length === 0 ? (
+                <p className="text-xs text-slate-500 italic">No options provided for this question.</p>
+              ) : (
+                normalizedOptions.map((opt) => {
+                  const checked =
+                    Array.isArray(responseData?.selected_option_ids) &&
+                    responseData.selected_option_ids.map(String).includes(String(opt.id));
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => handleMultiOption(opt.id)}
+                      className={`flex items-center gap-3.5 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        checked
+                          ? "bg-indigo-950/70 border-indigo-500 text-white shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500/50"
+                          : "bg-slate-800/60 border-slate-700 text-slate-200 hover:bg-slate-800 hover:border-slate-600"
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        checked ? "border-indigo-400 bg-indigo-600" : "border-slate-500 bg-slate-900"
+                      }`}>
+                        {checked && (
+                          <svg className="w-3 h-3 text-white fill-current" viewBox="0 0 20 20">
+                            <path d="M0 11l2-2 5 5L18 3l2 2L7 18z" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium leading-normal">{opt.text}</span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           )}
 

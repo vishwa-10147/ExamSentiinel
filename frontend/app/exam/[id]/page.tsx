@@ -115,7 +115,13 @@ export default function ExamTakingPage() {
     };
     const handleFocus = () => {
       submitTelemetry("TAB_FOCUS");
-      setTimeout(() => setBlurWarning(false), 4000);
+      setTimeout(() => setBlurWarning(false), 5000);
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setBlurWarning(true);
+        submitTelemetry("VISIBILITY_HIDDEN");
+      }
     };
     const handleFullscreenChange = () => {
       if (document.fullscreenElement || !session || isSubmitted) return;
@@ -131,15 +137,34 @@ export default function ExamTakingPage() {
           .finally(() => setIsSubmitted(true));
       }
     };
-    const handleCopy = () => submitTelemetry("COPY_ATTEMPT");
-    const handlePaste = (event: ClipboardEvent) => {
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      submitTelemetry("COPY_ATTEMPT");
+    };
+    const handleCut = (e: ClipboardEvent) => {
+      e.preventDefault();
+      submitTelemetry("CUT_ATTEMPT");
+    };
+    const handlePaste = (e: ClipboardEvent) => {
+      // Record paste telemetry
       submitTelemetry("PASTE_ATTEMPT", {
-        text_length: event.clipboardData?.getData("text").length || 0,
+        text_length: e.clipboardData?.getData("text").length || 0,
       });
     };
-    const handleContextMenu = (event: MouseEvent) => {
-      event.preventDefault();
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
       submitTelemetry("RIGHT_CLICK");
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "i" || e.key === "J" || e.key === "j" || e.key === "C" || e.key === "c")) ||
+        (e.ctrlKey && (e.key === "u" || e.key === "U" || e.key === "c" || e.key === "C" || e.key === "s" || e.key === "S"))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        submitTelemetry("SECURITY_KEY_BLOCKED", { key: e.key });
+      }
     };
     const handleResize = () => {
       submitTelemetry("RESIZE", { width: window.innerWidth, height: window.innerHeight });
@@ -171,23 +196,28 @@ export default function ExamTakingPage() {
       }
     };
 
-
     window.addEventListener("blur", handleBlur);
     window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("copy", handleCopy);
+    document.addEventListener("cut", handleCut);
     document.addEventListener("paste", handlePaste);
     document.addEventListener("contextmenu", handleContextMenu);
+    window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("resize", handleResize);
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
     return () => {
       window.removeEventListener("blur", handleBlur);
       window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("copy", handleCopy);
+      document.removeEventListener("cut", handleCut);
       document.removeEventListener("paste", handlePaste);
       document.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
@@ -391,7 +421,7 @@ export default function ExamTakingPage() {
     const resp = responses[qId];
     if (!resp || !resp.response_data) return false;
     const data = resp.response_data;
-    if (data.selected_option_id) return true;
+    if (data.selected_option_id !== undefined && data.selected_option_id !== null && String(data.selected_option_id).trim() !== "") return true;
     if (Array.isArray(data.selected_option_ids) && data.selected_option_ids.length > 0) return true;
     if (typeof data.text === "string" && data.text.trim().length > 0) return true;
     return false;
