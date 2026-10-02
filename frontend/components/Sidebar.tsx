@@ -81,8 +81,8 @@ export default function Sidebar() {
     
     // Candidate routes
     { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
-    { label: "Practice Lab", href: "/candidate/practice", icon: Code2, roles: ["candidate"] },
-    { label: "Problem Set", href: "/candidate/problems", icon: Library, roles: ["candidate"] },
+    { label: "Practice Lab", href: "/candidate/practice", icon: Code2, roles: ["candidate"], badge: "Soon" },
+    { label: "Problem Set", href: "/candidate/problems", icon: Library, roles: ["candidate"], badge: "Soon" },
     { label: "My Results", href: "/candidate/results", icon: FileCheck2, roles: ["candidate"] },
     { label: "Leaderboard", href: "/candidate/leaderboard", icon: Trophy, roles: ["candidate"] },
     { label: "My Profile", href: "/candidate/profile", icon: User, roles: ["candidate"] },
@@ -104,7 +104,7 @@ export default function Sidebar() {
       <aside className={`fixed md:sticky top-16 left-0 z-40 md:z-auto h-[calc(100vh-4rem)] overflow-y-auto border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? "w-64 p-4 border-r translate-x-0 opacity-100" : "w-0 p-0 border-r-0 -translate-x-full opacity-0 overflow-hidden"}`}>
       <div className="space-y-6">
         <div>
-          <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 dark:text-slate-400">
+          <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Navigation
           </h3>
           <div className="mt-2 space-y-1">
@@ -122,7 +122,12 @@ export default function Sidebar() {
                   }`}
                 >
                   <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`} />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

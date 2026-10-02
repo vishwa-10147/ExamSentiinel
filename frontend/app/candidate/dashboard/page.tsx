@@ -411,11 +411,11 @@ export default function CandidateDashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
               href="/candidate/practice"
-              className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-500 hover:shadow-sm transition group"
+              className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-500 hover:shadow-sm transition group relative overflow-hidden"
             >
               <div className="flex items-center justify-between">
                 <Cpu className="h-5 w-5 text-indigo-600" />
-                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-600 transition" />
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/10 text-amber-700 border border-amber-500/20">Soon</span>
               </div>
               <p className="font-bold text-slate-900 text-sm mt-2">Practice Sandbox</p>
               <p className="text-xs text-slate-500 mt-0.5">Test questions & AI environment</p>
@@ -423,11 +423,11 @@ export default function CandidateDashboardPage() {
 
             <Link
               href="/candidate/problems"
-              className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-500 hover:shadow-sm transition group"
+              className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-500 hover:shadow-sm transition group relative overflow-hidden"
             >
               <div className="flex items-center justify-between">
                 <Code className="h-5 w-5 text-purple-600" />
-                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-purple-600 transition" />
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/10 text-amber-700 border border-amber-500/20">Soon</span>
               </div>
               <p className="font-bold text-slate-900 text-sm mt-2">Coding Problems</p>
               <p className="text-xs text-slate-500 mt-0.5">Practice coding challenges</p>
