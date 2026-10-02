@@ -47,6 +47,7 @@ class SessionSummary(BaseModel):
     status: str
     current_risk_score: float
     risk_level: str
+    violation_count: int = 0
     started_at: datetime
     submitted_at: Optional[datetime] = None
     server_end_time: datetime
@@ -105,6 +106,7 @@ def _build_session_summary(session: ExamSession) -> Dict[str, Any]:
         "status": session.status.value if isinstance(session.status, SessionStatus) else session.status,
         "current_risk_score": session.current_risk_score,
         "risk_level": session.risk_level,
+        "violation_count": getattr(session, "violation_count", 0) or 0,
         "started_at": session.started_at,
         "submitted_at": session.submitted_at,
         "server_end_time": session.server_end_time,

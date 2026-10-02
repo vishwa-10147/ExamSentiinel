@@ -79,6 +79,7 @@ class ExamSession(TimeStampedUUIDModel):
     percentage: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     rank: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     results_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    violation_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     client_ip: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     device_fingerprint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     user_agent: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)

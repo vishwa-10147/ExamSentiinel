@@ -36,6 +36,7 @@ interface ActiveSession {
   exam_name?: string;
   risk_level: string;
   current_risk_score?: number;
+  violation_count?: number;
   status: string;
   started_at: string;
 }
@@ -355,15 +356,16 @@ export default function ProctorDashboardPage() {
             const sId = sess.session_id || sess.id || "";
             const sig = signals[sId] || { warningCount: 0, cameraState: "waiting" as const };
             const riskLevel = (sess.risk_level || "LOW").toUpperCase();
+            const vCount = sess.violation_count ?? sig.warningCount ?? 0;
 
-            const isHigh = riskLevel === "HIGH" || riskLevel === "CRITICAL";
-            const isMedium = riskLevel === "MEDIUM";
+            const isCriticalCheater = vCount >= 4 || riskLevel === "CRITICAL" || sess.status === "EXPIRED";
+            const isOrangeWarning = (vCount === 2 || vCount === 3 || riskLevel === "MEDIUM") && !isCriticalCheater;
 
             return (
               <div
                 key={sId}
                 className={`bg-slate-900 border rounded-2xl overflow-hidden flex flex-col transition-all hover:border-slate-700 shadow-xl ${
-                  isHigh ? "border-red-500/40 bg-red-950/10" : isMedium ? "border-amber-500/30" : "border-slate-800"
+                  isCriticalCheater ? "border-red-500/80 bg-red-950/20 ring-2 ring-red-500/40" : isOrangeWarning ? "border-amber-500/50 bg-amber-950/10" : "border-slate-800"
                 }`}
               >
                 {/* Frame / Feed Header */}
@@ -389,18 +391,21 @@ export default function ProctorDashboardPage() {
                     </span>
                   </div>
 
+                  {/* Violation Indicator Light Badge */}
                   <div className="absolute bottom-3 right-3">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border backdrop-blur ${
-                        isHigh
-                          ? "bg-red-500/20 text-red-400 border-red-500/30"
-                          : isMedium
-                          ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                          : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                      }`}
-                    >
-                      {riskLevel} RISK
-                    </span>
+                    {isCriticalCheater ? (
+                      <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase border backdrop-blur bg-red-600/90 text-white border-red-400 shadow-lg shadow-red-600/50 flex items-center gap-1.5 animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-white animate-ping" /> 🔴 CHEATER ({vCount}/4)
+                      </span>
+                    ) : isOrangeWarning ? (
+                      <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase border backdrop-blur bg-amber-500/20 text-amber-300 border-amber-500/40 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-400" /> 🟠 WARNING ({vCount}/3)
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase border backdrop-blur bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400" /> 🟢 CLEAN ({vCount}/3)
+                      </span>
+                    )}
                   </div>
                 </div>
 

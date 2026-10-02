@@ -171,7 +171,7 @@ async def submit_proctoring_event(
             detail="Access denied",
         )
 
-    # 3. Store event
+    # 3. Store event & Track security violations
     category = payload.category if hasattr(payload, "category") and payload.category else _EVENT_CATEGORY_MAP.get(event_type, EventCategory.BROWSER)
     severity = payload.severity if hasattr(payload, "severity") and payload.severity else _EVENT_SEVERITY_MAP.get(event_type, EventSeverity.LOW)
 
@@ -187,10 +187,36 @@ async def submit_proctoring_event(
         snapshot_url=payload.snapshot_url if hasattr(payload, "snapshot_url") else None,
     )
     db.add(event)
+
+    # Security violation triggers
+    security_event_types = {
+        "TAB_BLUR", "VISIBILITY_HIDDEN", "FULLSCREEN_EXIT", "PASTE_ATTEMPT",
+        "SECURITY_KEY_BLOCKED", "MULTI_TAB", "MULTIPLE_FACES", "PHONE_DETECTED",
+        "SCREEN_SHARE_UNAUTHORIZED"
+    }
+
+    if event_type in security_event_types:
+        session.violation_count = (session.violation_count or 0) + 1
+
+    is_terminated = False
+    if (session.violation_count or 0) >= 4 and session.status != SessionStatus.SUBMITTED:
+        from app.models.session import SessionStatus
+        from app.services.grading_service import grading_service
+        session.status = SessionStatus.SUBMITTED
+        session.risk_level = "CRITICAL"
+        session.submitted_at = now
+        session.results_published = True
+        is_terminated = True
+        await db.flush()
+        await grading_service.grade_session(db, session.id)
+
     await db.flush()
 
     # 4. Recalculate risk score
     score, risk_level = await risk_engine.recalculate_and_update(db, session.id)
+    if (session.violation_count or 0) >= 4:
+        session.risk_level = "CRITICAL"
+        risk_level = "CRITICAL"
 
     # 5. Count events by category for the response
     count_result = await db.execute(
@@ -219,6 +245,8 @@ async def submit_proctoring_event(
         "category": event.category.value,
         "severity": event.severity.value,
         "details": event.details,
+        "violation_count": session.violation_count,
+        "is_terminated": is_terminated,
         "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None,
     }
     await manager.broadcast_event(str(session.id), str(session.exam_id), event_payload)
@@ -228,6 +256,8 @@ async def submit_proctoring_event(
         {
             "current_risk_score": score,
             "risk_level": risk_level,
+            "violation_count": session.violation_count,
+            "is_terminated": is_terminated,
             "total_events": total_events,
             "event_counts": [item.model_dump(mode="json") for item in event_counts],
         },
@@ -238,6 +268,8 @@ async def submit_proctoring_event(
         event_type=event.event_type,
         current_risk_score=score,
         risk_level=risk_level,
+        violation_count=session.violation_count or 0,
+        is_terminated=is_terminated,
         event_counts=event_counts,
         total_events=total_events,
     )

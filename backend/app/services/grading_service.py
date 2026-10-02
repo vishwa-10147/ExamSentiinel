@@ -228,8 +228,8 @@ class GradingService:
                         if r is not None:
                             await r.aclose()
             
-            elif question.type in (QuestionType.ESSAY, QuestionType.SHORT_ANSWER):
-                # Manual grading required
+            elif question.type == QuestionType.ESSAY:
+                # Manual grading required for essay
                 marks = 0.0
                 is_correct = None
             

@@ -48,10 +48,13 @@ export default function ExamTakingPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
-  // Integrity warning flags
+  // Integrity warning flags & violation modal
   const [blurWarning, setBlurWarning] = useState<boolean>(false);
   const [fullscreenWarnings, setFullscreenWarnings] = useState(0);
   const fullscreenWarningsRef = useRef(0);
+  const [violationCount, setViolationCount] = useState<number>(0);
+  const [showViolationModal, setShowViolationModal] = useState<boolean>(false);
+  const [isAutoTerminated, setIsAutoTerminated] = useState<boolean>(false);
 
   // Load / Start Session
   useEffect(() => {
@@ -107,10 +110,28 @@ export default function ExamTakingPage() {
 
   const submitTelemetry = useCallback(
     (eventType: Parameters<typeof proctoringService.submitEvent>[1], details: Record<string, unknown> = {}) => {
-      if (!session || isSubmitted) return;
-      void proctoringService.submitEvent(session.session_id, eventType, details).catch(() => undefined);
+      if (!session || isSubmitted || isAutoTerminated) return;
+      proctoringService.submitEvent(session.session_id, eventType, details)
+        .then((res: any) => {
+          if (res?.violation_count !== undefined) {
+            setViolationCount(res.violation_count);
+            const securityEvents = [
+              "TAB_BLUR", "VISIBILITY_HIDDEN", "FULLSCREEN_EXIT", "PASTE_ATTEMPT",
+              "SECURITY_KEY_BLOCKED", "MULTI_TAB", "MULTIPLE_FACES", "PHONE_DETECTED"
+            ];
+            if (securityEvents.includes(eventType)) {
+              if (res.is_terminated || res.violation_count >= 4) {
+                setIsAutoTerminated(true);
+                setIsSubmitted(true);
+              } else {
+                setShowViolationModal(true);
+              }
+            }
+          }
+        })
+        .catch(() => undefined);
     },
-    [session, isSubmitted]
+    [session, isSubmitted, isAutoTerminated]
   );
 
   useEffect(() => {
@@ -129,18 +150,12 @@ export default function ExamTakingPage() {
       }
     };
     const handleFullscreenChange = () => {
-      if (document.fullscreenElement || !session || isSubmitted) return;
+      if (document.fullscreenElement || !session || isSubmitted || isAutoTerminated) return;
 
       fullscreenWarningsRef.current += 1;
       const warningCount = fullscreenWarningsRef.current;
       setFullscreenWarnings(warningCount);
       submitTelemetry("FULLSCREEN_EXIT", { warning_count: warningCount });
-
-      if (warningCount >= 2) {
-        void examService.submitSession(session.session_id)
-          .catch(() => undefined)
-          .finally(() => setIsSubmitted(true));
-      }
     };
     const handleCopy = (e: ClipboardEvent) => {
       e.preventDefault();
@@ -562,6 +577,83 @@ export default function ExamTakingPage() {
         unansweredCount={unansweredCount}
         flaggedCount={flaggedCount}
       />
+
+      {/* Center Security Warning Modal Overlay */}
+      {showViolationModal && !isAutoTerminated && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-amber-500/50 rounded-3xl max-w-lg w-full p-6 text-center shadow-2xl shadow-amber-500/20 space-y-4">
+            <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400">
+              <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            
+            <h2 className="text-xl font-extrabold text-white">
+              ⚠️ Security Warning: Unauthorized Activity
+            </h2>
+            
+            <p className="text-sm text-slate-300">
+              You switched tabs, left fullscreen mode, or performed unauthorized screen actions.
+            </p>
+
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Violation Attempt</span>
+              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 font-extrabold text-sm rounded-lg border border-amber-500/30">
+                Attempt {violationCount} of 3
+              </span>
+            </div>
+
+            <p className="text-xs text-amber-400 font-medium bg-amber-950/40 border border-amber-800/40 p-3 rounded-xl">
+              <strong>Important Policy Notice:</strong> You are granted a maximum of 3 chances. On your <strong>4th violation attempt</strong>, your examination will be automatically terminated and submitted as a cheating violation.
+            </p>
+
+            <button
+              onClick={() => {
+                setShowViolationModal(false);
+                if (!document.fullscreenElement) {
+                  void document.documentElement.requestFullscreen?.().catch(() => undefined);
+                }
+              }}
+              className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20"
+            >
+              I Understand — Return to Exam Immediately
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-Terminated Cheating Screen Overlay */}
+      {isAutoTerminated && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-lg p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-red-500/60 rounded-3xl max-w-lg w-full p-8 text-center shadow-2xl shadow-red-500/30 space-y-5">
+            <div className="w-20 h-20 bg-red-500/10 border border-red-500/40 rounded-3xl flex items-center justify-center mx-auto text-red-500 animate-pulse">
+              <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            
+            <h2 className="text-2xl font-black text-red-500 uppercase tracking-tight">
+              Exam Terminated & Submitted
+            </h2>
+
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Your examination session has been <strong>automatically terminated and submitted</strong> because you exceeded the 3-chance security threshold (4th violation detected).
+            </p>
+
+            <div className="bg-red-950/50 border border-red-800/60 p-4 rounded-2xl text-xs text-red-300 font-semibold space-y-1">
+              <div className="text-red-400 font-bold uppercase tracking-wider text-[11px]">Integrity Policy Enforcement</div>
+              <div>Status: Auto-Submitted • Flagged Critical Cheater</div>
+            </div>
+
+            <button
+              onClick={() => router.push("/candidate/dashboard")}
+              className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-red-600/30"
+            >
+              Return to Candidate Dashboard
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

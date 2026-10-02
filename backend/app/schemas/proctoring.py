@@ -63,6 +63,8 @@ class RiskScoreResponse(BaseModel):
     event_type: Optional[str] = None
     current_risk_score: float
     risk_level: str
+    violation_count: int = 0
+    is_terminated: bool = False
     event_counts: List[EventCountByCategory] = []
     total_events: int = 0
 
