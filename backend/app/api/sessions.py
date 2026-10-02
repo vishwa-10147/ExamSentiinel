@@ -470,6 +470,7 @@ async def submit_session(
         submission_time = ensure_utc(session.server_end_time) or now
     session.status = SessionStatus.SUBMITTED
     session.submitted_at = submission_time
+    session.results_published = True
     session.updated_at = now
 
     # Update candidate enrollment status if exists

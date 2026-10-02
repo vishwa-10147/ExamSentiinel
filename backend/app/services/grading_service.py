@@ -17,6 +17,24 @@ from app.services.sandbox_service import sandbox_service
 from app.services.ai_service import ai_service
 from app.core.logging import logger
 
+def extract_option_val(val) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, dict):
+        for key in ["selected_option_id", "secret_key", "id", "text", "label", "value", "answer"]:
+            if key in val and val[key] is not None:
+                res = val[key]
+                if isinstance(res, list) and len(res) > 0:
+                    return str(res[0]).strip()
+                return str(res).strip()
+        if "selected_option_ids" in val and isinstance(val["selected_option_ids"], list) and len(val["selected_option_ids"]) > 0:
+            return str(val["selected_option_ids"][0]).strip()
+        return str(val).strip()
+    if isinstance(val, list) and len(val) > 0:
+        return extract_option_val(val[0])
+    return str(val).strip()
+
+
 class GradingService:
     async def grade_session(self, db: AsyncSession, session_id: uuid.UUID) -> ExamSession:
         """Grades an exam session and computes total score."""
@@ -51,33 +69,95 @@ class GradingService:
             is_correct = False
             
             if question.type == QuestionType.MCQ_SINGLE:
-                selected = response.response_data.get("selected_option_id") if "selected_option_id" in response.response_data else response.response_data.get("selected")
-                correct = question.correct_answer.get("secret_key") if isinstance(question.correct_answer, dict) else question.correct_answer
-                if selected is not None and correct is not None and str(selected).strip() == str(correct).strip():
+                raw_selected = (
+                    response.response_data.get("selected_option_id")
+                    if "selected_option_id" in response.response_data
+                    else (
+                        response.response_data.get("selected")
+                        if "selected" in response.response_data
+                        else response.response_data.get("text")
+                    )
+                )
+                raw_correct = question.correct_answer
+
+                selected_str = extract_option_val(raw_selected)
+                correct_str = extract_option_val(raw_correct)
+
+                is_match = False
+                if selected_str and correct_str:
+                    if selected_str.strip().lower() == correct_str.strip().lower():
+                        is_match = True
+                    elif question.options and isinstance(question.options, list):
+                        opts = [extract_option_val(o) for o in question.options]
+                        try:
+                            sel_idx = int(selected_str)
+                            if 0 <= sel_idx < len(opts) and opts[sel_idx].strip().lower() == correct_str.strip().lower():
+                                is_match = True
+                        except ValueError:
+                            pass
+                        try:
+                            cor_idx = int(correct_str)
+                            if 0 <= cor_idx < len(opts) and opts[cor_idx].strip().lower() == selected_str.strip().lower():
+                                is_match = True
+                        except ValueError:
+                            pass
+
+                if is_match:
                     marks = question_points
                     is_correct = True
 
             elif question.type == QuestionType.MCQ_MULTI:
-                selected_list = response.response_data.get("selected_option_ids") or response.response_data.get("selected", [])
-                correct_list = (
-                    question.correct_answer.get("selected_option_ids", [])
-                    if isinstance(question.correct_answer, dict)
-                    else question.correct_answer if isinstance(question.correct_answer, list) else []
+                raw_selected = (
+                    response.response_data.get("selected_option_ids")
+                    if "selected_option_ids" in response.response_data
+                    else response.response_data.get("selected", [])
                 )
-                if selected_list and correct_list and set(map(str, selected_list)) == set(map(str, correct_list)):
+                if not isinstance(raw_selected, list):
+                    raw_selected = [raw_selected] if raw_selected is not None else []
+
+                raw_correct = question.correct_answer
+                if isinstance(raw_correct, dict):
+                    raw_correct = (
+                        raw_correct.get("selected_option_ids")
+                        or raw_correct.get("correct_options")
+                        or raw_correct.get("selected")
+                        or []
+                    )
+                if not isinstance(raw_correct, list):
+                    raw_correct = [raw_correct] if raw_correct is not None else []
+
+                sel_set = {extract_option_val(x).strip().lower() for x in raw_selected if extract_option_val(x)}
+                cor_set = {extract_option_val(x).strip().lower() for x in raw_correct if extract_option_val(x)}
+
+                if sel_set and cor_set and sel_set == cor_set:
                     marks = question_points
                     is_correct = True
 
             elif question.type == QuestionType.SHORT_ANSWER:
-                student_text = (response.response_data.get("text") or "").strip().lower()
+                student_text = extract_option_val(
+                    response.response_data.get("text")
+                    or response.response_data.get("answer")
+                    or response.response_data.get("selected")
+                    or ""
+                ).strip().lower()
+                
                 correct_ans = question.correct_answer
                 if isinstance(correct_ans, dict):
-                    correct_ans = correct_ans.get("text") or correct_ans.get("answer") or ""
-                if isinstance(correct_ans, list):
-                    acceptable = [str(a).strip().lower() for a in correct_ans]
+                    ans_list = (
+                        correct_ans.get("acceptable")
+                        or correct_ans.get("text")
+                        or correct_ans.get("answer")
+                        or []
+                    )
+                    if not isinstance(ans_list, list):
+                        ans_list = [ans_list]
+                elif isinstance(correct_ans, list):
+                    ans_list = correct_ans
                 else:
-                    acceptable = [str(correct_ans).strip().lower()]
-                
+                    ans_list = [correct_ans]
+
+                acceptable = [extract_option_val(a).strip().lower() for a in ans_list if extract_option_val(a)]
+
                 if student_text and student_text in acceptable:
                     marks = question_points
                     is_correct = True
@@ -162,7 +242,7 @@ class GradingService:
         session.total_score = total_score
         session.max_score = max_score
         session.percentage = (total_score / max_score * 100.0) if max_score > 0 else 0.0
-        # Rank is updated later periodically or by admin trigger
+        session.results_published = True
         
         await db.commit()
         await db.refresh(session)
