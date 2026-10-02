@@ -184,6 +184,35 @@ async def get_my_activity(
     }
 
 
+@router.get("/me/stats")
+async def get_my_candidate_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return live database account stats for the candidate (total exams taken and average score percentage)."""
+    from app.models.session import ExamSession, SessionStatus
+    
+    query = (
+        select(ExamSession)
+        .where(ExamSession.candidate_id == current_user.id)
+        .where(ExamSession.status == SessionStatus.SUBMITTED)
+    )
+    result = await db.execute(query)
+    sessions = result.scalars().all()
+    
+    total_exams = len(sessions)
+    if total_exams > 0:
+        percentages = [s.percentage for s in sessions if s.percentage is not None]
+        avg_score = round(sum(percentages) / len(percentages), 1) if percentages else 0.0
+    else:
+        avg_score = 0.0
+        
+    return {
+        "total_exams_taken": total_exams,
+        "average_score_percentage": avg_score
+    }
+
+
 @router.get("/audit", response_model=List[dict])
 async def list_audit_logs(
     limit: int = 100,

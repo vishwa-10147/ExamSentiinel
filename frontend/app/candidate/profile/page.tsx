@@ -34,6 +34,12 @@ export default function CandidateProfilePage() {
   const [saving, setSaving] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
+  const [accountStats, setAccountStats] = useState<{ total_exams_taken: number; average_score_percentage: number }>({
+    total_exams_taken: 0,
+    average_score_percentage: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/auth/login");
@@ -46,6 +52,19 @@ export default function CandidateProfilePage() {
         section: user.section || "",
         batch_year: user.batch_year ? String(user.batch_year) : "",
       });
+
+      // Fetch live candidate account stats from database
+      apiClient.get<any>("/api/users/me/stats")
+        .then((res) => {
+          if (res) {
+            setAccountStats({
+              total_exams_taken: res.total_exams_taken ?? 0,
+              average_score_percentage: res.average_score_percentage ?? 0,
+            });
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => setStatsLoading(false));
     }
   }, [isLoading, isAuthenticated, user, router]);
 
@@ -128,11 +147,15 @@ export default function CandidateProfilePage() {
               <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Account Stats</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <div className="text-2xl font-bold text-slate-900 mb-1">12</div>
+                  <div className="text-2xl font-bold text-slate-900 mb-1">
+                    {statsLoading ? "..." : accountStats.total_exams_taken}
+                  </div>
                   <div className="text-sm text-slate-500">Total Exams Taken</div>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <div className="text-2xl font-bold text-slate-900 mb-1">82%</div>
+                  <div className="text-2xl font-bold text-slate-900 mb-1">
+                    {statsLoading ? "..." : `${accountStats.average_score_percentage}%`}
+                  </div>
                   <div className="text-sm text-slate-500">Average Score</div>
                 </div>
               </div>
