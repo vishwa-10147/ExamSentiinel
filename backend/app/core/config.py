@@ -33,8 +33,11 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # Resend Email API Key
+    # Email API Keys (HTTPS Port 443 Providers)
     RESEND_API_KEY: str = ""
+    BREVO_API_KEY: str = ""
+    SENDGRID_API_KEY: str = ""
+
 
 
     # CORS

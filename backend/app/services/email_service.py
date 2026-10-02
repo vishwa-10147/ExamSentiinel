@@ -16,6 +16,14 @@ class EmailService:
         return (os.getenv("RESEND_API_KEY") or getattr(settings, "RESEND_API_KEY", "") or "").strip().strip('"').strip("'")
 
     @property
+    def brevo_key(self) -> str:
+        return (os.getenv("BREVO_API_KEY") or getattr(settings, "BREVO_API_KEY", "") or "").strip().strip('"').strip("'")
+
+    @property
+    def sendgrid_key(self) -> str:
+        return (os.getenv("SENDGRID_API_KEY") or getattr(settings, "SENDGRID_API_KEY", "") or "").strip().strip('"').strip("'")
+
+    @property
     def enabled(self) -> bool:
         return os.getenv("ENABLE_EMAILS", "false").lower() == "true"
 
@@ -45,7 +53,77 @@ class EmailService:
     @property
     def configured(self) -> bool:
         """Whether outbound email has been explicitly enabled and configured."""
-        return self.enabled and bool(self.smtp_host or self.resend_key)
+        return self.enabled and bool(self.smtp_host or self.resend_key or self.brevo_key or self.sendgrid_key)
+
+    def _send_via_brevo(self, to_address: str, subject: str, html_body: str, text_body: str) -> tuple[bool, str]:
+        """Send email via Brevo HTTPS REST API (Port 443 - 300 free emails/day forever)."""
+        api_key = self.brevo_key
+        if not api_key:
+            return False, "No BREVO_API_KEY configured"
+
+        url = "https://api.brevo.com/v3/smtp/email"
+        headers = {
+            "api-key": api_key,
+            "Content-Type": "application/json",
+            "User-Agent": "ExamSentinel/2.4.0"
+        }
+
+        sender_email = self.sender if "@" in self.sender else "noreply@examsentinel.edu"
+        payload = {
+            "sender": {"name": "ExamSentinel", "email": sender_email},
+            "to": [{"email": to_address}],
+            "subject": subject,
+            "htmlContent": html_body,
+            "textContent": text_body
+        }
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status in (200, 201, 202):
+                    logger.info(f"Email delivered via Brevo HTTPS API to {to_address}")
+                    return True, "Email sent successfully via Brevo HTTPS API"
+                res_body = response.read().decode("utf-8")
+                return False, f"Brevo API error ({response.status}): {res_body}"
+        except Exception as e:
+            return False, f"Brevo HTTPS API failed: {str(e)}"
+
+    def _send_via_sendgrid(self, to_address: str, subject: str, html_body: str, text_body: str) -> tuple[bool, str]:
+        """Send email via SendGrid HTTPS REST API (Port 443 - 100 free emails/day forever)."""
+        api_key = self.sendgrid_key
+        if not api_key:
+            return False, "No SENDGRID_API_KEY configured"
+
+        url = "https://api.sendgrid.com/v3/mail/send"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "ExamSentinel/2.4.0"
+        }
+
+        sender_email = self.sender if "@" in self.sender else "noreply@examsentinel.edu"
+        payload = {
+            "personalizations": [{"to": [{"email": to_address}]}],
+            "from": {"email": sender_email, "name": "ExamSentinel"},
+            "subject": subject,
+            "content": [
+                {"type": "text/plain", "value": text_body},
+                {"type": "text/html", "value": html_body}
+            ]
+        }
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status in (200, 202):
+                    logger.info(f"Email delivered via SendGrid HTTPS API to {to_address}")
+                    return True, "Email sent successfully via SendGrid HTTPS API"
+                res_body = response.read().decode("utf-8")
+                return False, f"SendGrid API error ({response.status}): {res_body}"
+        except Exception as e:
+            return False, f"SendGrid HTTPS API failed: {str(e)}"
 
     def _send_via_resend(self, to_address: str, subject: str, html_body: str, text_body: str) -> tuple[bool, str]:
         """Send email via Resend HTTPS REST API (Port 443 - Bypasses cloud host firewall port 25/465/587 blocks)."""
@@ -115,16 +193,29 @@ class EmailService:
             logger.warning(reason)
             return False, reason
 
-        # 1. Primary check: Resend HTTPS API (Port 443 - Never blocked on Render/Heroku/AWS)
+        # 1. Brevo HTTPS API Check (Port 443 - 300 free emails/day)
+        if self.brevo_key:
+            brevo_ok, brevo_msg = self._send_via_brevo(to_address, subject, html_body, text_body)
+            if brevo_ok:
+                return True, brevo_msg
+            logger.warning(f"Brevo HTTPS API failed: {brevo_msg}. Attempting next provider...")
+
+        # 2. Resend HTTPS API Check (Port 443)
         if self.resend_key:
             resend_ok, resend_msg = self._send_via_resend(to_address, subject, html_body, text_body)
             if resend_ok:
                 return True, resend_msg
-            logger.warning(f"Resend HTTPS API failed: {resend_msg}. Attempting SMTP fallback...")
+            logger.warning(f"Resend HTTPS API failed: {resend_msg}. Attempting next provider...")
 
+        # 3. SendGrid HTTPS API Check (Port 443)
+        if self.sendgrid_key:
+            sg_ok, sg_msg = self._send_via_sendgrid(to_address, subject, html_body, text_body)
+            if sg_ok:
+                return True, sg_msg
+            logger.warning(f"SendGrid HTTPS API failed: {sg_msg}. Attempting SMTP fallback...")
 
         if not self.smtp_host:
-            reason = "Email delivery enabled but no SMTP_HOST or RESEND_API_KEY configured."
+            reason = "Email delivery enabled but no valid HTTP Email API Key (BREVO_API_KEY, RESEND_API_KEY, SENDGRID_API_KEY) or SMTP_HOST configured."
             logger.error(reason)
             return False, reason
 
@@ -207,7 +298,7 @@ class EmailService:
         reason = (
             f"SMTP Email blocked across ports {ports_to_try} ({last_error}). "
             "Render Free Tier blocks raw SMTP ports 465/587. "
-            "To enable live emails on Render, add a free RESEND_API_KEY (from https://resend.com) to Render environment variables."
+            "To enable live emails on Render, add BREVO_API_KEY (from https://brevo.com) or RESEND_API_KEY (from https://resend.com) to Render environment variables."
         )
         logger.error(reason)
         return False, reason
