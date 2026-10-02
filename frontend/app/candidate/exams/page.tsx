@@ -40,11 +40,20 @@ export default function CandidateExamsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<"ALL" | "AVAILABLE" | "SCHEDULED">("ALL");
 
+  const [now, setNow] = useState<number>(Date.now());
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/auth/login");
     }
   }, [isLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -77,15 +86,49 @@ export default function CandidateExamsPage() {
     );
   }
 
+  // Format date nicely with time
+  const formatWindowDate = (dStr: string) => {
+    if (!dStr) return "TBD";
+    const d = new Date(dStr);
+    if (isNaN(d.getTime())) return "TBD";
+    return d.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // Safe UTC parser
+  const parseDate = (dStr: string) => {
+    if (!dStr) return 0;
+    let s = dStr;
+    if (!s.endsWith("Z") && !s.includes("+") && !s.includes("-", 10)) {
+      s += "Z";
+    }
+    return new Date(s).getTime();
+  };
+
   // Calculate availability status
   const processedExams = exams.map((exam) => {
-    const now = Date.now();
-    const start = new Date(exam.start_window).getTime();
-    const end = new Date(exam.end_window).getTime();
+    const start = parseDate(exam.start_window);
+    const end = parseDate(exam.end_window);
 
     let availability: "AVAILABLE" | "SCHEDULED" | "CLOSED" = "CLOSED";
+    let countdownText = "";
+
     if (now < start) {
       availability = "SCHEDULED";
+      const diffSec = Math.ceil((start - now) / 1000);
+      if (diffSec <= 3600) {
+        const mins = Math.floor(diffSec / 60);
+        const secs = diffSec % 60;
+        countdownText = `Starts in ${mins}m ${secs < 10 ? "0" : ""}${secs}s`;
+      } else {
+        countdownText = `Scheduled for ${formatWindowDate(exam.start_window)}`;
+      }
     } else if (now <= end) {
       availability = "AVAILABLE";
     } else {
@@ -95,6 +138,7 @@ export default function CandidateExamsPage() {
     return {
       ...exam,
       availability,
+      countdownText,
       canStart: availability === "AVAILABLE",
     };
   });
@@ -202,17 +246,26 @@ export default function CandidateExamsPage() {
                     {exam.description || "No specific instructions specified for this examination."}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                    <div className="flex items-center gap-1.5 text-slate-600">
-                      <Clock className="h-3.5 w-3.5 text-slate-400" />
-                      <span><strong>{exam.duration_minutes}</strong> Minutes</span>
+                  <div className="flex flex-col gap-1.5 text-xs text-slate-600 pt-3 border-t border-slate-100 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                        <Clock className="h-4 w-4 text-blue-600" />
+                        <span>{exam.duration_minutes} Minutes</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-slate-500 text-[11px]">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Schedule Window</span>
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-1.5 text-slate-600">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                      <span className="truncate">
-                        {exam.start_window ? new Date(exam.start_window).toLocaleDateString() : "TBD"}
-                      </span>
+                    <div className="flex flex-col gap-0.5 text-[11px] text-slate-600 pt-1 border-t border-slate-200/60">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Starts:</span>
+                        <span className="font-medium text-slate-800">{formatWindowDate(exam.start_window)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Ends:</span>
+                        <span className="font-medium text-slate-800">{formatWindowDate(exam.end_window)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -221,14 +274,21 @@ export default function CandidateExamsPage() {
                   <button
                     onClick={() => router.push(`/exam/readiness?exam_id=${exam.id}`)}
                     disabled={!exam.canStart}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-md hover:bg-blue-700 active:bg-blue-800 transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                    className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-md transition disabled:cursor-not-allowed ${
+                      exam.canStart
+                        ? "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-emerald-200"
+                        : "bg-slate-100 text-slate-500 border border-slate-200 disabled:shadow-none"
+                    }`}
                   >
                     {exam.canStart ? (
                       <>
                         <PlayCircle className="h-4 w-4" /> Start Exam & Check System
                       </>
                     ) : exam.availability === "SCHEDULED" ? (
-                      "Scheduled for Later Date"
+                      <>
+                        <Clock className="h-4 w-4 text-blue-600 animate-pulse" />
+                        <span>{exam.countdownText}</span>
+                      </>
                     ) : (
                       "Exam Window Closed"
                     )}
