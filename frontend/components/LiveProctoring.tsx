@@ -52,8 +52,16 @@ export default function LiveProctoringDashboard() {
 
   const loadSessions = async () => {
     try {
-      const data = await apiClient.get<ActiveSession[]>("/api/dashboard/active-sessions");
-      const activeSessions = data || [];
+      const data = await apiClient.get<any[]>("/api/dashboard/active-sessions");
+      const activeSessions = (data || []).map((s: any) => ({
+        ...s,
+        id: s.session_id || s.id,
+        candidate_name: s.candidate_name || "Candidate",
+        exam_name: s.exam_title || s.exam_name || "Examination",
+        risk_level: s.risk_level || "low",
+        status: s.status || "IN_PROGRESS",
+        started_at: s.started_at || new Date().toISOString(),
+      }));
       setSessions(activeSessions);
 
       const signalEntries = await Promise.all(
@@ -127,16 +135,33 @@ export default function LiveProctoringDashboard() {
     void loadSessions();
 
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-    const wsBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
-
+    
     if (token && typeof window !== "undefined") {
-      socket = new WebSocket(`${wsBase}/api/ws/dashboard?token=${encodeURIComponent(token)}`);
-      socket.onmessage = () => {
-        void loadSessions();
-      };
+      const isHttps = window.location.protocol === "https:";
+      const wsProtocol = isHttps ? "wss:" : "ws:";
+      const backendHost = process.env.NEXT_PUBLIC_API_URL 
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/^https?:\/\//, "")
+        : window.location.host;
+      
+      const wsUrl = `${wsProtocol}//${backendHost}/api/ws/dashboard?token=${encodeURIComponent(token)}`;
+
+      try {
+        socket = new WebSocket(wsUrl);
+        socket.onmessage = () => {
+          void loadSessions();
+        };
+      } catch (err) {
+        console.warn("WebSocket connection fallback to polling");
+      }
     }
 
+    // Interval polling backup every 10 seconds
+    const interval = setInterval(() => {
+      void loadSessions();
+    }, 10000);
+
     return () => {
+      clearInterval(interval);
       if (socket) {
         if (socket.readyState === WebSocket.CONNECTING) {
           socket.addEventListener("open", () => socket?.close());
