@@ -55,10 +55,18 @@ class EmailService:
             "User-Agent": "ExamSentinel/2.4.0"
         }
         
-        # Use onboarding sender or custom domain
-        from_email = self.sender if ("@" in self.sender and not self.sender.endswith("example.com")) else "onboarding@resend.dev"
+        # For Resend testing, public domains (like gmail.com) must send from onboarding@resend.dev
+        resend_from = os.getenv("RESEND_FROM", "")
+        if resend_from:
+            from_email = resend_from
+        elif any(domain in self.sender.lower() for domain in ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "example.com"]):
+            from_email = "ExamSentinel <onboarding@resend.dev>"
+        else:
+            from_email = self.sender
+
         if not from_email.startswith("ExamSentinel") and "<" not in from_email:
             from_email = f"ExamSentinel <{from_email}>"
+
 
         payload = {
             "from": from_email,
