@@ -1167,11 +1167,13 @@ export default function ManageExamPage() {
                           {q.options && Array.isArray(q.options) && (
                             <ul className="mt-2 text-xs text-slate-500 space-y-1">
                               {q.options.map((opt: any, i: number) => {
-                                const isCorrect = q.correct_answer === opt || (Array.isArray(q.correct_answer) && q.correct_answer.includes(opt));
+                                const optText = typeof opt === "object" && opt !== null ? (opt.text ?? opt.id ?? String(opt)) : String(opt);
+                                const optId = typeof opt === "object" && opt !== null ? (opt.id ?? opt.text ?? String(opt)) : String(opt);
+                                const isCorrect = q.correct_answer === optId || q.correct_answer === optText || (Array.isArray(q.correct_answer) && (q.correct_answer.includes(optId) || q.correct_answer.includes(optText)));
                                 return (
                                   <li key={i} className={`flex items-center gap-2 ${isCorrect ? "font-semibold text-emerald-600" : ""}`}>
                                       <div className={`w-1.5 h-1.5 rounded-full ${isCorrect ? "bg-emerald-500" : "bg-slate-300"}`}></div>
-                                      {opt}
+                                      {optText}
                                     </li>
                                 );
                               })}

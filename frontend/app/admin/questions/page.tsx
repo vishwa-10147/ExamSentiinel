@@ -135,7 +135,7 @@ export default function QuestionsPage() {
 
     let optionsVal = "";
     if (Array.isArray(q.options)) {
-      optionsVal = q.options.join(", ");
+      optionsVal = q.options.map((o: any) => typeof o === "object" && o !== null ? (o.text || o.id || String(o)) : String(o)).join(", ");
     } else if (typeof q.options === "string") {
       optionsVal = q.options;
     }
