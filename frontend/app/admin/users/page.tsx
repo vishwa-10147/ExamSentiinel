@@ -22,7 +22,10 @@ import {
   GraduationCap,
   UserCheck,
   ChevronDown,
-  Filter
+  Filter,
+  AlertTriangle,
+  AlertCircle,
+  X
 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 
@@ -50,6 +53,8 @@ export default function UsersPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: "",
@@ -169,21 +174,27 @@ export default function UsersPage() {
     }
   };
 
-  const handleDeleteUser = async (u: UserProfile) => {
+  const handleOpenDeleteModal = (u: UserProfile) => {
     if (user?.id === u.id) {
       toast.error("You cannot delete your own admin account");
       return;
     }
-    if (!window.confirm(`Are you sure you want to permanently delete user "${u.full_name}" (${u.email})?`)) {
-      return;
-    }
+    setDeletingUser(u);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingUser) return;
+    setIsDeleting(true);
     try {
-      await apiClient.delete(`/api/users/${u.id}`);
-      toast.success("User deleted successfully");
+      await apiClient.delete(`/api/users/${deletingUser.id}`);
+      toast.success(`User ${deletingUser.full_name || deletingUser.email} deleted successfully!`);
+      setDeletingUser(null);
       void fetchUsers();
     } catch (err: any) {
       console.error("Failed to delete user", err);
-      toast.error(err.response?.data?.detail || "Failed to delete user");
+      toast.error(err.response?.data?.detail || err.message || "Failed to delete user");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -439,8 +450,8 @@ export default function UsersPage() {
                               <Edit className="h-4 w-4" />
                             </button>
                             <button 
-                              onClick={() => handleDeleteUser(u)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                              onClick={() => handleOpenDeleteModal(u)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" 
                               title="Delete User"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -550,6 +561,87 @@ export default function UsersPage() {
                 className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-sm transition disabled:opacity-50"
               >
                 {isSaving ? "Saving..." : (isEditMode ? "Save Changes" : "Create User")}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-red-50/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-red-100 text-red-600">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Confirm Permanent Deletion</h3>
+                  <p className="text-xs text-red-600 font-medium">Irreversible database action</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDeletingUser(null)}
+                disabled={isDeleting}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Are you sure you want to permanently delete this user account from the system?
+              </p>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Full Name:</span>
+                  <span className="font-bold text-slate-900">{deletingUser.full_name || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Email Address:</span>
+                  <span className="font-mono font-semibold text-slate-800">{deletingUser.email}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Account Role:</span>
+                  <span className="font-bold uppercase tracking-wider text-blue-600">{deletingUser.role}</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>This will purge all exam sessions, test responses, roster enrollments, and audit logs linked to this user.</span>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setDeletingUser(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200/60 rounded-xl transition disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting User...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Yes, Delete User
+                  </>
+                )}
               </button>
             </div>
 

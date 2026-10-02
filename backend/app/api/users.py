@@ -312,6 +312,7 @@ async def admin_update_user(
 @router.delete("/{user_id}", status_code=status.HTTP_200_OK)
 async def admin_delete_user(
     user_id: uuid.UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN])),
 ):
@@ -327,6 +328,60 @@ async def admin_delete_user(
     if not target_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    await db.delete(target_user)
-    await db.commit()
-    return {"status": "success", "message": "User deleted successfully"}
+    try:
+        from app.models.exam import Exam, ExamEnrollment
+        from app.models.session import ExamSession
+        from app.models.response import CandidateResponse
+        from app.models.code_submission import CodeSubmission
+        from app.models.refresh_token import RefreshToken
+        from app.models.proctoring_event import ProctoringEvent, ProctorLog
+        from app.models.review_case import ReviewCase
+        from app.models.question import Question
+        from app.models.audit_log import AuditLog
+        from sqlalchemy import delete, update
+
+        # Delete candidate responses linked to user's sessions
+        session_ids_res = await db.execute(select(ExamSession.id).where(ExamSession.candidate_id == user_id))
+        session_ids = [row[0] for row in session_ids_res.all()]
+        if session_ids:
+            await db.execute(delete(CandidateResponse).where(CandidateResponse.session_id.in_(session_ids)))
+
+        # Delete dependent records
+        await db.execute(delete(ExamEnrollment).where(ExamEnrollment.candidate_id == user_id))
+        await db.execute(delete(ExamSession).where(ExamSession.candidate_id == user_id))
+        await db.execute(delete(CodeSubmission).where(CodeSubmission.candidate_id == user_id))
+        await db.execute(delete(RefreshToken).where(RefreshToken.user_id == user_id))
+        await db.execute(delete(ProctoringEvent).where(ProctoringEvent.candidate_id == user_id))
+        await db.execute(delete(ProctorLog).where(ProctorLog.candidate_id == user_id))
+        await db.execute(delete(ReviewCase).where(ReviewCase.candidate_id == user_id))
+
+        # Nullify foreign key references
+        await db.execute(update(Exam).where(Exam.created_by == user_id).values(created_by=None))
+        await db.execute(update(Question).where(Question.created_by == user_id).values(created_by=None))
+        await db.execute(update(AuditLog).where(AuditLog.user_id == user_id).values(user_id=None))
+
+        # Log audit trail
+        await log_audit_event(
+            db=db,
+            action="USER_DELETED_BY_ADMIN",
+            resource_type="user",
+            resource_id=str(target_user.id),
+            details={
+                "email": target_user.email,
+                "role": target_user.role.value if target_user.role else "unknown",
+                "deleted_by": str(current_user.id),
+            },
+            user_id=current_user.id,
+            institution_id=current_user.institution_id,
+            request=request,
+        )
+
+        await db.delete(target_user)
+        await db.commit()
+        return {"status": "success", "message": f"User {target_user.email} and all associated data deleted successfully"}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to delete user: {str(e)}",
+        )
