@@ -33,21 +33,6 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { isSidebarOpen, toggleSidebar, setSidebarOpen } = useSidebar();
-  const [health, setHealth] = useState<HealthCheckResponse | null>(null);
-
-  useEffect(() => {
-    const fetchHealth = async () => {
-      try {
-        const h = await apiClient.getHealth();
-        setHealth(h);
-      } catch {
-        setHealth(null);
-      }
-    };
-    fetchHealth();
-    const interval = setInterval(fetchHealth, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   const getRoleBadgeClass = (role?: string) => {
     switch (role) {
@@ -136,21 +121,6 @@ export default function Sidebar() {
       </div>
 
       <div className="flex flex-col gap-3 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
-        {/* Health status indicator */}
-        <div className="flex justify-center items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-full border border-slate-200 dark:border-slate-700">
-          {health?.status === "healthy" ? (
-            <>
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>Backend Online</span>
-            </>
-          ) : (
-            <>
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <span>Service Degraded</span>
-            </>
-          )}
-        </div>
-
         <div className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-200 dark:border-slate-700/50">
           <ThemeToggle />
           
