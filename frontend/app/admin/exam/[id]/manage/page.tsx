@@ -289,6 +289,19 @@ export default function ManageExamPage() {
     }
   };
 
+  const handleRemoveCandidate = async (candidate: CandidateEnrollment) => {
+    if (!window.confirm(`Are you sure you want to remove candidate "${candidate.fullName}" (${candidate.email}) from this exam?`)) {
+      return;
+    }
+    try {
+      await apiClient.delete(`/api/exams/${examId}/enrollments/${candidate.id}`);
+      setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
+      showToast(`Removed candidate ${candidate.fullName} from exam roster.`, "success");
+    } catch (err: any) {
+      showToast(err.message || "Failed to remove candidate.", "warning");
+    }
+  };
+
   const handleTogglePublish = async () => {
     try {
       const newStatus = exam?.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
@@ -365,35 +378,59 @@ export default function ManageExamPage() {
               <div>
                 <div className="flex items-center gap-3 mb-3 flex-wrap">
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
                       exam?.status === "PUBLISHED"
-                        ? "bg-emerald-500/20 text-emerald-300"
-                        : "bg-blue-500/20 text-blue-300"
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                     }`}
                   >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        exam?.status === "PUBLISHED" ? "bg-emerald-400" : "bg-blue-400"
+                      className={`h-2 w-2 rounded-full ${
+                        exam?.status === "PUBLISHED" ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
                       }`}
                     ></span>
-                    {exam?.status}
+                    {exam?.status || "DRAFT"}
                   </span>
-                  <span className="text-sm font-medium text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                    <Clock className="w-4 h-4" /> {exam?.duration_minutes} mins
+                  <span className="text-sm font-medium text-slate-300 flex items-center gap-1">
+                    <Clock className="w-4 h-4 text-blue-400" /> {exam?.duration_minutes} mins
                   </span>
-                  <span className="text-xs text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 dark:border-slate-700/10 px-2.5 py-0.5 rounded-md font-mono">
+                  <span className="text-xs text-slate-300 bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-lg font-mono">
                     ID: {examId.slice(0, 8)}...
                   </span>
                 </div>
-                <h1 className="text-3xl font-bold mb-2 tracking-tight">{exam?.title}</h1>
-                <p className="text-slate-300 max-w-2xl text-sm leading-relaxed">{exam?.description}</p>
+                <h1 className="text-3xl font-extrabold mb-2 tracking-tight text-white">{exam?.title}</h1>
+                <p className="text-slate-300 max-w-2xl text-sm leading-relaxed">{exam?.description || "No description provided."}</p>
               </div>
 
-              <div className="flex gap-3 mt-2 sm:mt-0">
+              {/* Action Buttons in Top Header Banner */}
+              <div className="flex items-center gap-3 mt-2 sm:mt-0 flex-wrap">
+                <button
+                  onClick={handleTogglePublish}
+                  className={`px-4 py-2.5 rounded-xl text-sm font-bold shadow-md transition cursor-pointer flex items-center gap-2 ${
+                    exam?.status === "PUBLISHED"
+                      ? "bg-amber-500 hover:bg-amber-600 text-slate-950 active:scale-95"
+                      : "bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95 ring-2 ring-emerald-400/30"
+                  }`}
+                  title={exam?.status === "PUBLISHED" ? "Unpublish exam to revert to Draft" : "Publish exam so candidates can launch it"}
+                >
+                  {exam?.status === "PUBLISHED" ? (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Unpublish (Set to Draft)
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      🚀 Publish Exam Now
+                    </>
+                  )}
+                </button>
+
                 <button
                   onClick={() => router.push(`/admin/exam/${examId}/edit`)}
-                  className="px-4 py-2 bg-white dark:bg-slate-800 dark:border-slate-700/10 hover:bg-white dark:bg-slate-800 dark:border-slate-700/20 active:bg-white dark:bg-slate-800 dark:border-slate-700/30 text-white rounded-lg text-sm font-semibold transition cursor-pointer active:scale-95 shadow-sm"
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl text-sm font-semibold transition cursor-pointer active:scale-95 shadow-sm flex items-center gap-2"
                 >
+                  <Settings className="w-4 h-4 text-blue-400" />
                   Edit Details
                 </button>
               </div>
@@ -726,21 +763,17 @@ export default function ManageExamPage() {
                         >
                           <button
                             onClick={() => setSelectedCandidate(cand)}
-                            className="p-1.5 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-600 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition cursor-pointer"
-                            title="Inspect Candidate"
+                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                            title="Inspect Candidate Profile"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() =>
-                              showToast(
-                                `Integrity profile opened for ${cand.fullName} (${cand.rollNumber}).`,
-                                "info"
-                              )
-                            }
-                            className="px-2 py-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-slate-700 active:bg-slate-200 rounded-lg transition cursor-pointer"
+                            onClick={() => handleRemoveCandidate(cand)}
+                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                            title="Remove Candidate from Exam Roster"
                           >
-                            Inspect
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

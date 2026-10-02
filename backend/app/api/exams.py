@@ -520,6 +520,29 @@ async def list_exam_enrollments(
     return result.scalars().all()
 
 
+@router.delete("/{exam_id}/enrollments/{candidate_id}", status_code=status.HTTP_200_OK)
+async def unenroll_candidate(
+    exam_id: uuid.UUID,
+    candidate_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
+):
+    """Remove/unenroll a candidate from an exam roster."""
+    result = await db.execute(
+        select(ExamEnrollment).where(
+            ExamEnrollment.exam_id == exam_id,
+            ExamEnrollment.candidate_id == candidate_id,
+        )
+    )
+    enrollment = result.scalar_one_or_none()
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Candidate enrollment not found")
+
+    await db.delete(enrollment)
+    await db.commit()
+    return {"status": "success", "message": "Candidate removed from exam roster"}
+
+
 async def _cohort_candidates(
     exam: Exam,
     db: AsyncSession,
