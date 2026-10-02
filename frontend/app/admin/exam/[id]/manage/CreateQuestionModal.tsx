@@ -96,15 +96,15 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
     let finalCorrectAnswer: any = {};
 
     if (type === "MCQ_SINGLE") {
-      finalOptions = options;
+      finalOptions = options.map((opt) => ({ id: opt, text: opt }));
       finalCorrectAnswer = options[singleCorrect];
     } else if (type === "MCQ_MULTI") {
       if (multiCorrect.length === 0) {
         setError("Please select at least one correct option.");
         return;
       }
-      finalOptions = options;
-      finalCorrectAnswer = multiCorrect.map(i => options[i]);
+      finalOptions = options.map((opt) => ({ id: opt, text: opt }));
+      finalCorrectAnswer = multiCorrect.map((i) => options[i]);
     } else if (type === "CODING") {
       finalOptions = { allowed_languages: ["python", "javascript"] };
       finalCorrectAnswer = { test_cases: [] };

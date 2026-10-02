@@ -51,13 +51,12 @@ class GradingService:
             is_correct = False
             
             if question.type == QuestionType.MCQ_SINGLE:
-                # Handle both direct string matches and dict structures like {"secret_key": "opt_a"}
-                selected = response.response_data.get("selected_option_id") or response.response_data.get("selected")
+                selected = response.response_data.get("selected_option_id") if "selected_option_id" in response.response_data else response.response_data.get("selected")
                 correct = question.correct_answer.get("secret_key") if isinstance(question.correct_answer, dict) else question.correct_answer
-                if selected and correct and str(selected) == str(correct):
+                if selected is not None and correct is not None and str(selected).strip() == str(correct).strip():
                     marks = question_points
                     is_correct = True
-                    
+
             elif question.type == QuestionType.MCQ_MULTI:
                 selected_list = response.response_data.get("selected_option_ids") or response.response_data.get("selected", [])
                 correct_list = (
@@ -65,13 +64,26 @@ class GradingService:
                     if isinstance(question.correct_answer, dict)
                     else question.correct_answer if isinstance(question.correct_answer, list) else []
                 )
-                # Exact match required for full points
-                if set(selected_list) == set(correct_list):
+                if selected_list and correct_list and set(map(str, selected_list)) == set(map(str, correct_list)):
+                    marks = question_points
+                    is_correct = True
+
+            elif question.type == QuestionType.SHORT_ANSWER:
+                student_text = (response.response_data.get("text") or "").strip().lower()
+                correct_ans = question.correct_answer
+                if isinstance(correct_ans, dict):
+                    correct_ans = correct_ans.get("text") or correct_ans.get("answer") or ""
+                if isinstance(correct_ans, list):
+                    acceptable = [str(a).strip().lower() for a in correct_ans]
+                else:
+                    acceptable = [str(correct_ans).strip().lower()]
+                
+                if student_text and student_text in acceptable:
                     marks = question_points
                     is_correct = True
                 else:
-                    # Optional: Add partial marks logic here
-                    pass
+                    marks = 0.0
+                    is_correct = False
                     
             elif question.type == QuestionType.ESSAY:
                 essay_text = response.response_data.get("text", "")
