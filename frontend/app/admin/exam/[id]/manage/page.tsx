@@ -14,7 +14,8 @@ import {
   FileText,
   Plus,
   PlayCircle,
-  Settings, Trash2,
+  Settings, 
+  Trash2,
   CheckCircle2,
   Sparkles,
   Search,
@@ -31,7 +32,11 @@ import {
   Info,
   Upload,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  GripVertical,
+  UserCheck,
+  UserMinus,
+  Filter
 } from "lucide-react";
 import CreateQuestionModal from "./CreateQuestionModal";
 import AIGenerateModal from "./AIGenerateModal";
@@ -59,19 +64,19 @@ interface ExamDetails {
   questions?: Question[];
 }
 
-interface CandidateEnrollment {
+interface CandidateItem {
   id: string;
-  candidateNumber: number;
   fullName: string;
   email: string;
+  department?: string;
+  section?: string;
+  batchYear?: number;
   rollNumber: string;
+  enrolled: boolean;
   status: "Ready" | "In Progress" | "Completed" | "Flagged" | "Registered";
   systemCheck: "Verified" | "Pending" | "Failed";
   enrolledAt: string;
   flagReason?: string;
-  department?: string;
-  section?: string;
-  batchYear?: number;
 }
 
 interface ToastNotification {
@@ -79,8 +84,6 @@ interface ToastNotification {
   message: string;
   type: "info" | "success" | "warning";
 }
-
-
 
 export default function ManageExamPage() {
   const params = useParams();
@@ -94,16 +97,26 @@ export default function ManageExamPage() {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
 
-  // Candidate Data & Filtering state
-  const [candidates, setCandidates] = useState<CandidateEnrollment[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  // Candidates Pool & Roster State
+  const [availableCandidates, setAvailableCandidates] = useState<CandidateItem[]>([]);
+  const [enrolledCandidates, setEnrolledCandidates] = useState<CandidateItem[]>([]);
+
+  // Available Pool Filters
+  const [cohortFilters, setCohortFilters] = useState({ department: "", section: "", batch_year: "" });
+  const [availableSearchQuery, setAvailableSearchQuery] = useState("");
+  const [cohortLoading, setCohortLoading] = useState(false);
+
+  // Enrolled Roster Filters
+  const [rosterSearchQuery, setRosterSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
-  const [selectedCandidate, setSelectedCandidate] = useState<CandidateEnrollment | null>(null);
-  const [cohortFilters, setCohortFilters] = useState({ department: "", section: "", batch_year: "" });
-  const [cohortPreview, setCohortPreview] = useState({ total: 0, already_enrolled: 0 });
-  const [cohortLoading, setCohortLoading] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateItem | null>(null);
+
+  // Drag & Drop State
+  const [isDragOverEnrolled, setIsDragOverEnrolled] = useState(false);
+  const [isDragOverAvailable, setIsDragOverAvailable] = useState(false);
+  const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
 
   // Toast notification state
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -121,39 +134,91 @@ export default function ManageExamPage() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  // Fetch Candidates Pool & Roster from Backend
+  const loadCandidatesData = useCallback(async () => {
+    if (!examId) return;
+    setCohortLoading(true);
+    try {
+      const queryParams = new URLSearchParams();
+      if (cohortFilters.department) queryParams.set("department", cohortFilters.department);
+      if (cohortFilters.section) queryParams.set("section", cohortFilters.section);
+      if (cohortFilters.batch_year) queryParams.set("batch_year", cohortFilters.batch_year);
+      
+      const data = await apiClient.get<any>(`/api/exams/${examId}/cohort-candidates?${queryParams.toString()}`);
+      
+      const all: CandidateItem[] = (data.candidates || []).map((c: any) => ({
+        id: c.id,
+        fullName: c.full_name,
+        email: c.email,
+        department: c.department,
+        section: c.section,
+        batchYear: c.batch_year,
+        rollNumber: c.roll_no || "",
+        enrolled: Boolean(c.enrolled),
+        status: c.enrolled ? "Registered" : "Registered",
+        systemCheck: "Pending",
+        enrolledAt: new Date().toLocaleDateString(),
+      }));
+
+      setAvailableCandidates(all.filter(c => !c.enrolled));
+      setEnrolledCandidates(all.filter(c => c.enrolled));
+    } catch (err: any) {
+      showToast(err.message || "Failed to load candidate list", "warning");
+    } finally {
+      setCohortLoading(false);
+    }
+  }, [examId, cohortFilters, showToast]);
+
   useEffect(() => {
     if (!examId || authLoading || !user) return;
-    const loadCohort = async () => {
-      setCohortLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (cohortFilters.department) params.set("department", cohortFilters.department);
-        if (cohortFilters.section) params.set("section", cohortFilters.section);
-        if (cohortFilters.batch_year) params.set("batch_year", cohortFilters.batch_year);
-        const data = await apiClient.get<any>(`/api/exams/${examId}/cohort-candidates?${params.toString()}`);
-        setCohortPreview({ total: data.total || 0, already_enrolled: data.already_enrolled || 0 });
-        setCandidates((data.candidates || []).filter((candidate: any) => candidate.enrolled).map((candidate: any) => ({
-          id: candidate.id,
-          candidateNumber: 0,
-          fullName: candidate.full_name,
-          email: candidate.email,
-          rollNumber: "",
-          status: "Registered",
-          systemCheck: "Pending",
-          enrolledAt: "",
-          department: candidate.department,
-          section: candidate.section,
-          batchYear: candidate.batch_year,
-        })));
-      } catch (err: any) {
-        showToast(err.message || "Failed to load candidates", "warning");
-      } finally {
-        setCohortLoading(false);
-      }
-    };
-    void loadCohort();
-  }, [examId, authLoading, user, cohortFilters, showToast]);
+    void loadCandidatesData();
+  }, [examId, authLoading, user, loadCandidatesData]);
 
+  // Enroll single candidate by ID (Click or Drag & Drop)
+  const handleEnrollSingleCandidate = async (candidateId: string) => {
+    setActionInProgressId(candidateId);
+    try {
+      await apiClient.post(`/api/exams/${examId}/enroll`, { candidate_ids: [candidateId] });
+      
+      // Move candidate from available to enrolled locally
+      const target = availableCandidates.find(c => c.id === candidateId);
+      if (target) {
+        setAvailableCandidates(prev => prev.filter(c => c.id !== candidateId));
+        setEnrolledCandidates(prev => [{ ...target, enrolled: true, status: "Registered" }, ...prev]);
+        showToast(`Enrolled ${target.fullName} into exam roster!`, "success");
+      } else {
+        void loadCandidatesData();
+      }
+    } catch (err: any) {
+      showToast(err.message || "Failed to enroll candidate", "warning");
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  // Unenroll single candidate by ID (Click or Drag & Drop back)
+  const handleUnenrollSingleCandidate = async (candidateId: string) => {
+    setActionInProgressId(candidateId);
+    try {
+      await apiClient.delete(`/api/exams/${examId}/enrollments/${candidateId}`);
+      
+      // Move candidate from enrolled to available locally
+      const target = enrolledCandidates.find(c => c.id === candidateId);
+      if (target) {
+        setEnrolledCandidates(prev => prev.filter(c => c.id !== candidateId));
+        setAvailableCandidates(prev => [{ ...target, enrolled: false }, ...prev]);
+        showToast(`Removed ${target.fullName} from exam roster.`, "info");
+      } else {
+        void loadCandidatesData();
+      }
+    } catch (err: any) {
+      showToast(err.message || "Failed to remove candidate", "warning");
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  // Bulk Enroll Cohort
   const handleCohortEnrollment = async () => {
     try {
       setCohortLoading(true);
@@ -162,8 +227,8 @@ export default function ManageExamPage() {
         section: cohortFilters.section || null,
         batch_year: cohortFilters.batch_year ? Number(cohortFilters.batch_year) : null,
       });
-      showToast(`Enrolled ${Math.max(0, cohortPreview.total - cohortPreview.already_enrolled)} matching candidates.`, "success");
-      setCohortFilters({ ...cohortFilters });
+      showToast(`Bulk enrolled matching candidates into exam roster!`, "success");
+      void loadCandidatesData();
     } catch (err: any) {
       showToast(err.message || "Bulk enrollment failed", "warning");
     } finally {
@@ -200,36 +265,45 @@ export default function ManageExamPage() {
     }
   }, [examId, user, authLoading, router, fetchExam]);
 
-  // Filter candidates based on search query and status filter
-  const filteredCandidates = useMemo(() => {
-    return candidates.filter((cand) => {
+  // Filter available candidates
+  const filteredAvailableCandidates = useMemo(() => {
+    if (!availableSearchQuery.trim()) return availableCandidates;
+    const q = availableSearchQuery.toLowerCase();
+    return availableCandidates.filter(
+      c => c.fullName.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+    );
+  }, [availableCandidates, availableSearchQuery]);
+
+  // Filter enrolled candidates
+  const filteredEnrolledCandidates = useMemo(() => {
+    return enrolledCandidates.filter((cand) => {
       const matchesStatus =
         statusFilter === "ALL" || cand.status.toUpperCase() === statusFilter.toUpperCase();
 
       if (!matchesStatus) return false;
 
-      if (!searchQuery.trim()) return true;
+      if (!rosterSearchQuery.trim()) return true;
 
-      const q = searchQuery.toLowerCase();
+      const q = rosterSearchQuery.toLowerCase();
       return (
         cand.fullName.toLowerCase().includes(q) ||
         cand.email.toLowerCase().includes(q) ||
         cand.rollNumber.toLowerCase().includes(q)
       );
     });
-  }, [candidates, searchQuery, statusFilter]);
+  }, [enrolledCandidates, rosterSearchQuery, statusFilter]);
 
   // Derived counts for filter badges
-  const counts = useMemo(() => {
+  const rosterCounts = useMemo(() => {
     const c = {
-      all: candidates.length,
+      all: enrolledCandidates.length,
       ready: 0,
       inProgress: 0,
       completed: 0,
       flagged: 0,
       registered: 0
     };
-    candidates.forEach((cand) => {
+    enrolledCandidates.forEach((cand) => {
       if (cand.status === "Ready") c.ready++;
       else if (cand.status === "In Progress") c.inProgress++;
       else if (cand.status === "Completed") c.completed++;
@@ -237,29 +311,19 @@ export default function ManageExamPage() {
       else if (cand.status === "Registered") c.registered++;
     });
     return c;
-  }, [candidates]);
+  }, [enrolledCandidates]);
 
   // Pagination calculation
-  const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / itemsPerPage));
-  const paginatedCandidates = useMemo(() => {
+  const totalPages = Math.max(1, Math.ceil(filteredEnrolledCandidates.length / itemsPerPage));
+  const paginatedEnrolledCandidates = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredCandidates.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredCandidates, currentPage, itemsPerPage]);
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const handleStatusFilterChange = (filter: string) => {
-    setStatusFilter(filter);
-    setCurrentPage(1);
-  };
+    return filteredEnrolledCandidates.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredEnrolledCandidates, currentPage, itemsPerPage]);
 
   const handleExportCSV = () => {
     try {
       const headers = ["ID,Roll Number,Full Name,Email,Status,System Check,Enrolled Date"];
-      const rows = filteredCandidates.map((c) =>
+      const rows = filteredEnrolledCandidates.map((c) =>
         `"${c.id}","${c.rollNumber}","${c.fullName.replace(/"/g, '""')}","${c.email}","${c.status}","${c.systemCheck}","${c.enrolledAt}"`
       );
       const csvString = [headers, ...rows].join("\n");
@@ -272,7 +336,7 @@ export default function ManageExamPage() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      showToast(`Exported ${filteredCandidates.length.toLocaleString()} candidates to CSV.`, "success");
+      showToast(`Exported ${filteredEnrolledCandidates.length.toLocaleString()} candidates to CSV.`, "success");
     } catch (err) {
       showToast("Failed to generate CSV export.", "warning");
     }
@@ -286,19 +350,6 @@ export default function ManageExamPage() {
       fetchExam();
     } catch (err: any) {
       showToast(err.message || "Failed to remove question.", "warning");
-    }
-  };
-
-  const handleRemoveCandidate = async (candidate: CandidateEnrollment) => {
-    if (!window.confirm(`Are you sure you want to remove candidate "${candidate.fullName}" (${candidate.email}) from this exam?`)) {
-      return;
-    }
-    try {
-      await apiClient.delete(`/api/exams/${examId}/enrollments/${candidate.id}`);
-      setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
-      showToast(`Removed candidate ${candidate.fullName} from exam roster.`, "success");
-    } catch (err: any) {
-      showToast(err.message || "Failed to remove candidate.", "warning");
     }
   };
 
@@ -348,8 +399,8 @@ export default function ManageExamPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 min-h-screen bg-slate-50 dark:bg-slate-900">
-<div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-1 min-h-screen bg-slate-50">
+        <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
@@ -357,22 +408,23 @@ export default function ManageExamPage() {
   }
 
   return (
-    <div className="flex flex-1 min-h-screen bg-slate-50 dark:bg-slate-900">
-<div className="flex-1 p-6 sm:p-8 max-w-6xl mx-auto w-full">
+    <div className="flex flex-1 min-h-screen bg-slate-50">
+      <div className="flex-1 p-6 sm:p-8 max-w-6xl mx-auto w-full">
+        
         {/* Navigation Breadcrumb */}
         <div className="mb-6 flex items-center justify-between">
           <Link
             href="/admin/exam"
-            className="inline-flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:text-white transition-colors"
+            className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Exam Center
           </Link>
-          <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Exam ID: {examId}</span>
+          <span className="text-xs text-slate-500">Exam ID: {examId}</span>
         </div>
 
         {/* Exam Overview Header Card */}
-        <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
           <div className="bg-slate-900 px-6 py-8 sm:p-10 text-white">
             <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
               <div>
@@ -438,64 +490,244 @@ export default function ManageExamPage() {
           </div>
 
           {/* Exam Summary Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 border-t border-slate-200 dark:border-slate-700 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-slate-700">
+          <div className="grid grid-cols-1 md:grid-cols-3 border-t border-slate-200 divide-y md:divide-y-0 md:divide-x divide-slate-200">
             <div className="p-6">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-blue-600" /> Start Window
               </h3>
-              <p className="text-slate-600 dark:text-slate-300 text-sm">{new Date(exam?.start_window || "").toLocaleString()}</p>
+              <p className="text-slate-600 text-sm">{new Date(exam?.start_window || "").toLocaleString()}</p>
             </div>
             <div className="p-6">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-blue-600" /> End Window
               </h3>
-              <p className="text-slate-600 dark:text-slate-300 text-sm">{new Date(exam?.end_window || "").toLocaleString()}</p>
+              <p className="text-slate-600 text-sm">{new Date(exam?.end_window || "").toLocaleString()}</p>
             </div>
             <div className="p-6">
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Users className="w-4 h-4 text-blue-600" /> Enrolled Candidates
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-blue-600" /> Enrolled Roster
                 </h3>
                 <button
                   onClick={scrollToCandidates}
                   className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 transition cursor-pointer"
                 >
-                  View Table &darr;
+                  View Roster &darr;
                 </button>
               </div>
               <div className="flex items-baseline justify-between mt-1">
-                <p className="text-slate-900 dark:text-white text-lg font-bold">
-                  {candidates.length.toLocaleString()}{" "}
-                  <span className="text-xs font-normal text-slate-500 dark:text-slate-400 dark:text-slate-500">Total Enrolled</span>
+                <p className="text-slate-900 text-lg font-bold">
+                  {enrolledCandidates.length.toLocaleString()}{" "}
+                  <span className="text-xs font-normal text-slate-500">Total Enrolled</span>
                 </p>
                 <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  {counts.ready + counts.inProgress} Active
+                  {rosterCounts.ready + rosterCounts.inProgress} Active
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ENROLLED CANDIDATES DATA TABLE SECTION */}
+        {/* SECTION 1: AVAILABLE CANDIDATES POOL (NOT YET ENROLLED) */}
         <div
-          id="enrolled-candidates-section"
-          className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-8"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOverAvailable(true);
+          }}
+          onDragLeave={() => setIsDragOverAvailable(false)}
+          onDrop={async (e) => {
+            e.preventDefault();
+            setIsDragOverAvailable(false);
+            const candidateId = e.dataTransfer.getData("candidateId");
+            if (candidateId) {
+              await handleUnenrollSingleCandidate(candidateId);
+            }
+          }}
+          className={`bg-white rounded-2xl shadow-sm border overflow-hidden mb-8 transition-all ${
+            isDragOverAvailable ? "border-amber-400 bg-amber-50/40 ring-4 ring-amber-400/20" : "border-slate-200"
+          }`}
         >
-          {/* Section Header */}
-          <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+          <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-blue-50/80 via-slate-50 to-indigo-50/50">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Users className="w-5 h-5 text-blue-600" />
-                    Enrolled Candidates
-                  </h2>
-                  <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-blue-200">
-                    {candidates.length.toLocaleString()} Roster
+                  <div className="p-2 bg-blue-600 text-white rounded-xl shadow-sm">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                      Available Candidate Pool (To Enroll)
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Search & filter students in the database to enroll them into this exam. Drag & drop or click + Enroll.
+                    </p>
+                  </div>
+                  <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full border border-blue-200">
+                    {filteredAvailableCandidates.length} Available
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">
-                  Real-time candidate telemetry, hardware checks, and proctoring status across all 1,000 enrollments.
+              </div>
+
+              <button
+                onClick={handleCohortEnrollment}
+                disabled={cohortLoading || filteredAvailableCandidates.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 rounded-xl transition shadow-md cursor-pointer shrink-0"
+              >
+                <UserPlus className="w-4 h-4" />
+                Enroll All {filteredAvailableCandidates.length} Matching
+              </button>
+            </div>
+
+            {/* Filter Inputs Bar */}
+            <div className="mt-5 grid gap-3 sm:grid-cols-4">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Branch / Dept</label>
+                <input
+                  value={cohortFilters.department}
+                  onChange={(e) => setCohortFilters({ ...cohortFilters, department: e.target.value })}
+                  placeholder="e.g. CSE, ECE, ME"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Section</label>
+                <input
+                  value={cohortFilters.section}
+                  onChange={(e) => setCohortFilters({ ...cohortFilters, section: e.target.value })}
+                  placeholder="e.g. Section A, B"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Batch Year</label>
+                <input
+                  type="number"
+                  value={cohortFilters.batch_year}
+                  onChange={(e) => setCohortFilters({ ...cohortFilters, batch_year: e.target.value })}
+                  placeholder="e.g. 2027"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Search Candidate</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={availableSearchQuery}
+                    onChange={(e) => setAvailableSearchQuery(e.target.value)}
+                    placeholder="Name or email..."
+                    className="w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition"
+                  />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Available Candidates Pool List */}
+          <div className="p-6">
+            {cohortLoading ? (
+              <div className="py-8 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span>Loading available candidates...</span>
+              </div>
+            ) : filteredAvailableCandidates.length === 0 ? (
+              <div className="py-8 text-center text-sm text-slate-500 border-2 border-dashed border-slate-200 rounded-xl p-6">
+                <UserCheck className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="font-semibold text-slate-700">No candidates available to enroll</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {availableCandidates.length === 0
+                    ? "All candidates matching this criteria are already enrolled, or no registered users match this cohort filter."
+                    : "Try broadening your department, section, or batch year filter above."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 max-h-80 overflow-y-auto pr-1">
+                {filteredAvailableCandidates.map((cand) => {
+                  const isProcessing = actionInProgressId === cand.id;
+                  return (
+                    <div
+                      key={cand.id}
+                      draggable={!isProcessing}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("candidateId", cand.id);
+                        e.dataTransfer.setData("source", "available");
+                      }}
+                      className={`p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-blue-300 hover:shadow-md transition flex items-center justify-between gap-3 group ${
+                        isProcessing ? "opacity-50 cursor-wait" : "cursor-grab active:cursor-grabbing"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0" />
+                        <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
+                          {cand.fullName ? cand.fullName.charAt(0) : "C"}
+                        </div>
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-slate-900 truncate">{cand.fullName}</p>
+                          <p className="text-[11px] text-slate-500 truncate">{cand.email}</p>
+                          {(cand.department || cand.section || cand.batchYear) && (
+                            <span className="text-[10px] font-semibold text-slate-400">
+                              {[cand.department, cand.section, cand.batchYear].filter(Boolean).join(" • ")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleEnrollSingleCandidate(cand.id)}
+                        disabled={isProcessing}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm shrink-0 flex items-center gap-1 cursor-pointer"
+                        title="Click to enroll candidate into exam"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Enroll
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* SECTION 2: ENROLLED EXAM ROSTER (ACTIVE ENROLLED CANDIDATES) */}
+        <div
+          id="enrolled-candidates-section"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOverEnrolled(true);
+          }}
+          onDragLeave={() => setIsDragOverEnrolled(false)}
+          onDrop={async (e) => {
+            e.preventDefault();
+            setIsDragOverEnrolled(false);
+            const candidateId = e.dataTransfer.getData("candidateId");
+            if (candidateId) {
+              await handleEnrollSingleCandidate(candidateId);
+            }
+          }}
+          className={`bg-white rounded-2xl shadow-sm border overflow-hidden mb-8 transition-all ${
+            isDragOverEnrolled ? "border-emerald-500 bg-emerald-50/30 ring-4 ring-emerald-500/20" : "border-slate-200"
+          }`}
+        >
+          {/* Section Header */}
+          <div className="p-6 border-b border-slate-200">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-emerald-600" />
+                    Enrolled Exam Roster
+                  </h2>
+                  <span className="bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">
+                    {enrolledCandidates.length.toLocaleString()} Enrolled
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Active roster. Drag candidates into this box or click + Enroll above to add candidates.
                 </p>
               </div>
 
@@ -503,58 +735,38 @@ export default function ManageExamPage() {
               <div className="flex items-center gap-2.5 flex-wrap">
                 <button
                   onClick={handleExportCSV}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-900 active:bg-slate-100 dark:bg-slate-700 active:scale-95 rounded-lg transition shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-100 active:scale-95 rounded-lg transition shadow-sm cursor-pointer"
                 >
-                  <Download className="w-4 h-4 text-slate-500 dark:text-slate-400 dark:text-slate-500" />
+                  <Download className="w-4 h-4 text-slate-500" />
                   Export CSV
                 </button>
-                <button
-                  onClick={handleCohortEnrollment}
-                  disabled={cohortLoading || cohortPreview.total === cohortPreview.already_enrolled}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-95 rounded-lg transition shadow-sm cursor-pointer"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Enroll Matching Students
-                </button>
               </div>
             </div>
 
-            <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900">Enroll by cohort</h3>
-                  <p className="text-xs text-slate-600">Filter active candidates from this institution before enrolling them.</p>
-                </div>
-                <span className="text-xs font-semibold text-blue-700">{cohortPreview.total} matched · {cohortPreview.already_enrolled} already enrolled</span>
-              </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                <input value={cohortFilters.department} onChange={(e) => setCohortFilters({...cohortFilters, department: e.target.value})} placeholder="Branch / department" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
-                <input value={cohortFilters.section} onChange={(e) => setCohortFilters({...cohortFilters, section: e.target.value})} placeholder="Section" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
-                <input type="number" value={cohortFilters.batch_year} onChange={(e) => setCohortFilters({...cohortFilters, batch_year: e.target.value})} placeholder="Batch year" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
-              </div>
-            </div>
-
-            {/* Filter and Search Bar */}
+            {/* Filter and Search Bar for Roster */}
             <div className="mt-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
               {/* Search Bar */}
               <div className="relative flex-1 max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Search className="w-4 h-4" />
                 </div>
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  placeholder="Search by name, email, or roll number..."
-                  className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:bg-slate-800 dark:border-slate-700 transition"
+                  value={rosterSearchQuery}
+                  onChange={(e) => {
+                    setRosterSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Search roster by name, email, or roll number..."
+                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
                 />
-                {searchQuery && (
+                {rosterSearchQuery && (
                   <button
                     onClick={() => {
-                      setSearchQuery("");
+                      setRosterSearchQuery("");
                       setCurrentPage(1);
                     }}
-                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                     title="Clear Search"
                   >
                     <X className="w-4 h-4" />
@@ -565,26 +777,29 @@ export default function ManageExamPage() {
               {/* Status Filter Pills */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
                 {[
-                  { key: "ALL", label: "All", count: counts.all },
-                  { key: "READY", label: "Ready", count: counts.ready },
-                  { key: "IN PROGRESS", label: "In Progress", count: counts.inProgress },
-                  { key: "COMPLETED", label: "Completed", count: counts.completed },
-                  { key: "FLAGGED", label: "Flagged", count: counts.flagged },
-                  { key: "REGISTERED", label: "Pending", count: counts.registered }
+                  { key: "ALL", label: "All", count: rosterCounts.all },
+                  { key: "READY", label: "Ready", count: rosterCounts.ready },
+                  { key: "IN PROGRESS", label: "In Progress", count: rosterCounts.inProgress },
+                  { key: "COMPLETED", label: "Completed", count: rosterCounts.completed },
+                  { key: "FLAGGED", label: "Flagged", count: rosterCounts.flagged },
+                  { key: "REGISTERED", label: "Pending", count: rosterCounts.registered }
                 ].map((tab) => (
                   <button
                     key={tab.key}
-                    onClick={() => handleStatusFilterChange(tab.key)}
+                    onClick={() => {
+                      setStatusFilter(tab.key);
+                      setCurrentPage(1);
+                    }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                       statusFilter === tab.key
                         ? "bg-slate-900 text-white shadow-sm"
-                        : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 active:bg-slate-300"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300"
                     }`}
                   >
                     {tab.label}{" "}
                     <span
                       className={`ml-1 text-[11px] font-normal ${
-                        statusFilter === tab.key ? "text-slate-300" : "text-slate-400 dark:text-slate-500"
+                        statusFilter === tab.key ? "text-slate-300" : "text-slate-400"
                       }`}
                     >
                       ({tab.count})
@@ -595,82 +810,70 @@ export default function ManageExamPage() {
             </div>
           </div>
 
-          {/* Candidates Table */}
+          {/* Enrolled Candidates Roster Table */}
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-              <thead className="bg-slate-50 dark:bg-slate-900/80">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
-                  >
+                  <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Candidate
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
-                  >
+                  <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Contact Email
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
-                  >
+                  <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
-                  >
+                  <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     System Check
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
-                  >
+                  <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Enrolled
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider"
-                  >
+                  <th scope="col" className="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white dark:bg-slate-800 dark:border-slate-700">
-                {paginatedCandidates.length === 0 ? (
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {paginatedEnrolledCandidates.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                        <Search className="w-10 h-10 text-slate-300 mb-3" />
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">No candidates found</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 mb-4">
-                          No candidate records match your search criteria &quot;{searchQuery}&quot;.
+                        <Users className="w-10 h-10 text-slate-300 mb-3" />
+                        <p className="text-sm font-semibold text-slate-900">No candidates in roster</p>
+                        <p className="text-xs text-slate-500 mt-1 mb-4">
+                          No candidate records match your filter criteria or no candidates have been enrolled yet. Drag students from the Available Pool above to enroll them.
                         </p>
                         <button
                           onClick={() => {
-                            setSearchQuery("");
+                            setRosterSearchQuery("");
                             setStatusFilter("ALL");
                             setCurrentPage(1);
                           }}
-                          className="px-3.5 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 rounded-lg transition"
+                          className="px-3.5 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
                         >
-                          Clear Filters
+                          Clear Roster Filters
                         </button>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  paginatedCandidates.map((cand) => (
+                  paginatedEnrolledCandidates.map((cand) => (
                     <tr
                       key={cand.id}
-                      className="hover:bg-slate-50 dark:bg-slate-900/75 transition-colors group cursor-pointer"
+                      draggable={true}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("candidateId", cand.id);
+                        e.dataTransfer.setData("source", "enrolled");
+                      }}
+                      className="hover:bg-slate-50 transition-colors group cursor-grab active:cursor-grabbing"
                       onClick={() => setSelectedCandidate(cand)}
                     >
                       {/* Candidate Avatar & Name */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
+                          <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 mr-2 shrink-0" />
                           <div className="h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
                             {cand.fullName
                               .split(" ")
@@ -679,18 +882,18 @@ export default function ManageExamPage() {
                               .slice(0, 2)}
                           </div>
                           <div className="ml-3">
-                            <div className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                            <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
                               {cand.fullName}
                             </div>
-                            <div className="text-xs font-mono text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                              {cand.rollNumber}
+                            <div className="text-xs font-mono text-slate-400 flex items-center gap-1">
+                              {cand.rollNumber || "No Roll No"}
                             </div>
                           </div>
                         </div>
                       </td>
 
                       {/* Email */}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                         {cand.email}
                       </td>
 
@@ -724,7 +927,7 @@ export default function ManageExamPage() {
                           </span>
                         )}
                         {cand.status === "Registered" && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
                             <span className="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
                             Registered
                           </span>
@@ -751,7 +954,7 @@ export default function ManageExamPage() {
                       </td>
 
                       {/* Enrolled Timestamp */}
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
                         {cand.enrolledAt}
                       </td>
 
@@ -769,7 +972,7 @@ export default function ManageExamPage() {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleRemoveCandidate(cand)}
+                            onClick={() => handleUnenrollSingleCandidate(cand.id)}
                             className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition cursor-pointer"
                             title="Remove Candidate from Exam Roster"
                           >
@@ -785,30 +988,27 @@ export default function ManageExamPage() {
           </div>
 
           {/* PAGINATION FOOTER */}
-          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Left: Summary text */}
-            <div className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs text-slate-600 font-medium">
               Showing{" "}
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {filteredCandidates.length === 0
+              <span className="font-semibold text-slate-900">
+                {filteredEnrolledCandidates.length === 0
                   ? 0
                   : (currentPage - 1) * itemsPerPage + 1}
               </span>{" "}
               to{" "}
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {Math.min(currentPage * itemsPerPage, filteredCandidates.length)}
+              <span className="font-semibold text-slate-900">
+                {Math.min(currentPage * itemsPerPage, filteredEnrolledCandidates.length)}
               </span>{" "}
               of{" "}
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {filteredCandidates.length.toLocaleString()}
+              <span className="font-semibold text-slate-900">
+                {filteredEnrolledCandidates.length.toLocaleString()}
               </span>{" "}
               candidates
             </div>
 
-            {/* Right: Items per page & Pagination Controls */}
             <div className="flex items-center gap-3 flex-wrap">
-              {/* Rows per page selector */}
-              <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+              <div className="flex items-center gap-1.5 text-xs text-slate-600">
                 <span>Rows per page:</span>
                 <select
                   value={itemsPerPage}
@@ -816,7 +1016,7 @@ export default function ManageExamPage() {
                     setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-slate-800 dark:text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
+                  className="bg-white border border-slate-300 rounded-lg px-2 py-1 text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -825,12 +1025,11 @@ export default function ManageExamPage() {
                 </select>
               </div>
 
-              {/* Page Buttons */}
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
-                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white hover:bg-slate-200 active:bg-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition cursor-pointer"
+                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200 active:bg-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition cursor-pointer"
                   title="First Page"
                 >
                   First
@@ -839,21 +1038,20 @@ export default function ManageExamPage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:bg-slate-700 active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition shadow-sm cursor-pointer"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                   Previous
                 </button>
 
-                {/* Exact "Page 1 of 50" Display */}
-                <div className="px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm">
+                <div className="px-3 py-1.5 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg shadow-sm">
                   Page {currentPage} of {totalPages}
                 </div>
 
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:bg-slate-700 active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition shadow-sm cursor-pointer"
                 >
                   Next
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -862,7 +1060,7 @@ export default function ManageExamPage() {
                 <button
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage >= totalPages}
-                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white hover:bg-slate-200 active:bg-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition cursor-pointer"
+                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200 active:bg-slate-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition cursor-pointer"
                   title="Last Page"
                 >
                   Last
@@ -876,18 +1074,18 @@ export default function ManageExamPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Question Bank Column (2 cols) */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-600" />
                   Question Bank
                 </h2>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:text-white bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-900 active:bg-slate-100 dark:bg-slate-700 active:scale-95 px-3 py-1.5 rounded-lg transition shadow-sm cursor-pointer"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 active:bg-slate-100 active:scale-95 px-3 py-1.5 rounded-lg transition shadow-sm cursor-pointer"
                   >
-                    <Upload className="w-4 h-4 text-slate-500 dark:text-slate-400 dark:text-slate-500" />
+                    <Upload className="w-4 h-4 text-slate-500" />
                     Upload Paper (CSV/JSON)
                   </button>
                   <button
@@ -914,7 +1112,7 @@ export default function ManageExamPage() {
                 className="hidden"
               />
 
-              {/* Drag and Drop Zone */}
+              {/* Drag and Drop Zone for Questions */}
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -927,52 +1125,52 @@ export default function ManageExamPage() {
                     processFile(e.dataTransfer.files[0]);
                   }
                 }}
-                className="bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-blue-400 hover:bg-blue-50/20 rounded-xl p-6 mb-6 text-center transition group"
+                className="bg-slate-50 border-2 border-dashed border-slate-300 hover:border-blue-400 hover:bg-blue-50/20 rounded-xl p-6 mb-6 text-center transition group"
               >
-                <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 mx-auto mb-2 transition" />
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">
+                <Upload className="w-8 h-8 text-slate-400 group-hover:text-blue-500 mx-auto mb-2 transition" />
+                <p className="text-sm font-semibold text-slate-800 mb-1">
                   Drag and drop your question paper file here
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-4 max-w-md mx-auto">
+                <p className="text-xs text-slate-500 mb-4 max-w-md mx-auto">
                   Supports CSV, JSON, or PDF text extraction. Must contain MCQs, Short Answers, or Coding problems.
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:bg-slate-900 active:bg-slate-100 dark:bg-slate-700 active:scale-95 transition shadow-sm cursor-pointer"
+                  className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 active:bg-slate-100 active:scale-95 transition shadow-sm cursor-pointer"
                 >
                   Browse Files
                 </button>
               </div>
 
               {/* Question List */}
-              <div className="border border-slate-200 dark:border-slate-700 rounded-xl divide-y divide-slate-100">
+              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100">
                 {(!exam?.questions || exam.questions.length === 0) ? (
-                  <div className="p-6 text-center text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                  <div className="p-6 text-center text-sm text-slate-500">
                     No questions added yet.
                   </div>
                 ) : (
                   exam.questions.map((q, idx) => (
                     <div
                       key={q.id || idx}
-                      className="p-4 hover:bg-slate-50 dark:bg-slate-900 transition flex justify-between items-start"
+                      className="p-4 hover:bg-slate-50 transition flex justify-between items-start"
                     >
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                             Q{idx + 1} &bull; {q.type.replace("_", " ")}
                           </span>
                           <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
                             {q.points} pts
                           </span>
                         </div>
-                        <p className="text-sm font-medium text-slate-900 dark:text-white">{q.title}</p>
+                        <p className="text-sm font-medium text-slate-900">{q.title}</p>
                           {q.options && Array.isArray(q.options) && (
-                            <ul className="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                            <ul className="mt-2 text-xs text-slate-500 space-y-1">
                               {q.options.map((opt: any, i: number) => {
                                 const isCorrect = q.correct_answer === opt || (Array.isArray(q.correct_answer) && q.correct_answer.includes(opt));
                                 return (
-                                  <li key={i} className={`flex items-center gap-2 ${isCorrect ? "font-semibold text-emerald-600 dark:text-emerald-400" : ""}`}>
-                                      <div className={`w-1.5 h-1.5 rounded-full ${isCorrect ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`}></div>
+                                  <li key={i} className={`flex items-center gap-2 ${isCorrect ? "font-semibold text-emerald-600" : ""}`}>
+                                      <div className={`w-1.5 h-1.5 rounded-full ${isCorrect ? "bg-emerald-500" : "bg-slate-300"}`}></div>
                                       {opt}
                                     </li>
                                 );
@@ -980,20 +1178,22 @@ export default function ManageExamPage() {
                             </ul>
                           )}
                       </div>
-                      <button
-                        onClick={() => setEditingQuestion(q)}
-                        className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:bg-slate-700 active:bg-slate-200 rounded-lg transition cursor-pointer"
-                        title={`Configure Q${idx + 1}`}
-                      >
-                        <Settings className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteQuestion(q.id || (q as any).question_id)}
-                        className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 active:bg-red-100 rounded-lg transition cursor-pointer ml-1"
-                        title={`Remove Q${idx + 1}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditingQuestion(q)}
+                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 rounded-lg transition cursor-pointer"
+                          title={`Configure Q${idx + 1}`}
+                        >
+                          <Settings className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuestion(q.id || (q as any).question_id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 rounded-lg transition cursor-pointer"
+                          title={`Remove Q${idx + 1}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -1002,74 +1202,74 @@ export default function ManageExamPage() {
           </div>
 
           {/* Right Column (1 col): Administration & AI Subsystems */}
-          <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
+          <div className="space-y-6">
             {/* Exam Administration */}
-            <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Exam Administration</h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-base font-bold text-slate-900 mb-4">Exam Administration</h2>
               <div className="space-y-3">
-                  <button
-                    onClick={handleTogglePublish}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 active:bg-indigo-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition">
-                        <Upload className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-sm font-semibold text-slate-900 dark:text-white block">
-                          {exam?.status === "PUBLISHED" ? "Unpublish Exam" : "Publish Exam"}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {exam?.status === "PUBLISHED" ? "Hide from candidates" : "Make visible to all candidates"}
-                        </span>
-                      </div>
+                <button
+                  onClick={handleTogglePublish}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 active:bg-indigo-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition">
+                      <Upload className="w-4 h-4" />
                     </div>
-                  </button>
+                    <div>
+                      <span className="text-sm font-semibold text-slate-900 block">
+                        {exam?.status === "PUBLISHED" ? "Unpublish Exam" : "Publish Exam"}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {exam?.status === "PUBLISHED" ? "Hide from candidates" : "Make visible to all candidates"}
+                      </span>
+                    </div>
+                  </div>
+                </button>
                 <button
                   onClick={() => {
                     scrollToCandidates();
-                    showToast("Jumped to Enrolled Candidates table (1,000 users).", "info");
+                    showToast("Jumped to Enrolled Candidates roster.", "info");
                   }}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50/50 active:bg-blue-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 active:bg-blue-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition">
                       <Users className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white block">
+                      <span className="text-sm font-semibold text-slate-900 block">
                         Manage Enrollments
                       </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">1,000 Candidates Roster</span>
+                      <span className="text-xs text-slate-500">{enrolledCandidates.length} Candidates Roster</span>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-blue-600 group-hover:translate-x-0.5 transition" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition" />
                 </button>
 
                 <button
                   onClick={() => router.push("/dashboard/live")}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50/50 active:bg-blue-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 active:bg-blue-100/50 active:scale-[0.99] text-left transition cursor-pointer group shadow-sm"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition">
                       <PlayCircle className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white block">
+                      <span className="text-sm font-semibold text-slate-900 block">
                         Launch Live Proctoring
                       </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Real-time video & anomalies</span>
+                      <span className="text-xs text-slate-500">Real-time video & anomalies</span>
                     </div>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-blue-600 transition" />
+                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition" />
                 </button>
               </div>
             </div>
 
             {/* AI Subsystems Card */}
-            <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">AI Subsystems</h2>
+                <h2 className="text-base font-bold text-slate-900">AI Subsystems</h2>
                 <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   Online
@@ -1078,12 +1278,12 @@ export default function ManageExamPage() {
 
               <div className="space-y-4">
                 {/* Webcam Subsystem */}
-                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 dark:bg-slate-900/50">
+                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">Webcam Proctoring</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Active facial tracking & gaze detection</p>
+                      <p className="text-sm font-semibold text-slate-900">Webcam Proctoring</p>
+                      <p className="text-xs text-slate-500">Active facial tracking & gaze detection</p>
                     </div>
                   </div>
                   <button
@@ -1097,12 +1297,12 @@ export default function ManageExamPage() {
                 </div>
 
                 {/* Browser Lockdown Subsystem */}
-                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 dark:bg-slate-900/50">
+                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">Browser Lockdown</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Clipboard shield + blur detection</p>
+                      <p className="text-sm font-semibold text-slate-900">Browser Lockdown</p>
+                      <p className="text-xs text-slate-500">Clipboard shield + blur detection</p>
                     </div>
                   </div>
                   <button
@@ -1116,12 +1316,12 @@ export default function ManageExamPage() {
                 </div>
 
                 {/* Audio Telemetry Subsystem */}
-                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 dark:bg-slate-900/50">
+                <div className="flex items-start justify-between p-3 rounded-xl border border-slate-100 bg-slate-50">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">Audio Telemetry</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Ambient voice & whispers detection</p>
+                      <p className="text-sm font-semibold text-slate-900">Audio Telemetry</p>
+                      <p className="text-xs text-slate-500">Ambient voice & whispers detection</p>
                     </div>
                   </div>
                   <button
@@ -1142,9 +1342,9 @@ export default function ManageExamPage() {
       {/* CANDIDATE INSPECTION MODAL */}
       {selectedCandidate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-lg w-full overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-900 text-white">
+            <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
                   {selectedCandidate.fullName
@@ -1155,14 +1355,14 @@ export default function ManageExamPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base">{selectedCandidate.fullName}</h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+                  <p className="text-xs text-slate-400 font-mono">
                     {selectedCandidate.rollNumber} &bull; {selectedCandidate.email}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedCandidate(null)}
-                className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-white hover:bg-white dark:bg-slate-800 dark:border-slate-700/10 transition cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1171,17 +1371,17 @@ export default function ManageExamPage() {
             {/* Modal Body */}
             <div className="p-6 space-y-5 text-sm">
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                     Exam Status
                   </span>
-                  <span className="font-semibold text-slate-900 dark:text-white">{selectedCandidate.status}</span>
+                  <span className="font-semibold text-slate-900">{selectedCandidate.status}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                     Hardware Check
                   </span>
-                  <span className="font-semibold text-slate-900 dark:text-white">{selectedCandidate.systemCheck}</span>
+                  <span className="font-semibold text-slate-900">{selectedCandidate.systemCheck}</span>
                 </div>
               </div>
 
@@ -1197,40 +1397,40 @@ export default function ManageExamPage() {
 
               {/* Hardware Diagnostics */}
               <div>
-                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                   System Diagnostics
                 </h4>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 text-xs">
-                    <span className="font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-xs">
+                    <span className="font-medium text-slate-700 flex items-center gap-2">
                       <Laptop className="w-4 h-4 text-blue-500" />
                       Webcam & Video Feed
                     </span>
                     <span className="font-semibold text-emerald-600">Active (1080p)</span>
                   </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 text-xs">
-                    <span className="font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-xs">
+                    <span className="font-medium text-slate-700 flex items-center gap-2">
                       <Shield className="w-4 h-4 text-blue-500" />
                       Browser Lockdown Sandboxing
                     </span>
                     <span className="font-semibold text-emerald-600">Enforced</span>
                   </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 text-xs">
-                    <span className="font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-xs">
+                    <span className="font-medium text-slate-700 flex items-center gap-2">
                       <Clock className="w-4 h-4 text-blue-500" />
                       Enrolled Timestamp
                     </span>
-                    <span className="text-slate-600 dark:text-slate-300">{selectedCandidate.enrolledAt}</span>
+                    <span className="text-slate-600">{selectedCandidate.enrolledAt}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
               <button
                 onClick={() => setSelectedCandidate(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition cursor-pointer"
               >
                 Close
               </button>
@@ -1279,7 +1479,7 @@ export default function ManageExamPage() {
               </div>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="text-slate-400 dark:text-slate-500 hover:text-white transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
