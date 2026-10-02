@@ -1,5 +1,7 @@
 import os
 import smtplib
+import socket
+import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import asyncio
@@ -21,9 +23,9 @@ class EmailService:
     @property
     def smtp_port(self) -> int:
         try:
-            return int(os.getenv("SMTP_PORT", "587"))
+            return int(os.getenv("SMTP_PORT", "465"))
         except ValueError:
-            return 587
+            return 465
 
     @property
     def smtp_user(self) -> str:
@@ -37,6 +39,23 @@ class EmailService:
     def configured(self) -> bool:
         """Whether outbound email has been explicitly enabled and configured."""
         return self.enabled and bool(self.smtp_host and self.sender)
+
+    def _create_ipv4_socket(self, host: str, port: int, timeout: float = 8.0) -> socket.socket:
+        """Force IPv4 socket connection to prevent Errno 101 Network Unreachable on cloud hosts."""
+        addr_info = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+        last_err = None
+        s = None
+        for family, socktype, proto, canonname, sockaddr in addr_info:
+            try:
+                s = socket.socket(family, socktype, proto)
+                s.settimeout(timeout)
+                s.connect(sockaddr)
+                return s
+            except Exception as err:
+                last_err = err
+                if s:
+                    s.close()
+        raise last_err or socket.error(f"Could not connect to {host}:{port} over IPv4")
 
     def send_email_sync(self, to_address: str, subject: str, html_body: str, text_body: str) -> tuple[bool, str]:
         if not self.enabled:
@@ -58,58 +77,76 @@ class EmailService:
         msg.attach(part1)
         msg.attach(part2)
 
-        import socket
-        import ssl
-
-        target_host = self.smtp_host
-        try:
-            addr_info = socket.getaddrinfo(self.smtp_host, self.smtp_port, socket.AF_INET, socket.SOCK_STREAM)
-            if addr_info:
-                target_host = addr_info[0][4][0]
-        except Exception as resolve_err:
-            logger.warning(f"IPv4 resolution fallback warning: {resolve_err}")
-
-        # List of ports to attempt: configured port first, followed by port 465 SSL fallback
+        context = ssl.create_default_context()
+        
+        # Priority list: configured port first, then 465 SSL, then 587 STARTTLS
         ports_to_try = [self.smtp_port]
-        if 465 not in ports_to_try:
-            ports_to_try.append(465)
+        for p in [465, 587]:
+            if p not in ports_to_try:
+                ports_to_try.append(p)
 
         last_error = ""
-        context = ssl.create_default_context()
 
         for port in ports_to_try:
             try:
+                raw_sock = self._create_ipv4_socket(self.smtp_host, port, timeout=8.0)
                 if port == 465:
-                    # SMTPS (Implicit SSL over Port 465) - bypasses STARTTLS firewall blocks on cloud hosts
-                    with smtplib.SMTP_SSL(target_host, 465, timeout=8, context=context) as server:
-                        server._host = self.smtp_host
-                        if self.smtp_user and self.smtp_pass:
-                            server.login(self.smtp_user, self.smtp_pass)
-                        server.sendmail(self.sender, to_address, msg.as_string())
+                    # SMTPS Implicit SSL (Port 465)
+                    secure_sock = context.wrap_socket(raw_sock, server_hostname=self.smtp_host)
+                    server = smtplib.SMTP_SSL(timeout=8)
+                    server.sock = secure_sock
+                    server._host = self.smtp_host
+                    server.file = secure_sock.makefile('rb')
+                    server.getwelcome()
+                    if self.smtp_user and self.smtp_pass:
+                        server.login(self.smtp_user, self.smtp_pass)
+                    server.sendmail(self.sender, to_address, msg.as_string())
+                    server.close()
                     logger.info(f"Email sent successfully to {to_address} via SSL Port 465")
                     return True, "Email sent successfully via SSL Port 465"
                 else:
-                    # Standard STARTTLS over Port 587
-                    with smtplib.SMTP(timeout=8) as server:
-                        server.connect(target_host, port)
-                        server._host = self.smtp_host
-                        server.ehlo()
-                        server.starttls(context=context)
-                        server.ehlo()
-                        if self.smtp_user and self.smtp_pass:
-                            server.login(self.smtp_user, self.smtp_pass)
-                        server.sendmail(self.sender, to_address, msg.as_string())
+                    # STARTTLS (Port 587)
+                    server = smtplib.SMTP(timeout=8)
+                    server.sock = raw_sock
+                    server._host = self.smtp_host
+                    server.file = raw_sock.makefile('rb')
+                    server.getwelcome()
+                    server.ehlo()
+                    server.starttls(context=context)
+                    server.ehlo()
+                    if self.smtp_user and self.smtp_pass:
+                        server.login(self.smtp_user, self.smtp_pass)
+                    server.sendmail(self.sender, to_address, msg.as_string())
+                    server.close()
                     logger.info(f"Email sent successfully to {to_address} via Port {port}")
                     return True, f"Email sent successfully via Port {port}"
             except Exception as e:
-                last_error = str(e)
-                logger.warning(f"SMTP attempt on port {port} failed: {last_error}. Trying fallback...")
+                # Direct fallback attempt using standard smtplib
+                try:
+                    if port == 465:
+                        with smtplib.SMTP_SSL(self.smtp_host, 465, timeout=8, context=context) as server:
+                            if self.smtp_user and self.smtp_pass:
+                                server.login(self.smtp_user, self.smtp_pass)
+                            server.sendmail(self.sender, to_address, msg.as_string())
+                        logger.info(f"Email sent successfully to {to_address} via fallback SSL Port 465")
+                        return True, "Email sent successfully via SSL Port 465"
+                    else:
+                        with smtplib.SMTP(self.smtp_host, port, timeout=8) as server:
+                            server.ehlo()
+                            server.starttls(context=context)
+                            server.ehlo()
+                            if self.smtp_user and self.smtp_pass:
+                                server.login(self.smtp_user, self.smtp_pass)
+                            server.sendmail(self.sender, to_address, msg.as_string())
+                        logger.info(f"Email sent successfully to {to_address} via fallback Port {port}")
+                        return True, f"Email sent successfully via Port {port}"
+                except Exception as fallback_err:
+                    last_error = f"Primary ({e}) / Fallback ({fallback_err})"
+                    logger.warning(f"SMTP attempt on port {port} failed: {last_error}")
 
         reason = f"SMTP Email failed across ports {ports_to_try}: {last_error}"
         logger.error(reason)
         return False, reason
-
-
 
     async def send(self, to_addresses: list[str], subject: str, html_body: str, text_body: str = "") -> bool:
         success, _ = await self.send_with_reason(to_addresses, subject, html_body, text_body)
@@ -126,4 +163,3 @@ class EmailService:
         return success, last_reason
 
 email_service = EmailService()
-
