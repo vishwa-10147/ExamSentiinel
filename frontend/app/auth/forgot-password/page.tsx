@@ -24,7 +24,9 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,6 +88,11 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match. Please ensure both password fields match.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await apiClient.post("/api/auth/reset-password", {
@@ -101,6 +108,7 @@ export default function ForgotPasswordPage() {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-slate-950/5 relative overflow-hidden">
@@ -266,7 +274,7 @@ export default function ForgotPasswordPage() {
             )}
 
             {step === 3 && (
-              /* Step 3 Form: New Password */
+              /* Step 3 Form: New Password & Confirm Password */
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
@@ -294,9 +302,35 @@ export default function ForgotPasswordPage() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                      <Lock className="h-4 w-4" />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 transition"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   type="submit"
-                  disabled={isSubmitting || newPassword.length < 8}
+                  disabled={isSubmitting || newPassword.length < 8 || confirmPassword.length < 8}
                   className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-bold text-white shadow-md hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 transition"
                 >
                   {isSubmitting ? (
@@ -314,6 +348,7 @@ export default function ForgotPasswordPage() {
                   onClick={() => {
                     setStep(2);
                     setNewPassword("");
+                    setConfirmPassword("");
                   }}
                   disabled={isSubmitting}
                   className="w-full text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
@@ -322,6 +357,7 @@ export default function ForgotPasswordPage() {
                 </button>
               </form>
             )}
+
           </div>
 
           <div className="mt-6 text-center text-xs text-slate-500">

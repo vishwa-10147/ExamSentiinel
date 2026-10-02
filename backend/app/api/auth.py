@@ -124,7 +124,8 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ):
     """Authenticate user credentials and issue signed JWT access and refresh tokens."""
-    result = await db.execute(select(User).where(User.email == credentials.email.lower()))
+    clean_email = credentials.email.strip().lower()
+    result = await db.execute(select(User).where(User.email == clean_email))
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(credentials.password, user.hashed_password):
@@ -133,8 +134,8 @@ async def login(
             db=db,
             action="LOGIN_FAILED",
             resource_type="auth",
-            resource_id=credentials.email.lower(),
-            details={"email": credentials.email.lower(), "reason": "invalid_credentials"},
+            resource_id=clean_email,
+            details={"email": clean_email, "reason": "invalid_credentials"},
             user_id=user.id if user else None,
             institution_id=user.institution_id if user else None,
             request=request,
@@ -402,7 +403,7 @@ async def forgot_password(
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    result = await db.execute(select(User).where(User.email == payload.email.strip().lower()))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
@@ -446,7 +447,7 @@ async def verify_forgot_otp(
     payload: VerifyForgotOTPRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    result = await db.execute(select(User).where(User.email == payload.email.strip().lower()))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid request or expired user session.")
@@ -470,7 +471,7 @@ async def reset_password(
     db: AsyncSession = Depends(get_db),
 ):
 
-    result = await db.execute(select(User).where(User.email == payload.email.lower()))
+    result = await db.execute(select(User).where(User.email == payload.email.strip().lower()))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid OTP")
