@@ -119,7 +119,7 @@ export default function ComingSoonView({
             {subscribed ? (
               <div className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-sm">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                You'll be notified as soon as this releases!
+                You&apos;ll be notified as soon as this releases!
               </div>
             ) : (
               <form onSubmit={handleNotify} className="flex flex-col sm:flex-row gap-2">
@@ -162,7 +162,7 @@ export default function ComingSoonView({
         <div className="space-y-4">
           <div className="text-center">
             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              What's Coming in this Module
+              What&apos;s Coming in this Module
             </h2>
           </div>
 

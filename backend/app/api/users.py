@@ -354,10 +354,9 @@ async def admin_delete_user(
         await db.execute(delete(ProctoringEvent).where(ProctoringEvent.candidate_id == user_id))
         await db.execute(delete(ReviewCase).where(ReviewCase.candidate_id == user_id))
 
-        # Nullify foreign key references
-        await db.execute(update(Exam).where(Exam.created_by == user_id).values(created_by=None))
-        await db.execute(update(Question).where(Question.created_by == user_id).values(created_by=None))
-        await db.execute(update(AuditLog).where(AuditLog.user_id == user_id).values(user_id=None))
+        # Nullify foreign key references in parent models
+        await db.execute(update(Exam).where(Exam.created_by == user_id).values({Exam.created_by: None}))
+        await db.execute(update(AuditLog).where(AuditLog.user_id == user_id).values({AuditLog.user_id: None}))
 
         # Log audit trail
         await log_audit_event(
