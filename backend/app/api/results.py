@@ -54,13 +54,14 @@ async def get_exam_leaderboard(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from app.models.session import SessionStatus
     # Only published results are on the leaderboard
     query = (
         select(ExamSession)
         .options(selectinload(ExamSession.candidate))
         .where(ExamSession.exam_id == exam_id)
-        .where(ExamSession.status == "SUBMITTED")
-        .where(ExamSession.results_published == True)
+        .where(ExamSession.status.in_([SessionStatus.SUBMITTED, SessionStatus.EXPIRED, "SUBMITTED", "EXPIRED"]))
+        .where(ExamSession.results_published.is_(True))
         .order_by(desc(ExamSession.total_score))
     )
     result = await db.execute(query)
@@ -68,12 +69,13 @@ async def get_exam_leaderboard(
     
     leaderboard = []
     for idx, s in enumerate(sessions):
+        cand_name = s.candidate.full_name if (s.candidate and s.candidate.full_name) else "Candidate"
         leaderboard.append({
             "rank": idx + 1,
             "session_id": str(s.id),
-            "candidate_name": s.candidate.full_name if s.candidate else "Unknown",
-            "total_score": s.total_score,
-            "percentage": s.percentage,
+            "candidate_name": cand_name,
+            "total_score": float(s.total_score or 0.0),
+            "percentage": float(s.percentage or 0.0),
             "is_me": (s.candidate_id == current_user.id)
         })
     return leaderboard
@@ -93,6 +95,7 @@ async def publish_results(
         
     await db.commit()
     return {"status": "success", "published_count": len(sessions)}
+
 @router.get("/admin/exam/{exam_id}/sessions")
 async def get_exam_sessions_admin(
     exam_id: uuid.UUID,
@@ -111,12 +114,12 @@ async def get_exam_sessions_admin(
         {
             "id": str(s.id),
             "candidate_id": str(s.candidate_id),
-            "candidate_name": s.candidate.full_name if s.candidate else "Unknown",
-            "status": s.status,
-            "score": s.total_score,
-            "integrity_score": s.current_risk_score,
+            "candidate_name": s.candidate.full_name if (s.candidate and s.candidate.full_name) else "Unknown",
+            "status": s.status.value if hasattr(s.status, 'value') else str(s.status),
+            "score": float(s.total_score or 0.0),
+            "integrity_score": float(s.current_risk_score or 0.0),
             "submitted_at": s.submitted_at.isoformat() if s.submitted_at else None,
-            "results_published": s.results_published
+            "results_published": bool(s.results_published)
         }
         for s in sessions
     ]
