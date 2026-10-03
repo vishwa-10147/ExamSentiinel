@@ -45,12 +45,12 @@ class SessionSummary(BaseModel):
     candidate_name: str
     candidate_email: str
     status: str
-    current_risk_score: float
-    risk_level: str
+    current_risk_score: float = 0.0
+    risk_level: str = "LOW"
     violation_count: int = 0
-    started_at: datetime
+    started_at: Optional[datetime] = None
     submitted_at: Optional[datetime] = None
-    server_end_time: datetime
+    server_end_time: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -96,17 +96,18 @@ class SessionTimeline(BaseModel):
 
 def _build_session_summary(session: ExamSession) -> Dict[str, Any]:
     """Convert an ExamSession with eagerly-loaded relationships to a dict."""
+    status_str = session.status.value if hasattr(session.status, 'value') else str(session.status or "IN_PROGRESS")
     return {
         "session_id": session.id,
         "exam_id": session.exam_id,
-        "exam_title": session.exam.title if session.exam else "Unknown",
+        "exam_title": session.exam.title if (session.exam and session.exam.title) else "Unknown Exam",
         "candidate_id": session.candidate_id,
-        "candidate_name": session.candidate.full_name if session.candidate else "Unknown",
-        "candidate_email": session.candidate.email if session.candidate else "Unknown",
-        "status": session.status.value if isinstance(session.status, SessionStatus) else session.status,
-        "current_risk_score": session.current_risk_score,
-        "risk_level": session.risk_level,
-        "violation_count": getattr(session, "violation_count", 0) or 0,
+        "candidate_name": session.candidate.full_name if (session.candidate and session.candidate.full_name) else "Candidate",
+        "candidate_email": session.candidate.email if (session.candidate and session.candidate.email) else "unknown@sentinel.edu",
+        "status": status_str,
+        "current_risk_score": float(session.current_risk_score or 0.0),
+        "risk_level": str(session.risk_level or "LOW"),
+        "violation_count": int(getattr(session, "violation_count", 0) or 0),
         "started_at": session.started_at,
         "submitted_at": session.submitted_at,
         "server_end_time": session.server_end_time,

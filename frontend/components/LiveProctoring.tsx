@@ -139,16 +139,20 @@ export default function LiveProctoringDashboard() {
     if (token && typeof window !== "undefined") {
       const isHttps = window.location.protocol === "https:";
       const wsProtocol = isHttps ? "wss:" : "ws:";
-      const backendHost = process.env.NEXT_PUBLIC_API_URL 
-        ? process.env.NEXT_PUBLIC_API_URL.replace(/^https?:\/\//, "")
-        : window.location.host;
-      
-      const wsUrl = `${wsProtocol}//${backendHost}/api/ws/dashboard?token=${encodeURIComponent(token)}`;
+      const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://examsentinel-backend.onrender.com";
+      const cleanHost = rawApiUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
+      const wsUrl = `${wsProtocol}//${cleanHost}/api/ws/dashboard?token=${encodeURIComponent(token)}`;
 
       try {
         socket = new WebSocket(wsUrl);
+        socket.onopen = () => {
+          console.log("Live Proctoring WebSocket connected.");
+        };
         socket.onmessage = () => {
           void loadSessions();
+        };
+        socket.onerror = () => {
+          // Quiet fallback to 10s polling interval
         };
       } catch (err) {
         console.warn("WebSocket connection fallback to polling");
