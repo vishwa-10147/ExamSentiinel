@@ -61,7 +61,7 @@ export default function Navbar() {
         
         <div className="flex items-center">
           <Link href={homeHref} className="flex items-center gap-2.5 group" aria-label="ExamSentinel dashboard">
-            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} className="h-10 w-auto object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105" />
+            <Image src="/logo.png" alt="ExamSentinel Logo" width={40} height={40} priority className="h-10 w-10 object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105" />
             <div>
               <span className="text-xl font-extrabold tracking-tight text-gradient-primary">ExamSentinel</span>
             </div>
