@@ -35,7 +35,7 @@ class ExamQuestionAssign(BaseModel):
 
 
 class ExamEnrollCreate(BaseModel):
-    candidate_ids: List[uuid.UUID] = Field(..., min_length=1)
+    candidate_ids: Optional[List[uuid.UUID]] = Field(default_factory=list)
 
 
 class ExamEnrollmentResponse(BaseModel):

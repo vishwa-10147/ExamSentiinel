@@ -64,7 +64,7 @@ async def start_exam_session(
             detail="Exam is not published yet",
         )
 
-    # 3. Check enrollment for candidates
+    # 3. Check enrollment for candidates (auto-enroll if not yet enrolled)
     if current_user.role == UserRole.CANDIDATE:
         enroll_res = await db.execute(
             select(ExamEnrollment).where(
@@ -74,26 +74,30 @@ async def start_exam_session(
         )
         enrollment = enroll_res.scalar_one_or_none()
         if not enrollment:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Candidate is not enrolled in this exam",
+            enrollment = ExamEnrollment(
+                exam_id=payload.exam_id,
+                candidate_id=current_user.id,
+                status=ExamEnrollmentStatus.ENROLLED,
             )
+            db.add(enrollment)
+            await db.flush()
 
     start_utc = ensure_utc(exam.start_window)
     end_utc = ensure_utc(exam.end_window)
-    late_entry_deadline = start_utc + timedelta(minutes=exam.late_entry_minutes)
+    late_mins = exam.late_entry_minutes if exam.late_entry_minutes is not None else 15
+    late_entry_deadline = (start_utc + timedelta(minutes=late_mins)) if start_utc else None
 
     # Pre-extract exam and questions before any DB commit occurs
     exam_id = exam.id
     exam_title = exam.title
-    duration_delta = timedelta(minutes=exam.duration_minutes)
+    duration_delta = timedelta(minutes=exam.duration_minutes or 60)
 
     eqs = sorted(exam.exam_questions, key=lambda x: x.order_index) if exam.exam_questions else []
     questions_candidate: List[QuestionCandidateResponse] = []
     for eq in eqs:
         q = eq.question
         if q:
-            pts = eq.points_override if eq.points_override is not None else q.points
+            pts = eq.points_override if eq.points_override is not None else (q.points or 0.0)
             questions_candidate.append(
                 QuestionCandidateResponse(
                     id=q.id,
@@ -134,7 +138,7 @@ async def start_exam_session(
             )
 
         server_end = ensure_utc(session.server_end_time)
-        if now > server_end + timedelta(seconds=30):
+        if server_end and now > server_end + timedelta(seconds=30):
             session.status = SessionStatus.EXPIRED
             await db.commit()
             raise HTTPException(
@@ -162,24 +166,24 @@ async def start_exam_session(
 
     else:
         # 5. Check scheduling window & late entry tolerance for new sessions
-        if now < start_utc:
+        if start_utc and now < start_utc:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Exam window has not opened yet",
             )
-        if now > end_utc:
+        if end_utc and now > end_utc:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Exam window has already ended",
             )
-        if now > late_entry_deadline:
+        if late_entry_deadline and now > late_entry_deadline:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Late entry window has expired",
             )
 
         # Create new session
-        server_end_time = min(now + duration_delta, end_utc)
+        server_end_time = min(now + duration_delta, end_utc) if end_utc else (now + duration_delta)
 
         session = ExamSession(
             exam_id=exam_id,

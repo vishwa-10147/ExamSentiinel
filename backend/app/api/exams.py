@@ -468,7 +468,7 @@ async def enroll_candidates(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found")
 
     # If candidate, can only enroll self
-    target_ids = enroll_in.candidate_ids
+    target_ids = enroll_in.candidate_ids if (enroll_in and enroll_in.candidate_ids) else []
     if current_user.role == UserRole.CANDIDATE:
         if not target_ids or target_ids == [current_user.id]:
             target_ids = [current_user.id]
@@ -477,6 +477,8 @@ async def enroll_candidates(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Candidates may only enroll themselves",
             )
+    elif not target_ids:
+        target_ids = [current_user.id]
 
     created_enrollments = []
     for cand_id in target_ids:
