@@ -105,6 +105,15 @@ export default function ManageExamPage() {
   const [cohortFilters, setCohortFilters] = useState({ department: "", section: "", batch_year: "" });
   const [availableSearchQuery, setAvailableSearchQuery] = useState("");
   const [cohortLoading, setCohortLoading] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<{
+    departments: string[];
+    sections: string[];
+    batchYears: (string | number)[];
+  }>({
+    departments: ["CSE", "ECE", "ME", "EEE", "IT", "Civil"],
+    sections: ["Section A", "Section B", "Section C", "Section D"],
+    batchYears: [2024, 2025, 2026, 2027, 2028],
+  });
 
   // Enrolled Roster Filters
   const [rosterSearchQuery, setRosterSearchQuery] = useState("");
@@ -146,6 +155,13 @@ export default function ManageExamPage() {
       
       const data = await apiClient.get<any>(`/api/exams/${examId}/cohort-candidates?${queryParams.toString()}`);
       
+      if (data.available_departments || data.available_sections || data.available_batch_years) {
+        const depts = Array.from(new Set([...(data.available_departments || []), "CSE", "ECE", "ME", "EEE", "IT", "Civil"])).sort();
+        const secs = Array.from(new Set([...(data.available_sections || []), "Section A", "Section B", "Section C", "Section D"])).sort();
+        const years = Array.from(new Set([...(data.available_batch_years || []), 2024, 2025, 2026, 2027, 2028])).sort((a, b) => Number(a) - Number(b));
+        setFilterOptions({ departments: depts, sections: secs, batchYears: years });
+      }
+
       const all: CandidateItem[] = (data.candidates || []).map((c: any) => ({
         id: c.id,
         fullName: c.full_name,
@@ -578,37 +594,54 @@ export default function ManageExamPage() {
               </button>
             </div>
 
-            {/* Filter Inputs Bar */}
+            {/* Filter Select Dropdowns Bar */}
             <div className="mt-5 grid gap-3 sm:grid-cols-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Branch / Dept</label>
-                <input
+                <select
                   value={cohortFilters.department}
                   onChange={(e) => setCohortFilters({ ...cohortFilters, department: e.target.value })}
-                  placeholder="e.g. CSE, ECE, ME"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition"
-                />
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+                >
+                  <option value="">All Departments</option>
+                  {filterOptions.departments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Section</label>
-                <input
+                <select
                   value={cohortFilters.section}
                   onChange={(e) => setCohortFilters({ ...cohortFilters, section: e.target.value })}
-                  placeholder="e.g. Section A, B"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition"
-                />
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+                >
+                  <option value="">All Sections</option>
+                  {filterOptions.sections.map((sec) => (
+                    <option key={sec} value={sec}>
+                      {sec}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Batch Year</label>
-                <input
-                  type="number"
+                <select
                   value={cohortFilters.batch_year}
                   onChange={(e) => setCohortFilters({ ...cohortFilters, batch_year: e.target.value })}
-                  placeholder="e.g. 2027"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition"
-                />
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer"
+                >
+                  <option value="">All Batch Years</option>
+                  {filterOptions.batchYears.map((yr) => (
+                    <option key={yr} value={yr.toString()}>
+                      {yr}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

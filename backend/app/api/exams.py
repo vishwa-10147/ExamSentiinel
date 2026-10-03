@@ -586,9 +586,17 @@ async def preview_cohort_candidates(
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
     users, enrolled_ids = await _cohort_candidates(exam, db, department, section, batch_year)
+    all_users, _ = await _cohort_candidates(exam, db, None, None, None)
+    avail_depts = sorted(list({u.department for u in all_users if u.department}))
+    avail_secs = sorted(list({u.section for u in all_users if u.section}))
+    avail_years = sorted(list({u.batch_year for u in all_users if u.batch_year is not None}))
+
     return {
         "total": len(users),
         "already_enrolled": sum(str(user.id) in enrolled_ids for user in users),
+        "available_departments": avail_depts,
+        "available_sections": avail_secs,
+        "available_batch_years": avail_years,
         "candidates": [
             {
                 "id": user.id,
