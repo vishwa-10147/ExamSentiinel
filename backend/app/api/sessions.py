@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import get_current_user, log_audit_event
 from app.core.database import get_db
 from app.models.exam import Exam, ExamEnrollment, ExamEnrollmentStatus, ExamStatus
-from app.models.question import ExamQuestion, Question
+from app.models.question import ExamQuestion, Question, QuestionType    
 from app.models.response import ExamResponse
 from app.models.session import ExamSession, SessionStatus
 from app.models.user import User, UserRole
@@ -86,24 +86,25 @@ async def start_exam_session(
 
     # Pre-extract exam and questions before any DB commit occurs
     exam_id = exam.id
-    exam_title = exam.title
+    exam_title = exam.title or "Exam"
     duration_delta = timedelta(minutes=exam.duration_minutes or 60)
 
-    eqs = sorted(exam.exam_questions, key=lambda x: x.order_index) if exam.exam_questions else []
+    eqs = sorted(exam.exam_questions, key=lambda x: (x.order_index if x.order_index is not None else 0)) if exam.exam_questions else []
     questions_candidate: List[QuestionCandidateResponse] = []
     for eq in eqs:
         q = eq.question
         if q:
-            pts = eq.points_override if eq.points_override is not None else (q.points or 0.0)
+            pts = eq.points_override if eq.points_override is not None else (q.points if q.points is not None else 0.0)
+            q_type = q.type if isinstance(q.type, QuestionType) else QuestionType(q.type)
             questions_candidate.append(
                 QuestionCandidateResponse(
                     id=q.id,
-                    type=q.type,
-                    title=q.title,
-                    content_rich_text=q.content_rich_text,
-                    options=q.options,
+                    type=q_type,
+                    title=q.title or "Untitled Question",
+                    content_rich_text=q.content_rich_text or "",
+                    options=q.options if q.options is not None else [],
                     points=float(pts),
-                    order_index=eq.order_index,
+                    order_index=eq.order_index if eq.order_index is not None else 0,
                 )
             )
 
@@ -146,12 +147,18 @@ async def start_exam_session(
         # Extract responses
         if session.responses:
             for r in session.responses:
+                server_ts_str = None
+                if r.server_timestamp:
+                    server_ts_str = r.server_timestamp.isoformat() if hasattr(r.server_timestamp, "isoformat") else str(r.server_timestamp)
+                else:
+                    server_ts_str = now.isoformat()
+
                 resp_map[str(r.question_id)] = {
                     "question_id": str(r.question_id),
-                    "response_data": r.response_data,
-                    "is_flagged": r.is_flagged,
-                    "sequence_id": r.sequence_id,
-                    "server_timestamp": r.server_timestamp.isoformat(),
+                    "response_data": r.response_data or {},
+                    "is_flagged": bool(r.is_flagged),
+                    "sequence_id": r.sequence_id or 1,
+                    "server_timestamp": server_ts_str,
                 }
                 if r.is_flagged:
                     flagged_count += 1
@@ -179,7 +186,7 @@ async def start_exam_session(
                 detail="Late entry window has expired",
             )
 
-        # Create new session
+        # Create new session with full default initialization
         server_end_time = min(now + duration_delta, end_utc) if end_utc else (now + duration_delta)
 
         session = ExamSession(
@@ -189,6 +196,14 @@ async def start_exam_session(
             started_at=now,
             server_end_time=server_end_time,
             client_state={},
+            current_risk_score=0.0,
+            risk_level="LOW",
+            total_score=0.0,
+            max_score=0.0,
+            percentage=0.0,
+            results_published=False,
+            violation_count=0,
+            device_fingerprint=payload.device_fingerprint,
         )
         db.add(session)
         await db.flush()
@@ -204,15 +219,19 @@ async def start_exam_session(
         if enrollment and enrollment.status == ExamEnrollmentStatus.ENROLLED:
             enrollment.status = ExamEnrollmentStatus.IN_PROGRESS
 
-        await log_audit_event(
-            db=db,
-            action="EXAM_SESSION_STARTED",
-            resource_type="exam_session",
-            resource_id=str(session.id),
-            details={"exam_id": str(exam_id), "candidate_id": str(current_user.id)},
-            user_id=current_user.id,
-            institution_id=current_user.institution_id,
-        )
+        try:
+            await log_audit_event(
+                db=db,
+                action="EXAM_SESSION_STARTED",
+                resource_type="exam_session",
+                resource_id=str(session.id),
+                details={"exam_id": str(exam_id), "candidate_id": str(current_user.id)},
+                user_id=current_user.id,
+                institution_id=current_user.institution_id,
+            )
+        except Exception:
+            pass
+
         await db.commit()
 
         session_id = session.id
@@ -276,21 +295,22 @@ async def get_session_state(
     exam = session.exam
     exam_id = exam.id if exam else session.exam_id
     exam_title = exam.title if exam else "Exam"
-    eqs = sorted(exam.exam_questions, key=lambda x: x.order_index) if (exam and exam.exam_questions) else []
+    eqs = sorted(exam.exam_questions, key=lambda x: (x.order_index if x.order_index is not None else 0)) if (exam and exam.exam_questions) else []
     questions_candidate: List[QuestionCandidateResponse] = []
     for eq in eqs:
         q = eq.question
         if q:
-            pts = eq.points_override if eq.points_override is not None else q.points
+            pts = eq.points_override if eq.points_override is not None else (q.points if q.points is not None else 0.0)
+            q_type = q.type if isinstance(q.type, QuestionType) else QuestionType(q.type)
             questions_candidate.append(
                 QuestionCandidateResponse(
                     id=q.id,
-                    type=q.type,
-                    title=q.title,
-                    content_rich_text=q.content_rich_text,
-                    options=q.options,
+                    type=q_type,
+                    title=q.title or "Untitled Question",
+                    content_rich_text=q.content_rich_text or "",
+                    options=q.options if q.options is not None else [],
                     points=float(pts),
-                    order_index=eq.order_index,
+                    order_index=eq.order_index if eq.order_index is not None else 0,
                 )
             )
 
@@ -298,12 +318,18 @@ async def get_session_state(
     flagged_count = 0
     if session.responses:
         for r in session.responses:
+            server_ts_str = None
+            if r.server_timestamp:
+                server_ts_str = r.server_timestamp.isoformat() if hasattr(r.server_timestamp, "isoformat") else str(r.server_timestamp)
+            else:
+                server_ts_str = now.isoformat()
+
             resp_map[str(r.question_id)] = {
                 "question_id": str(r.question_id),
-                "response_data": r.response_data,
-                "is_flagged": r.is_flagged,
-                "sequence_id": r.sequence_id,
-                "server_timestamp": r.server_timestamp.isoformat(),
+                "response_data": r.response_data or {},
+                "is_flagged": bool(r.is_flagged),
+                "sequence_id": r.sequence_id or 1,
+                "server_timestamp": server_ts_str,
             }
             if r.is_flagged:
                 flagged_count += 1
