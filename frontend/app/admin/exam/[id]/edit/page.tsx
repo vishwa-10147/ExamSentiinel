@@ -76,24 +76,39 @@ export default function EditExamPage() {
       <form onSubmit={submit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-bold text-slate-900">Edit Exam Details</h1>
         {error && <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        <label className="block text-sm font-medium text-slate-700">Title<input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" /></label>
-        <label className="block text-sm font-medium text-slate-700">Description<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" rows={4} /></label>
+        <div>
+          <label htmlFor="title" className="block text-sm font-medium text-slate-700">Title</label>
+          <input id="title" name="title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+        </div>
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-slate-700">Description</label>
+          <textarea id="description" name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" rows={4} />
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-slate-700">Duration (minutes)<input type="number" min={1} required value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" /></label>
-          <label className="text-sm font-medium text-slate-700">Late entry (minutes)<input type="number" min={0} required value={form.late_entry_minutes} onChange={(e) => setForm({ ...form, late_entry_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" /></label>
-          <label className="text-sm font-medium text-slate-700">Start window<input type="datetime-local" required value={form.start_window} onChange={(e) => {
-            const val = e.target.value;
-            setForm((prev) => {
-              const updated = { ...prev, start_window: val };
-              if (val && (!prev.end_window || prev.end_window === calculateRecommendedEndWindow(prev.start_window, prev.duration_minutes, prev.late_entry_minutes))) {
-                updated.end_window = calculateRecommendedEndWindow(val, prev.duration_minutes, prev.late_entry_minutes);
-              }
-              return updated;
-            });
-          }} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" /></label>
+          <div>
+            <label htmlFor="duration_minutes" className="text-sm font-medium text-slate-700">Duration (minutes)</label>
+            <input id="duration_minutes" name="duration_minutes" type="number" min={1} required value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+          </div>
+          <div>
+            <label htmlFor="late_entry_minutes" className="text-sm font-medium text-slate-700">Late entry (minutes)</label>
+            <input id="late_entry_minutes" name="late_entry_minutes" type="number" min={0} required value={form.late_entry_minutes} onChange={(e) => setForm({ ...form, late_entry_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+          </div>
+          <div>
+            <label htmlFor="start_window" className="text-sm font-medium text-slate-700">Start window</label>
+            <input id="start_window" name="start_window" type="datetime-local" required value={form.start_window} onChange={(e) => {
+              const val = e.target.value;
+              setForm((prev) => {
+                const updated = { ...prev, start_window: val };
+                if (val && (!prev.end_window || prev.end_window === calculateRecommendedEndWindow(prev.start_window, prev.duration_minutes, prev.late_entry_minutes))) {
+                  updated.end_window = calculateRecommendedEndWindow(val, prev.duration_minutes, prev.late_entry_minutes);
+                }
+                return updated;
+              });
+            }} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+          </div>
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-slate-700">End window</label>
+              <label htmlFor="end_window" className="text-sm font-medium text-slate-700">End window</label>
               {form.start_window && (
                 <button
                   type="button"
@@ -107,7 +122,7 @@ export default function EditExamPage() {
                 </button>
               )}
             </div>
-            <input type="datetime-local" required value={form.end_window} onChange={(e) => setForm({ ...form, end_window: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+            <input id="end_window" name="end_window" type="datetime-local" required value={form.end_window} onChange={(e) => setForm({ ...form, end_window: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
           </div>
           {form.start_window && (
             <div className="sm:col-span-2 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-900 space-y-1">
