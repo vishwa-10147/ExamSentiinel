@@ -17,8 +17,6 @@ async def get_my_history(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    from app.models.session import SessionStatus
-
     query = (
         select(ExamSession)
         .options(selectinload(ExamSession.exam))
@@ -28,25 +26,23 @@ async def get_my_history(
     result = await db.execute(query)
     sessions = result.scalars().all()
     
-    filtered = [
-        s for s in sessions
-        if s.status in (SessionStatus.SUBMITTED, SessionStatus.EXPIRED, "SUBMITTED", "EXPIRED")
-        or s.submitted_at is not None
-        or s.started_at is not None
-    ]
-    
-    return [
-        {
+    output = []
+    for s in sessions:
+        if s is None:
+            continue
+        status_str = s.status.value if hasattr(s.status, 'value') else str(s.status or "")
+        output.append({
             "session_id": str(s.id),
-            "exam_id": str(s.exam_id),
-            "exam_name": s.exam.title if s.exam else "Unknown",
+            "exam_id": str(s.exam_id) if s.exam_id else "",
+            "exam_name": s.exam.title if (s.exam and s.exam.title) else "Unknown Exam",
+            "status": status_str,
             "submitted_at": s.submitted_at.isoformat() if s.submitted_at else (s.started_at.isoformat() if s.started_at else None),
-            "total_score": s.total_score if s.results_published else None,
-            "percentage": s.percentage if s.results_published else None,
-            "results_published": s.results_published,
-        }
-        for s in filtered
-    ]
+            "total_score": float(s.total_score or 0.0) if bool(s.results_published) else None,
+            "percentage": float(s.percentage or 0.0) if bool(s.results_published) else None,
+            "results_published": bool(s.results_published),
+        })
+        
+    return output
 
 @router.get("/exam/{exam_id}/leaderboard")
 async def get_exam_leaderboard(
