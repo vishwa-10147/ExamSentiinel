@@ -792,3 +792,17 @@ async def test_session_resume_and_multitype_questions(
     assert resumed["answered_count"] == 2
     assert resumed["responses"][q1_id]["response_data"]["selected_option_ids"] == ["opt_2", "opt_5"]
     assert "CAP theorem states" in resumed["responses"][q2_id]["response_data"]["text"]
+
+    # Delete exam as Admin -> verifies cascading delete works without error
+    del_res = await async_client.delete(
+        f"/api/exams/{exam_id}",
+        headers=auth_header(admin),
+    )
+    assert del_res.status_code == 204
+
+    # Verify exam is now 404
+    get_res = await async_client.get(
+        f"/api/exams/{exam_id}",
+        headers=auth_header(admin),
+    )
+    assert get_res.status_code == 404

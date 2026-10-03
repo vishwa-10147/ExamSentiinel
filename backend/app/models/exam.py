@@ -67,17 +67,20 @@ class Exam(TimeStampedUUIDModel):
         "ExamQuestion",
         back_populates="exam",
         cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="ExamQuestion.order_index",
     )
     sessions: Mapped[List["ExamSession"]] = relationship(
         "ExamSession",
         back_populates="exam",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     enrollments: Mapped[List["ExamEnrollment"]] = relationship(
         "ExamEnrollment",
         back_populates="exam",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
 

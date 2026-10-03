@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select, or_
+from sqlalchemy import delete, func, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -10,6 +10,13 @@ from app.api.deps import get_current_user, log_audit_event, require_roles
 from app.core.database import get_db
 from app.models.exam import Exam, ExamEnrollment, ExamEnrollmentStatus, ExamStatus
 from app.models.question import ExamQuestion, Question
+from app.models.session import ExamSession
+from app.models.response import ExamResponse as ORMExamResponse
+from app.models.proctoring_event import ProctoringEvent
+from app.models.review_case import ReviewCase, ReviewAction
+from app.models.code_submission import CodeSubmission
+from app.models.code_test_case import CodeTestCase
+from app.models.lab import ExamSeat
 from app.models.user import User, UserRole
 from app.services.ai_service import ai_service
 from app.schemas.exam import (
@@ -328,7 +335,29 @@ async def delete_exam(
             detail="Exam not found",
         )
 
-    await db.delete(exam)
+    # Clean up dependent child objects explicitly to avoid foreign key errors or ORM greenlet async load failures
+    await db.execute(delete(ExamQuestion).where(ExamQuestion.exam_id == exam_id))
+    await db.execute(delete(ExamEnrollment).where(ExamEnrollment.exam_id == exam_id))
+
+    session_ids_res = await db.execute(select(ExamSession.id).where(ExamSession.exam_id == exam_id))
+    session_ids = session_ids_res.scalars().all()
+
+    if session_ids:
+        review_case_ids_res = await db.execute(select(ReviewCase.id).where(ReviewCase.session_id.in_(session_ids)))
+        review_case_ids = review_case_ids_res.scalars().all()
+        if review_case_ids:
+            await db.execute(delete(ReviewAction).where(ReviewAction.review_case_id.in_(review_case_ids)))
+        
+        await db.execute(delete(ReviewCase).where(ReviewCase.session_id.in_(session_ids)))
+        await db.execute(delete(ProctoringEvent).where(ProctoringEvent.session_id.in_(session_ids)))
+        await db.execute(delete(ORMExamResponse).where(ORMExamResponse.session_id.in_(session_ids)))
+        await db.execute(delete(ExamSession).where(ExamSession.exam_id == exam_id))
+
+    await db.execute(delete(CodeSubmission).where(CodeSubmission.exam_id == exam_id))
+    await db.execute(delete(CodeTestCase).where(CodeTestCase.exam_id == exam_id))
+    await db.execute(delete(ExamSeat).where(ExamSeat.exam_id == exam_id))
+
+    await db.execute(delete(Exam).where(Exam.id == exam_id))
     await db.commit()
     return None
 
