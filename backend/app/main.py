@@ -105,7 +105,7 @@ async def correlation_id_and_logging_middleware(request: Request, call_next):
         origin = request.headers.get("origin") or "*"
         return JSONResponse(
             status_code=500,
-            content={"detail": str(exc) if settings.DEBUG else "Internal server error", "correlation_id": corr_id},
+            content={"detail": str(exc), "correlation_id": corr_id},
             headers={
                 "X-Correlation-ID": corr_id,
                 "Access-Control-Allow-Origin": origin,
