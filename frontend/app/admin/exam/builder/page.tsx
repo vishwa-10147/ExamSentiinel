@@ -56,14 +56,32 @@ export default function ExamBuilderPage() {
     return null;
   }
 
+  const calculateRecommendedEndWindow = (startStr: string, durationMins: number, lateMins: number): string => {
+    if (!startStr) return "";
+    const startDate = new Date(startStr);
+    if (isNaN(startDate.getTime())) return "";
+    const totalMinutes = (durationMins || 0) + (lateMins || 0);
+    const endDate = new Date(startDate.getTime() + totalMinutes * 60000);
+    const offset = endDate.getTimezoneOffset();
+    return new Date(endDate.getTime() - offset * 60000).toISOString().slice(0, 16);
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: ["duration_minutes", "late_entry_minutes"].includes(name)
-        ? parseInt(value) || 0
-        : value,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: ["duration_minutes", "late_entry_minutes"].includes(name)
+          ? parseInt(value) || 0
+          : value,
+      };
+
+      // Auto calculate end_window if start_window, duration, or late entry is updated and end_window was empty or matching recommended
+      if (name === "start_window" && value && !prev.end_window) {
+        updated.end_window = calculateRecommendedEndWindow(value, updated.duration_minutes, updated.late_entry_minutes);
+      }
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,8 +100,17 @@ export default function ExamBuilderPage() {
       setError("Both Start Window and End Window are required.");
       return;
     }
-    if (new Date(formData.start_window) >= new Date(formData.end_window)) {
+
+    const startMs = new Date(formData.start_window).getTime();
+    const endMs = new Date(formData.end_window).getTime();
+    const lateCutoffMs = startMs + (formData.late_entry_minutes || 0) * 60000;
+
+    if (endMs <= startMs) {
       setError("End Window deadline must be later than the Start Window.");
+      return;
+    }
+    if (endMs < lateCutoffMs) {
+      setError(`End Window cannot be earlier than the Late Entry Cutoff (${new Date(lateCutoffMs).toLocaleTimeString()}). Candidates would not be able to join!`);
       return;
     }
 
@@ -248,9 +275,23 @@ export default function ExamBuilderPage() {
             </div>
 
             <div>
-              <label htmlFor="end_window" className="block text-sm font-semibold text-slate-900 mb-1">
-                End Window Deadline <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="end_window" className="block text-sm font-semibold text-slate-900">
+                  End Window Deadline <span className="text-red-500">*</span>
+                </label>
+                {formData.start_window && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const autoEnd = calculateRecommendedEndWindow(formData.start_window, formData.duration_minutes, formData.late_entry_minutes);
+                      if (autoEnd) setFormData(prev => ({ ...prev, end_window: autoEnd }));
+                    }}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                  >
+                    ⚡ Auto-Set (Start + Duration + Late Entry)
+                  </button>
+                )}
+              </div>
               <input
                 type="datetime-local"
                 id="end_window"
@@ -262,6 +303,33 @@ export default function ExamBuilderPage() {
               />
               <p className="text-xs text-slate-500 mt-1">Final cutoff after which no submissions are accepted.</p>
             </div>
+
+            {/* Live Schedule Breakdown Card */}
+            {formData.start_window && (
+              <div className="sm:col-span-2 p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-xs text-blue-900 space-y-1.5">
+                <div className="font-bold flex items-center justify-between">
+                  <span>🗓️ Calculated Timing Breakdown:</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[12px]">
+                  <div>
+                    <span className="text-slate-500 font-medium">Exam Opens:</span>{" "}
+                    <strong className="text-blue-950">{new Date(formData.start_window).toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-medium">Late Entry Cutoff:</span>{" "}
+                    <strong className="text-amber-900">
+                      {new Date(new Date(formData.start_window).getTime() + (formData.late_entry_minutes || 0) * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-medium">Recommended End Window:</span>{" "}
+                    <strong className="text-emerald-950">
+                      {new Date(new Date(formData.start_window).getTime() + ((formData.duration_minutes || 0) + (formData.late_entry_minutes || 0)) * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Form Actions */}

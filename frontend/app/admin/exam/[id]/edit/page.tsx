@@ -12,6 +12,16 @@ const toInputDate = (value: string) => {
   return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
 };
 
+const calculateRecommendedEndWindow = (startStr: string, durationMins: number, lateMins: number): string => {
+  if (!startStr) return "";
+  const startDate = new Date(startStr);
+  if (isNaN(startDate.getTime())) return "";
+  const totalMinutes = (durationMins || 0) + (lateMins || 0);
+  const endDate = new Date(startDate.getTime() + totalMinutes * 60000);
+  const offset = endDate.getTimezoneOffset();
+  return new Date(endDate.getTime() - offset * 60000).toISOString().slice(0, 16);
+};
+
 export default function EditExamPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -35,8 +45,16 @@ export default function EditExamPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (new Date(form.start_window) >= new Date(form.end_window)) {
+    const startMs = new Date(form.start_window).getTime();
+    const endMs = new Date(form.end_window).getTime();
+    const lateCutoffMs = startMs + (form.late_entry_minutes || 0) * 60000;
+
+    if (endMs <= startMs) {
       setError("End window must be later than the start window.");
+      return;
+    }
+    if (endMs < lateCutoffMs) {
+      setError(`End window cannot be earlier than the Late Entry Cutoff (${new Date(lateCutoffMs).toLocaleTimeString()}). Candidates would not be able to enter!`);
       return;
     }
     setSaving(true);
@@ -63,8 +81,44 @@ export default function EditExamPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-medium text-slate-700">Duration (minutes)<input type="number" min={1} required value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" /></label>
           <label className="text-sm font-medium text-slate-700">Late entry (minutes)<input type="number" min={0} required value={form.late_entry_minutes} onChange={(e) => setForm({ ...form, late_entry_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" /></label>
-          <label className="text-sm font-medium text-slate-700">Start window<input type="datetime-local" required value={form.start_window} onChange={(e) => setForm({ ...form, start_window: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" /></label>
-          <label className="text-sm font-medium text-slate-700">End window<input type="datetime-local" required value={form.end_window} onChange={(e) => setForm({ ...form, end_window: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" /></label>
+          <label className="text-sm font-medium text-slate-700">Start window<input type="datetime-local" required value={form.start_window} onChange={(e) => {
+            const val = e.target.value;
+            setForm((prev) => {
+              const updated = { ...prev, start_window: val };
+              if (val && (!prev.end_window || prev.end_window === calculateRecommendedEndWindow(prev.start_window, prev.duration_minutes, prev.late_entry_minutes))) {
+                updated.end_window = calculateRecommendedEndWindow(val, prev.duration_minutes, prev.late_entry_minutes);
+              }
+              return updated;
+            });
+          }} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" /></label>
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-slate-700">End window</label>
+              {form.start_window && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const autoEnd = calculateRecommendedEndWindow(form.start_window, form.duration_minutes, form.late_entry_minutes);
+                    if (autoEnd) setForm(prev => ({ ...prev, end_window: autoEnd }));
+                  }}
+                  className="text-[11px] font-bold text-blue-600 hover:underline"
+                >
+                  ⚡ Auto-Set (Start + Duration + Late Entry)
+                </button>
+              )}
+            </div>
+            <input type="datetime-local" required value={form.end_window} onChange={(e) => setForm({ ...form, end_window: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+          </div>
+          {form.start_window && (
+            <div className="sm:col-span-2 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-900 space-y-1">
+              <div className="font-bold">🗓️ Calculated Timing Breakdown:</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
+                <div>Start Window: <strong>{new Date(form.start_window).toLocaleString()}</strong></div>
+                <div>Late Entry Cutoff: <strong>{new Date(new Date(form.start_window).getTime() + (form.late_entry_minutes || 0) * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>
+                <div>Recommended End Window: <strong>{new Date(new Date(form.start_window).getTime() + ((form.duration_minutes || 0) + (form.late_entry_minutes || 0)) * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>
+              </div>
+            </div>
+          )}
         </div>
         <button disabled={saving} className="rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white disabled:opacity-50">{saving ? "Saving..." : "Save Changes"}</button>
       </form>
