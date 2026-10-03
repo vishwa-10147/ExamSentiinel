@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import { User, Mail, Save, Lock, Phone, IdCard } from "lucide-react";
+import { User, Mail, Save, Lock, Phone, Contact } from "lucide-react";
 import { ActivityHeatmap } from "@/components/ActivityHeatmap";
 import { toast } from "react-hot-toast";
 
@@ -146,7 +146,7 @@ export default function CandidateProfilePage() {
               <p className="text-sm text-slate-500 capitalize">{user.role}</p>
               {user.roll_no && (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2.5 rounded-full bg-blue-50 text-blue-700 text-xs font-mono font-bold border border-blue-200">
-                  <IdCard className="w-3.5 h-3.5 text-blue-600" />
+                  <Contact className="w-3.5 h-3.5 text-blue-600" />
                   Roll: {user.roll_no}
                 </div>
               )}
@@ -205,7 +205,7 @@ export default function CandidateProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Roll Number / Student ID</label>
                     <div className="relative">
-                      <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Contact className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input 
                         type="text" 
                         placeholder="e.g. 21CS001, 2024-CSE-045"
