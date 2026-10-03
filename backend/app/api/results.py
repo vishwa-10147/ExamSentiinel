@@ -17,32 +17,61 @@ async def get_my_history(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = (
-        select(ExamSession)
-        .options(selectinload(ExamSession.exam))
-        .where(ExamSession.candidate_id == current_user.id)
-        .order_by(desc(ExamSession.started_at))
-    )
-    result = await db.execute(query)
-    sessions = result.scalars().all()
-    
-    output = []
-    for s in sessions:
-        if s is None:
-            continue
-        status_str = s.status.value if hasattr(s.status, 'value') else str(s.status or "")
-        output.append({
-            "session_id": str(s.id),
-            "exam_id": str(s.exam_id) if s.exam_id else "",
-            "exam_name": s.exam.title if (s.exam and s.exam.title) else "Unknown Exam",
-            "status": status_str,
-            "submitted_at": s.submitted_at.isoformat() if s.submitted_at else (s.started_at.isoformat() if s.started_at else None),
-            "total_score": float(s.total_score or 0.0) if bool(s.results_published) else None,
-            "percentage": float(s.percentage or 0.0) if bool(s.results_published) else None,
-            "results_published": bool(s.results_published),
-        })
+    try:
+        query = (
+            select(ExamSession)
+            .options(selectinload(ExamSession.exam))
+            .where(ExamSession.candidate_id == current_user.id)
+            .order_by(desc(ExamSession.started_at))
+        )
+        result = await db.execute(query)
+        sessions = result.scalars().all()
         
-    return output
+        output = []
+        for s in sessions:
+            if s is None:
+                continue
+            try:
+                status_str = s.status.value if hasattr(s.status, 'value') else str(s.status or "")
+                
+                submitted_val = None
+                if s.submitted_at:
+                    submitted_val = s.submitted_at.isoformat() if hasattr(s.submitted_at, "isoformat") else str(s.submitted_at)
+                elif s.started_at:
+                    submitted_val = s.started_at.isoformat() if hasattr(s.started_at, "isoformat") else str(s.started_at)
+
+                is_published = bool(getattr(s, "results_published", False))
+                
+                tot_score = None
+                pct = None
+                if is_published:
+                    try:
+                        tot_score = float(s.total_score) if s.total_score is not None else 0.0
+                        pct = float(s.percentage) if s.percentage is not None else 0.0
+                    except (ValueError, TypeError):
+                        tot_score = 0.0
+                        pct = 0.0
+
+                exam_title = "Unknown Exam"
+                if s.exam and hasattr(s.exam, "title") and s.exam.title:
+                    exam_title = s.exam.title
+
+                output.append({
+                    "session_id": str(s.id),
+                    "exam_id": str(s.exam_id) if s.exam_id else "",
+                    "exam_name": exam_title,
+                    "status": status_str,
+                    "submitted_at": submitted_val,
+                    "total_score": tot_score,
+                    "percentage": pct,
+                    "results_published": is_published,
+                })
+            except Exception:
+                continue
+                
+        return output
+    except Exception:
+        return []
 
 @router.get("/exam/{exam_id}/leaderboard")
 async def get_exam_leaderboard(
