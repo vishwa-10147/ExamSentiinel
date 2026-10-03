@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -556,7 +556,9 @@ async def _cohort_candidates(
 ):
     query = select(User).where(User.role == UserRole.CANDIDATE, User.is_active.is_(True))
     if exam.institution_id is not None:
-        query = query.where(User.institution_id == exam.institution_id)
+        query = query.where(
+            or_(User.institution_id == exam.institution_id, User.institution_id.is_(None))
+        )
     if department:
         query = query.where(User.department == department)
     if section:

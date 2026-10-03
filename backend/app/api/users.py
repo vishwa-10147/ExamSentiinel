@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select, func, cast, Date
