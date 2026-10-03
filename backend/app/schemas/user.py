@@ -60,6 +60,7 @@ class UserUpdate(BaseModel):
     department: Optional[str] = None
     section: Optional[str] = None
     batch_year: Optional[int] = None
+    roll_no: Optional[str] = None
 
 class UserPasswordUpdate(BaseModel):
     current_password: str

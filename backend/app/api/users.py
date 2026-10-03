@@ -303,6 +303,8 @@ async def update_user_me(
         current_user.section = user_in.section
     if user_in.batch_year is not None:
         current_user.batch_year = user_in.batch_year
+    if user_in.roll_no is not None:
+        current_user.roll_no = user_in.roll_no
 
     db.add(current_user)
     await db.commit()
@@ -351,6 +353,8 @@ async def admin_update_user(
             pass
     if "is_active" in user_in:
         user.is_active = bool(user_in["is_active"])
+    if "roll_no" in user_in:
+        user.roll_no = user_in["roll_no"]
     if "password" in user_in and user_in["password"]:
         user.hashed_password = get_password_hash(user_in["password"])
         

@@ -388,7 +388,14 @@ export default function UsersPage() {
                                 {u.full_name ? u.full_name.charAt(0) : "U"}
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-semibold text-slate-900">{u.full_name}</div>
+                                <div className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                                  <span>{u.full_name}</span>
+                                  {u.roll_no && (
+                                    <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700">
+                                      Roll: {u.roll_no}
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                                   <Mail className="h-3 w-3 text-slate-400" /> {u.email}
                                 </div>

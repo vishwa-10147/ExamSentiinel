@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/services/apiClient";
-import { User, Mail, Save, Lock, Phone } from "lucide-react";
+import { User, Mail, Save, Lock, Phone, IdCard } from "lucide-react";
 import { ActivityHeatmap } from "@/components/ActivityHeatmap";
 import { toast } from "react-hot-toast";
 
@@ -21,6 +21,7 @@ export default function CandidateProfilePage() {
     full_name: "",
     email: "",
     phone: "",
+    roll_no: "",
     department: "",
     section: "",
     batch_year: "",
@@ -48,6 +49,7 @@ export default function CandidateProfilePage() {
         full_name: user.full_name || "",
         email: user.email || "",
         phone: user.phone || "",
+        roll_no: user.roll_no || "",
         department: user.department || "",
         section: user.section || "",
         batch_year: user.batch_year ? String(user.batch_year) : "",
@@ -84,6 +86,7 @@ export default function CandidateProfilePage() {
         full_name: profileData.full_name,
         email: profileData.email,
         phone: profileData.phone,
+        roll_no: profileData.roll_no,
         department: profileData.department,
         section: profileData.section,
         batch_year: profileData.batch_year ? Number(profileData.batch_year) : undefined,
@@ -141,6 +144,12 @@ export default function CandidateProfilePage() {
               </div>
               <h3 className="font-semibold text-lg text-slate-900">{user.full_name}</h3>
               <p className="text-sm text-slate-500 capitalize">{user.role}</p>
+              {user.roll_no && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2.5 rounded-full bg-blue-50 text-blue-700 text-xs font-mono font-bold border border-blue-200">
+                  <IdCard className="w-3.5 h-3.5 text-blue-600" />
+                  Roll: {user.roll_no}
+                </div>
+              )}
             </div>
             
             <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-center shadow-sm md:col-span-2">
@@ -190,6 +199,19 @@ export default function CandidateProfilePage() {
                         disabled
                         value={profileData.email}
                         className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm cursor-not-allowed" 
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Roll Number / Student ID</label>
+                    <div className="relative">
+                      <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input 
+                        type="text" 
+                        placeholder="e.g. 21CS001, 2024-CSE-045"
+                        value={profileData.roll_no}
+                        onChange={(e) => setProfileData({...profileData, roll_no: e.target.value})}
+                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono" 
                       />
                     </div>
                   </div>
