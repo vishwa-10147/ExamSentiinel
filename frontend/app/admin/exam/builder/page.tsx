@@ -117,7 +117,13 @@ export default function ExamBuilderPage() {
     try {
       setIsSubmitting(true);
       
-      const created = await apiClient.post<{ id: string; title: string }>("/api/exams", formData);
+      const payload = {
+        ...formData,
+        start_window: new Date(formData.start_window).toISOString(),
+        end_window: new Date(formData.end_window).toISOString(),
+      };
+      
+      const created = await apiClient.post<{ id: string; title: string }>("/api/exams", payload);
       toast.success("Exam created successfully!");
       setCreatedExamId(created.id);
       
