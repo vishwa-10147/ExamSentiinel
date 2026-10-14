@@ -205,6 +205,112 @@ SOLUTIONS = [
      "import java.util.*;\nclass Solution { public int[] taskOrder(int n, int[][] deps) { List<List<Integer>> adj = new ArrayList<>(); for (int i = 0; i < n; i++) adj.add(new ArrayList<>()); int[] in = new int[n]; for (int[] d : deps) { adj.get(d[0]).add(d[1]); in[d[1]]++; } Deque<Integer> st = new ArrayDeque<>(); for (int i = 0; i < n; i++) if (in[i] == 0) st.push(i); int[] out = new int[n]; int k = 0; while (!st.isEmpty()) { int u = st.pop(); out[k++] = u; for (int v : adj.get(u)) if (--in[v] == 0) st.push(v); } return out; } }"),
     ("queens-boards", "javascript",
      "class Solution { queensBoards(n) { const out = [], cols = []; const go = (r, used, d1, d2) => { if (r === n) { out.push(cols.map(c => '.'.repeat(c) + 'Q' + '.'.repeat(n - c - 1))); return; } for (let c = 0; c < n; c++) { if (used.has(c) || d1.has(r - c) || d2.has(r + c)) continue; cols.push(c); go(r + 1, new Set([...used, c]), new Set([...d1, r - c]), new Set([...d2, r + c])); cols.pop(); } }; go(0, new Set(), new Set(), new Set()); return out; } }"),
+    # C, using LeetCode's C conventions (pointer + size, returnSize, returnColumnSizes).
+    ("pair-with-target-sum", "c", """
+typedef struct { int v, i; } P;
+static int cmp(const void *a, const void *b) { const P *x = a, *y = b; return (x->v > y->v) - (x->v < y->v); }
+int* pairSum(int* nums, int numsSize, int target, int* returnSize) {
+    P *p = malloc(sizeof(P) * numsSize);
+    for (int i = 0; i < numsSize; i++) { p[i].v = nums[i]; p[i].i = i; }
+    qsort(p, numsSize, sizeof(P), cmp);
+    int *res = malloc(2 * sizeof(int)), l = 0, r = numsSize - 1;
+    *returnSize = 0;
+    while (l < r) {
+        long long s = (long long) p[l].v + p[r].v;
+        if (s == target) { res[0] = p[l].i; res[1] = p[r].i; *returnSize = 2; break; }
+        if (s < target) l++; else r--;
+    }
+    return res;
+}
+"""),
+    ("reverse-linked-list", "c", """
+struct ListNode* reverseList(struct ListNode* head) {
+    struct ListNode *prev = NULL;
+    while (head) { struct ListNode *n = head->next; head->next = prev; prev = head; head = n; }
+    return prev;
+}
+"""),
+    ("detect-list-cycle", "c", """
+bool hasCycle(struct ListNode *head) {
+    struct ListNode *s = head, *f = head;
+    while (f && f->next) { s = s->next; f = f->next->next; if (s == f) return true; }
+    return false;
+}
+"""),
+    ("remove-adjacent-pairs", "c", """
+char* removePairs(char* s) {
+    size_t n = strlen(s), k = 0; char *st = malloc(n + 1);
+    for (size_t i = 0; i < n; i++) { if (k && st[k - 1] == s[i]) k--; else st[k++] = s[i]; }
+    st[k] = 0; return st;
+}
+"""),
+    ("fast-power-mod", "c", """
+int powerMod(int base, long long exponent, int m) {
+    long long r = 1 % m, b = base % m;
+    while (exponent) { if (exponent & 1) r = r * b % m; b = b * b % m; exponent >>= 1; }
+    return (int) r;
+}
+"""),
+    ("level-order", "c", """
+int** levelOrder(struct TreeNode* root, int* returnSize, int** returnColumnSizes) {
+    int cap = 10001, h = 0, t = 0;
+    struct TreeNode **q = malloc(sizeof(*q) * cap);
+    int **res = malloc(sizeof(int*) * cap);
+    *returnColumnSizes = malloc(sizeof(int) * cap); *returnSize = 0;
+    if (root) q[t++] = root;
+    while (h < t) {
+        int end = t, size = t - h, k = 0; int *row = malloc(sizeof(int) * size);
+        for (; h < end; h++) { row[k++] = q[h]->val; if (q[h]->left) q[t++] = q[h]->left; if (q[h]->right) q[t++] = q[h]->right; }
+        res[*returnSize] = row; (*returnColumnSizes)[(*returnSize)++] = size;
+    }
+    return res;
+}
+"""),
+    ("queens-boards", "c", """
+static char ***qb_out; static int qb_n, qb_cnt, qb_cap, qb_cols[9];
+static void qb_go(int r, int used, int d1, int d2) {
+    if (r == qb_n) {
+        if (qb_cnt == qb_cap) { qb_cap = qb_cap ? qb_cap * 2 : 16; qb_out = realloc(qb_out, sizeof(char**) * qb_cap); }
+        char **board = malloc(sizeof(char*) * qb_n);
+        for (int i = 0; i < qb_n; i++) { board[i] = malloc(qb_n + 1); memset(board[i], '.', qb_n); board[i][qb_cols[i]] = 'Q'; board[i][qb_n] = 0; }
+        qb_out[qb_cnt++] = board; return;
+    }
+    for (int c = 0; c < qb_n; c++) {
+        int a = 1 << c, b = 1 << (r - c + qb_n), d = 1 << (r + c);
+        if ((used & a) || (d1 & b) || (d2 & d)) continue;
+        qb_cols[r] = c; qb_go(r + 1, used | a, d1 | b, d2 | d);
+    }
+}
+char*** queensBoards(int n, int* returnSize, int** returnColumnSizes) {
+    qb_n = n; qb_cnt = 0; qb_cap = 0; qb_out = NULL; qb_go(0, 0, 0, 0);
+    *returnSize = qb_cnt; *returnColumnSizes = malloc(sizeof(int) * (qb_cnt ? qb_cnt : 1));
+    for (int i = 0; i < qb_cnt; i++) (*returnColumnSizes)[i] = n;
+    return qb_out;
+}
+"""),
+    ("task-ordering", "c", """
+int* taskOrder(int n, int** deps, int depsSize, int* depsColSize, int* returnSize) {
+    int *deg = calloc(n, sizeof(int)), *start = calloc(n + 1, sizeof(int)), *adj = malloc(sizeof(int) * (depsSize ? depsSize : 1));
+    for (int i = 0; i < depsSize; i++) { start[deps[i][0] + 1]++; deg[deps[i][1]]++; }
+    for (int i = 0; i < n; i++) start[i + 1] += start[i];
+    int *fill = malloc(sizeof(int) * n); memcpy(fill, start, sizeof(int) * n);
+    for (int i = 0; i < depsSize; i++) adj[fill[deps[i][0]]++] = deps[i][1];
+    int *q = malloc(sizeof(int) * n), h = 0, t = 0;
+    for (int i = n - 1; i >= 0; i--) if (!deg[i]) q[t++] = i;  /* a different valid order than the reference */
+    while (h < t) { int u = q[h++]; for (int k = start[u]; k < start[u + 1]; k++) if (--deg[adj[k]] == 0) q[t++] = adj[k]; }
+    *returnSize = t; return q;
+}
+"""),
+    ("count-groups", "c", """
+static int *uf;
+static int find(int x) { while (uf[x] != x) { uf[x] = uf[uf[x]]; x = uf[x]; } return x; }
+int countGroups(int n, int** edges, int edgesSize, int* edgesColSize) {
+    uf = malloc(sizeof(int) * n); for (int i = 0; i < n; i++) uf[i] = i;
+    int groups = n;
+    for (int i = 0; i < edgesSize; i++) { int a = find(edges[i][0]), b = find(edges[i][1]); if (a != b) { uf[a] = b; groups--; } }
+    return groups;
+}
+"""),
 ]
 
 
@@ -225,6 +331,65 @@ async def test_wrong_and_slow_solutions_get_the_right_verdicts():
     assert broken.verdict == Verdict.COMPILE_ERROR
     crash = await practice_judge.judge(problem, "java", "class Solution { public ListNode reverseList(ListNode h) { return h.next.next.next.next.next.next.next.next.next.next.next; } }", cases)
     assert crash.verdict == Verdict.RUNTIME_ERROR
+
+
+# Every spec type, round-tripped through the C harness: parse JSON -> C value -> JSON.
+C_ECHO = {
+    "int": ("int echo(int x) { return x; }", [7, -2147483648]),
+    "long": ("long long echo(long long x) { return x; }", [9007199254740991, -5]),
+    "double": ("double echo(double x) { return x; }", [2.5, -0.125]),
+    "bool": ("bool echo(bool x) { return x; }", [True, False]),
+    "string": ("char* echo(char* x) { return x; }", ['hi "there"\n\\', ""]),
+    "int[]": ("int* echo(int* x, int xSize, int* returnSize) { *returnSize = xSize; return x; }", [[1, 2, 3], []]),
+    "long[]": ("long long* echo(long long* x, int xSize, int* returnSize) { *returnSize = xSize; return x; }", [[10**15, -1], []]),
+    "double[]": ("double* echo(double* x, int xSize, int* returnSize) { *returnSize = xSize; return x; }", [[0.5, 1.5], []]),
+    "bool[]": ("bool* echo(bool* x, int xSize, int* returnSize) { *returnSize = xSize; return x; }", [[True, False], []]),
+    "string[]": ("char** echo(char** x, int xSize, int* returnSize) { *returnSize = xSize; return x; }", [["a", "b c"], []]),
+    "int[][]": ("int** echo(int** x, int xSize, int* xColSize, int* returnSize, int** returnColumnSizes) { *returnSize = xSize; *returnColumnSizes = xColSize; return x; }", [[[1, 2], [], [3]], []]),
+    "string[][]": ("char*** echo(char*** x, int xSize, int* xColSize, int* returnSize, int** returnColumnSizes) { *returnSize = xSize; *returnColumnSizes = xColSize; return x; }", [[["a"], ["b", "c"]], []]),
+    "ListNode": ("struct ListNode* echo(struct ListNode* x) { return x; }", [[1, 2, 3], []]),
+    "TreeNode": ("struct TreeNode* echo(struct TreeNode* x) { return x; }", [[3, 9, 20, None, None, 15, 7], [], [1, None, 2]]),
+}
+
+
+@pytest.mark.parametrize("type_name", list(C_ECHO))
+async def test_c_harness_round_trips_every_type(type_name):
+    import json
+
+    code, values = C_ECHO[type_name]
+    spec = {"name": "echo", "params": [{"name": "x", "type": type_name}], "return_type": type_name}
+    assert code.split("{")[0].strip() == practice_judge.starter_code(spec, "c").strip().splitlines()[-3].rstrip(" {")
+    problem = SimpleNamespace(judge_mode=JudgeMode.FUNCTION, function_spec=spec, compare_mode="exact", checker=None,
+                              time_limit_ms=2000, memory_limit_mb=256, slug="echo")
+    cases = [JudgeCase(json.dumps(v, separators=(",", ":")), json.dumps(v, separators=(",", ":"))) for v in values]
+    outcome = await practice_judge.judge(problem, "c", code, cases)
+    assert outcome.verdict == Verdict.ACCEPTED, (outcome.compile_output, outcome.error, [(c.output, c.error) for c in outcome.cases])
+
+
+async def test_c_specific_verdicts_and_stdout_capture():
+    problem, cases = _bank_problem("reverse-linked-list")
+    noisy = await practice_judge.judge(problem, "c", """
+struct ListNode* reverseList(struct ListNode* head) {
+    printf("debug %d\\n", head ? head->val : -1);
+    struct ListNode *prev = NULL;
+    while (head) { struct ListNode *n = head->next; head->next = prev; prev = head; head = n; }
+    return prev;
+}
+""", cases)
+    assert noisy.verdict == Verdict.ACCEPTED, (noisy.compile_output, noisy.error)
+    assert noisy.cases[0].stdout.startswith("debug "), "each case's printf output is captured separately"
+    assert "@@ES@@" not in noisy.cases[0].stdout
+
+    segfault = await practice_judge.judge(problem, "c", "struct ListNode* reverseList(struct ListNode* head) { int *p = NULL; *p = 1; return head; }", cases)
+    assert segfault.verdict == Verdict.RUNTIME_ERROR
+    broken = await practice_judge.judge(problem, "c", "struct ListNode* reverseList(struct ListNode* head) { return head->missing; }", cases)
+    assert broken.verdict == Verdict.COMPILE_ERROR and "missing" in broken.compile_output
+    slow = await practice_judge.judge(problem, "c", "struct ListNode* reverseList(struct ListNode* head) { volatile int x = 0; for (;;) x++; return head; }", cases)
+    assert slow.verdict == Verdict.TIME_LIMIT_EXCEEDED
+
+    pairs, pair_cases = _bank_problem("pair-with-target-sum")
+    null_result = await practice_judge.judge(pairs, "c", "int* pairSum(int* nums, int numsSize, int target, int* returnSize) { *returnSize = 2; return NULL; }", pair_cases)
+    assert null_result.verdict == Verdict.RUNTIME_ERROR and "returnSize" in (null_result.error or "")
 
 
 # ---------------------------------------------------------------------------

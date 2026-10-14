@@ -27,7 +27,7 @@ reads back stdout, stderr, exit code and status.
 | JavaScript | node 20 | yes | yes | yes | — |
 | Java | java 15 | yes | yes | yes | — |
 | C++ | gcc 10.2 (C++17) | yes | yes | yes | — |
-| C | gcc 10.2 | yes | yes | **no** (see limitations) | — |
+| C | gcc 10.2 | yes | yes | yes (LeetCode C conventions) | — |
 | SQL | sqlite3 3.36 | yes | — | — | yes |
 
 Runtimes are installed into the `piston_packages` volume once:
@@ -74,8 +74,8 @@ solution on the same input (server-side); the reference code itself is never sen
 
 ### Function mode
 
-The student implements a method on `class Solution`. The judge generates a harness per
-language that:
+The student implements a method on `class Solution` — or, in C, a free function (see
+[C conventions](#c-conventions)). The judge generates a harness per language that:
 
 1. reads `es_input.txt` — line 1 is the case count, then one JSON line per parameter per
    case. The file is sent **base64-encoded as an extra file**, not as stdin, because Piston
@@ -90,6 +90,26 @@ language that:
 Supported types: `int long double bool string`, their 1-D arrays, `int[][]`, `string[][]`,
 `ListNode`, `TreeNode`. A case slower than the problem's `time_limit_ms` is TLE even if the
 whole run finished.
+
+#### C conventions
+
+C solutions follow LeetCode's C signatures, so they look familiar:
+
+| Spec type | C parameters | As a return value |
+|---|---|---|
+| `int`, `long`, `double`, `bool` | `int`, `long long`, `double`, `bool` | same |
+| `string` | `char* s` | `char*` |
+| `int[]` (likewise `long[]`, `double[]`, `bool[]`, `string[]`) | `int* nums, int numsSize` | `int*`, plus a trailing `int* returnSize` parameter |
+| `int[][]`, `string[][]` | `int** grid, int gridSize, int* gridColSize` | `int**`, plus `int* returnSize, int** returnColumnSizes` |
+| `ListNode`, `TreeNode` | `struct ListNode*`, `struct TreeNode*` | same |
+
+Returned arrays must be allocated with `malloc` and their lengths written through
+`returnSize` / `returnColumnSizes`. `struct ListNode` and `struct TreeNode` are predefined, and
+the common headers (`stdio.h`, `stdlib.h`, `string.h`, `stdbool.h`, `limits.h`, `math.h`) are
+included. `printf` output is captured per test case. Because C has no exceptions, a crash
+(for example a segmentation fault) ends the run with a Runtime Error on the case that was
+executing; returning `NULL` with a non-zero `returnSize` is reported as a Runtime Error rather
+than crashing the harness.
 
 ### Standard input/output mode
 
@@ -125,8 +145,6 @@ problem's reference solution through the **same generated Python harness** the j
 
 ## Limitations
 
-- **C is not available for FUNCTION-mode problems** (it is for STDIO problems and the
-  playground). A C harness would need hand-written JSON parsing for every type.
 - Runtime is wall-clock time measured inside the harness, so it varies with engine load; it
   is shown for information and only used for TLE against the per-case limit.
 - Memory usage per case is not reported (the engine reports a whole-run figure only).

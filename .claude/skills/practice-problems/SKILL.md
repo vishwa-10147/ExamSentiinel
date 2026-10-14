@@ -53,6 +53,10 @@ A problem is only ready when its reference passes **every** test on the real eng
 
 ## How the judge runs code
 
+Languages for FUNCTION problems: Python, JavaScript, Java, C++ and C. C uses LeetCode's C conventions
+(`int* nums, int numsSize`, trailing `int* returnSize` / `int** returnColumnSizes` for returned arrays,
+`struct ListNode*` / `struct TreeNode*`); see `_c_harness` and docs/CODE_EXECUTION.md#c-conventions.
+
 All cases go in **one** Piston execution: the generated harness reads `es_input.txt` (sent base64 so gcc
 doesn't compile it, and as a file because Piston truncates stdin past ~200 kB), calls the method per case,
 and prints `@@ES@@{json}` lines with result, captured stdout and per-case ms. Java's single-file launcher

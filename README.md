@@ -56,7 +56,7 @@ AI is used to *surface* signals — never to penalise a candidate automatically.
 ### Coding practice
 - **116 DSA problems** across 16 topics, plus 11 SQL problems — each with formats, constraints,
   samples, hidden tests, hints, complexity and an editorial
-- Monaco editor with starter code in Python, JavaScript, Java and C++
+- Monaco editor with starter code in Python, JavaScript, Java, C++ and C (LeetCode-style C signatures)
 - **Run** against samples and custom input; **Submit** against every hidden test
 - Verdicts: Accepted, Wrong Answer, Time/Memory/Output Limit Exceeded, Runtime Error, Compile Error
 - Topic and difficulty filters, search by ID, submission history and per-topic progress
@@ -224,7 +224,7 @@ for the full index and authoring guide.
 
 | | Python | JavaScript | Java | C++ | C | SQL |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Function-style problems | ✓ | ✓ | ✓ | ✓ | | |
+| Function-style problems | ✓ | ✓ | ✓ | ✓ | ✓ | |
 | Stdin/stdout problems | ✓ | ✓ | ✓ | ✓ | ✓ | |
 | SQL problems | | | | | | ✓ |
 | Playground | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -300,7 +300,7 @@ together with known limitations. Please report vulnerabilities privately.
 - [x] DSA question bank with 116 problems and verified reference solutions
 - [x] Sandboxed multi-language judge with checkers for multi-answer problems
 - [x] OpenID Connect single sign-on and live interviews with transcription
-- [ ] C support for function-style problems
+- [x] C support for function-style problems with LeetCode-style signatures
 - [ ] Queued judging for exam-day load across multiple engine instances
 - [ ] Timed contests and curated study plans
 - [ ] Token storage in httpOnly cookies

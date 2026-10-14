@@ -53,8 +53,8 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | File | Tests | Covers |
 |---|---:|---|
 | `test_practice_bank.py` | 247 | At least 100 DSA problems, topic minimums, unique and stable IDs, required fields, harness generation in every language, checkers, idempotent seeding |
-| `test_sandbox_engine.py` | 159 | Programs in five languages with stdin, stdout and stderr; compile and runtime errors; isolation and limits; multi-language solutions; every reference solution |
-| `test_practice.py` | 34 | Verdict logic, harness generation, authoring, hidden-data redaction, SQL judging, practice problems in exams |
+| `test_sandbox_engine.py` | 183 | Programs in five languages with stdin, stdout and stderr; compile and runtime errors; isolation and limits; solutions in Java, C++, JavaScript and C; a round trip of every type through the C harness; every reference solution |
+| `test_practice.py` | 35 | Verdict logic, harness generation, authoring, hidden-data redaction, SQL judging, practice problems in exams |
 | `test_practice_dsa_api.py` | 8 | IDs, topics, sorting and search; editorial gating; checker protection; history and progress; playground limits; rate limiting |
 | Other `test_*.py` | 116 | Authentication, RBAC, SSO, password reset, exams, proctoring and AI, interviews, IRT, adversarial and security checks |
 
@@ -64,17 +64,17 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 |---|---|
 | `dashboard.spec.ts` | Login and registration pages render; dashboard requires authentication |
 | `protected-routes.spec.ts` | Every protected route redirects anonymous users; login works on a mobile viewport |
-| `roles.spec.ts` | Solving a problem (Run and Submit), browsing by topic and ID, a C++ linked-list solution unlocking the editorial, the progress page, a C program in the playground, staff areas closed to candidates, user creation, problem authoring, reviewer and proctor dashboards |
+| `roles.spec.ts` | Solving a problem (Run and Submit), browsing by topic and ID, a C++ linked-list solution unlocking the editorial, a C solution with LeetCode-style signatures, the progress page, a C program in the playground, staff areas closed to candidates, user creation, problem authoring, reviewer and proctor dashboards |
 
 ## Latest results
 
-Recorded on 2026-10-14 on Windows 11 with the execution engine running, so no real-engine test
+Recorded on 2026-10-15 on Windows 11 with the execution engine running, so no real-engine test
 was skipped. Re-run the suites after any change rather than relying on these figures.
 
 | Suite | Result |
 |---|---|
-| Backend | **564 passed**, 0 failed, 0 skipped |
-| Browser | **25 passed** |
+| Backend | **589 passed**, 0 failed, 0 skipped |
+| Browser | **26 passed** |
 | End to end | **73 / 73** steps passed |
 | Type check, lint, production build | No errors or warnings |
 

@@ -1,12 +1,14 @@
 """LeetCode-style judge for practice problems.
 
 FUNCTION mode
-    The student implements a method on ``class Solution``. For each language we
-    generate a harness around their code that reads every test case from stdin
-    (line 1 = case count, then one compact JSON value per parameter per case),
-    calls the method, and prints one ``@@ES@@{json}`` line per case containing
-    the result, the case's captured stdout and its runtime. All cases run in a
-    single sandbox execution, so compiled languages compile once.
+    The student implements a method on ``class Solution`` (in C: a free function
+    with LeetCode's C conventions — arrays as pointer + size, ``returnSize`` for
+    returned arrays). For each language we generate a harness around their code
+    that reads every test case from ``INPUT_FILE`` (line 1 = case count, then one
+    compact JSON value per parameter per case), calls the function, and prints
+    one ``@@ES@@{json}`` line per case containing the result, the case's captured
+    stdout and its runtime. All cases run in a single sandbox execution, so
+    compiled languages compile once.
 
 STDIO mode
     Classic competitive-programming style: each case is run separately with its
@@ -25,7 +27,7 @@ from typing import Any, Optional
 from app.models.practice import JudgeMode, PracticeProblem, Verdict
 from app.services.sandbox_service import SandboxResult, sandbox_service
 
-SUPPORTED_LANGUAGES = ("python", "javascript", "java", "cpp")
+SUPPORTED_LANGUAGES = ("python", "javascript", "java", "cpp", "c")
 SUPPORTED_TYPES = (
     "int", "long", "double", "bool", "string",
     "int[]", "long[]", "double[]", "bool[]", "string[]",
@@ -117,7 +119,8 @@ def describe_function_io(spec: dict, compare_mode: str) -> tuple[str, str]:
         hidden = " (used only to build the input; not passed to your method)" if p.get("internal") else ""
         lines.append(f"{i}. `{p['name']}` — {note}{hidden}")
     input_format = (
-        f"Implement `{spec['name']}` on class `Solution`. For custom input, give one JSON value per line, in order:\n\n"
+        f"Implement `{spec['name']}` — a method on class `Solution` (in C, a function using LeetCode's C "
+        "conventions; see the starter code). For custom input, give one JSON value per line, in order:\n\n"
         + "\n".join(lines)
     )
     ret = spec["return_type"]
@@ -156,6 +159,36 @@ _CPP_TYPES = {
     "string[][]": "vector<vector<string>>", "ListNode": "ListNode*", "TreeNode": "TreeNode*",
 }
 
+# C follows LeetCode's C conventions. Element type of each spec type, and how many
+# dimensions it has (0 = scalar, 1 = pointer + size, 2 = pointer-to-pointer + sizes).
+_C_ELEM = {
+    "int": "int", "long": "long long", "double": "double", "bool": "bool", "string": "char*",
+    "int[]": "int", "long[]": "long long", "double[]": "double", "bool[]": "bool", "string[]": "char*",
+    "int[][]": "int", "string[][]": "char*", "ListNode": "struct ListNode*", "TreeNode": "struct TreeNode*",
+}
+_C_DIMS = {t: (2 if t.endswith("[][]") else 1 if t.endswith("[]") else 0) for t in _C_ELEM}
+
+
+def _c_param_decls(p: dict) -> str:
+    elem, dims, name = _C_ELEM[p["type"]], _C_DIMS[p["type"]], p["name"]
+    if dims == 0:
+        return f"{elem} {name}"
+    if dims == 1:
+        return f"{elem}* {name}, int {name}Size"
+    return f"{elem}** {name}, int {name}Size, int* {name}ColSize"
+
+
+def _c_signature(spec: dict) -> str:
+    ret = spec["return_type"]
+    dims = _C_DIMS[ret]
+    args = [_c_param_decls(p) for p in _visible_params(spec)]
+    if dims >= 1:
+        args.append("int* returnSize")
+    if dims == 2:
+        args.append("int** returnColumnSizes")
+    return f"{_C_ELEM[ret]}{'*' * dims} {spec['name']}({', '.join(args)})"
+
+
 _NODE_DOCS = {
     "python": {
         "ListNode": "# ListNode is provided:\n#   class ListNode:\n#       def __init__(self, val=0, next=None): ...\n",
@@ -172,6 +205,10 @@ _NODE_DOCS = {
     "cpp": {
         "ListNode": "// ListNode is provided (do not redefine): struct ListNode { int val; ListNode* next; ListNode(int x); };\n",
         "TreeNode": "// TreeNode is provided (do not redefine): struct TreeNode { int val; TreeNode *left, *right; TreeNode(int x); };\n",
+    },
+    "c": {
+        "ListNode": "/* struct ListNode is provided (do not redefine):\n *   struct ListNode { int val; struct ListNode *next; };\n * Allocate new nodes with malloc(sizeof(struct ListNode)). */\n",
+        "TreeNode": "/* struct TreeNode is provided (do not redefine):\n *   struct TreeNode { int val; struct TreeNode *left; struct TreeNode *right; };\n * Allocate new nodes with malloc(sizeof(struct TreeNode)). */\n",
     },
 }
 
@@ -205,6 +242,15 @@ def starter_code(spec: dict, language: str) -> str:
             return f"{t}& {p['name']}" if t.startswith("vector") else f"{t} {p['name']}"
         args = ", ".join(cpp_param(p) for p in params)
         return f"{docs}class Solution {{\npublic:\n    {_CPP_TYPES[ret]} {name}({args}) {{\n        \n    }}\n}};\n"
+    if language == "c":
+        dims = _C_DIMS[ret]
+        notes = []
+        if dims >= 1:
+            notes.append(" * Return a malloc'ed array and set *returnSize to its length.")
+        if dims == 2:
+            notes.append(" * Also malloc *returnColumnSizes and set the length of each row in it.")
+        note = ("/**\n" + "\n".join(notes) + "\n */\n") if notes else ""
+        return f"{docs}{note}{_c_signature(spec)} {{\n    \n}}\n"
     raise JudgeSpecError(f"Unsupported language: {language}")
 
 
@@ -709,11 +755,275 @@ int main() {{
     )
 
 
+# C: headers and node types come first (the student's code needs them); every harness
+# symbol is prefixed with es_ to stay out of the student's namespace.
+_C_PRELUDE = r'''#define _GNU_SOURCE
+#include <ctype.h>
+#include <limits.h>
+#include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+
+struct ListNode { int val; struct ListNode *next; };
+struct TreeNode { int val; struct TreeNode *left; struct TreeNode *right; };
+'''
+
+_C_SUPPORT = r'''
+/* ---- JSON input ---------------------------------------------------------- */
+typedef struct es_jv { char t; char *s; int n; struct es_jv *a; } es_jv; /* t: n a s d b */
+static const char *es_p;
+static void es_ws(void) { while (*es_p && isspace((unsigned char) *es_p)) es_p++; }
+static es_jv es_val(void) {
+    es_jv v = {'n', NULL, 0, NULL};
+    es_ws();
+    char c = *es_p;
+    if (c == '[') {
+        int cap = 4; es_p++; v.t = 'a'; v.a = (es_jv*) malloc(sizeof(es_jv) * cap); es_ws();
+        if (*es_p == ']') { es_p++; return v; }
+        for (;;) {
+            if (v.n == cap) { cap *= 2; v.a = (es_jv*) realloc(v.a, sizeof(es_jv) * cap); }
+            v.a[v.n++] = es_val(); es_ws();
+            if (*es_p == ',') { es_p++; continue; }
+            es_p++; return v;
+        }
+    }
+    if (c == '"') {
+        size_t cap = 16, len = 0; char *b = (char*) malloc(cap); es_p++; v.t = 's';
+        while (*es_p && *es_p != '"') {
+            char ch = *es_p++;
+            if (ch == '\\') {
+                char e = *es_p++;
+                if (e == 'n') ch = '\n'; else if (e == 't') ch = '\t'; else if (e == 'r') ch = '\r';
+                else if (e == 'u') { char h[5] = {0}; memcpy(h, es_p, 4); ch = (char) strtol(h, NULL, 16); es_p += 4; }
+                else ch = e;
+            }
+            if (len + 2 > cap) { cap *= 2; b = (char*) realloc(b, cap); }
+            b[len++] = ch;
+        }
+        es_p++; b[len] = 0; v.s = b; v.n = (int) len; return v;
+    }
+    if (!strncmp(es_p, "true", 4)) { es_p += 4; v.t = 'b'; v.n = 1; return v; }
+    if (!strncmp(es_p, "false", 5)) { es_p += 5; v.t = 'b'; v.n = 0; return v; }
+    if (!strncmp(es_p, "null", 4)) { es_p += 4; return v; }
+    const char *st = es_p;
+    while (*es_p && strchr("+-0123456789.eE", *es_p)) es_p++;
+    size_t L = (size_t) (es_p - st); v.t = 'd'; v.s = (char*) malloc(L + 1); memcpy(v.s, st, L); v.s[L] = 0;
+    return v;
+}
+static int es_to_int(es_jv *v) { return (int) strtoll(v->s, NULL, 10); }
+static long long es_to_ll(es_jv *v) { return strtoll(v->s, NULL, 10); }
+static double es_to_dbl(es_jv *v) { return strtod(v->s, NULL); }
+static bool es_to_bool(es_jv *v) { return v->n != 0; }
+static char *es_to_str(es_jv *v) { return v->s ? v->s : (char*) calloc(1, 1); }
+#define ES_ARR(NAME, T, CONV) static T *NAME(es_jv *v) { \
+    T *r = (T*) malloc(sizeof(T) * (v->n ? v->n : 1)); \
+    for (int i = 0; i < v->n; i++) r[i] = CONV(&v->a[i]); return r; }
+ES_ARR(es_arr_int, int, es_to_int)
+ES_ARR(es_arr_ll, long long, es_to_ll)
+ES_ARR(es_arr_dbl, double, es_to_dbl)
+ES_ARR(es_arr_bool, bool, es_to_bool)
+ES_ARR(es_arr_str, char*, es_to_str)
+#define ES_MAT(NAME, T, ARR) static T **NAME(es_jv *v, int **cols) { \
+    T **r = (T**) malloc(sizeof(T*) * (v->n ? v->n : 1)); *cols = (int*) malloc(sizeof(int) * (v->n ? v->n : 1)); \
+    for (int i = 0; i < v->n; i++) { r[i] = ARR(&v->a[i]); (*cols)[i] = v->a[i].n; } return r; }
+ES_MAT(es_mat_int, int, es_arr_int)
+ES_MAT(es_mat_str, char*, es_arr_str)
+static struct ListNode *es_new_list_node(int x) {
+    struct ListNode *n = (struct ListNode*) malloc(sizeof(struct ListNode)); n->val = x; n->next = NULL; return n; }
+static struct TreeNode *es_new_tree_node(int x) {
+    struct TreeNode *n = (struct TreeNode*) malloc(sizeof(struct TreeNode)); n->val = x; n->left = n->right = NULL; return n; }
+static struct ListNode *es_to_list(es_jv *v) {
+    struct ListNode d, *c = &d; d.next = NULL;
+    for (int i = 0; i < v->n; i++) { c->next = es_new_list_node(es_to_int(&v->a[i])); c = c->next; }
+    return d.next;
+}
+static struct TreeNode *es_to_tree(es_jv *v) {
+    if (v->n == 0 || v->a[0].t == 'n') return NULL;
+    struct TreeNode **q = (struct TreeNode**) malloc(sizeof(struct TreeNode*) * v->n);
+    int head = 0, tail = 0, i = 1;
+    struct TreeNode *root = es_new_tree_node(es_to_int(&v->a[0])); q[tail++] = root;
+    while (head < tail && i < v->n) {
+        struct TreeNode *n = q[head++];
+        if (i < v->n && v->a[i].t != 'n') { n->left = es_new_tree_node(es_to_int(&v->a[i])); q[tail++] = n->left; } i++;
+        if (i < v->n && v->a[i].t != 'n') { n->right = es_new_tree_node(es_to_int(&v->a[i])); q[tail++] = n->right; } i++;
+    }
+    free(q); return root;
+}
+static void es_cycle(struct ListNode *h, int pos) {
+    if (!h || pos < 0) return;
+    struct ListNode *t = h, *target = NULL; int i = 0;
+    for (;;) { if (i == pos) target = t; if (!t->next) break; t = t->next; i++; }
+    t->next = target;
+}
+
+/* ---- JSON output --------------------------------------------------------- */
+typedef struct { char *b; size_t n, cap; } es_sb;
+static void es_put(es_sb *s, const char *t, size_t L) {
+    if (s->n + L + 1 > s->cap) { while (s->n + L + 1 > s->cap) s->cap = s->cap ? s->cap * 2 : 256; s->b = (char*) realloc(s->b, s->cap); }
+    memcpy(s->b + s->n, t, L); s->n += L; s->b[s->n] = 0;
+}
+static void es_puts(es_sb *s, const char *t) { es_put(s, t, strlen(t)); }
+static void es_put_int(es_sb *s, long long x) { char b[32]; snprintf(b, sizeof b, "%lld", x); es_puts(s, b); }
+static void es_put_dbl(es_sb *s, double x) {
+    if (isnan(x) || isinf(x)) { es_puts(s, "null"); return; }
+    char b[64]; snprintf(b, sizeof b, "%.17g", x); es_puts(s, b);
+}
+static void es_put_bool(es_sb *s, bool x) { es_puts(s, x ? "true" : "false"); }
+static void es_put_strn(es_sb *s, const char *x, size_t L) {
+    es_puts(s, "\"");
+    for (size_t i = 0; i < L; i++) {
+        unsigned char c = (unsigned char) x[i];
+        if (c == '"') es_puts(s, "\\\""); else if (c == '\\') es_puts(s, "\\\\");
+        else if (c == '\n') es_puts(s, "\\n"); else if (c == '\r') es_puts(s, "\\r"); else if (c == '\t') es_puts(s, "\\t");
+        else if (c < 0x20) { char b[8]; snprintf(b, sizeof b, "\\u%04x", c); es_puts(s, b); }
+        else es_put(s, (const char*) &x[i], 1);
+    }
+    es_puts(s, "\"");
+}
+static void es_put_str(es_sb *s, const char *x) { if (!x) es_puts(s, "null"); else es_put_strn(s, x, strlen(x)); }
+static void es_put_list(es_sb *s, struct ListNode *h) {
+    int n = 0; es_puts(s, "[");
+    while (h && n < 100000) { if (n++) es_puts(s, ","); es_put_int(s, h->val); h = h->next; }
+    es_puts(s, "]");
+}
+static void es_put_tree(es_sb *s, struct TreeNode *root) {
+    size_t cap = 64, len = 0, i;
+    struct TreeNode **q = (struct TreeNode**) malloc(sizeof(struct TreeNode*) * cap);
+    q[len++] = root;
+    for (i = 0; i < len && len < 400000; i++) {
+        if (!q[i]) continue;
+        if (len + 2 > cap) { cap *= 2; q = (struct TreeNode**) realloc(q, sizeof(struct TreeNode*) * cap); }
+        q[len++] = q[i]->left; q[len++] = q[i]->right;
+    }
+    while (len > 0 && !q[len - 1]) len--;
+    es_puts(s, "[");
+    for (i = 0; i < len; i++) { if (i) es_puts(s, ","); if (q[i]) es_put_int(s, q[i]->val); else es_puts(s, "null"); }
+    es_puts(s, "]"); free(q);
+}
+static double es_now_ms(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec * 1000.0 + t.tv_nsec / 1e6; }
+'''
+
+_C_INPUT = {  # element converters for 1-D arrays / 2-D matrices / scalars, by spec type
+    "int": "es_to_int", "long": "es_to_ll", "double": "es_to_dbl", "bool": "es_to_bool", "string": "es_to_str",
+    "int[]": "es_arr_int", "long[]": "es_arr_ll", "double[]": "es_arr_dbl", "bool[]": "es_arr_bool", "string[]": "es_arr_str",
+    "int[][]": "es_mat_int", "string[][]": "es_mat_str", "ListNode": "es_to_list", "TreeNode": "es_to_tree",
+}
+_C_PUT = {"int": "es_put_int", "long long": "es_put_int", "double": "es_put_dbl", "bool": "es_put_bool", "char*": "es_put_str"}
+
+
+def _c_harness(code: str, spec: dict) -> str:
+    params, ret = spec["params"], spec["return_type"]
+    decls, call_args = [], []
+    for j, p in enumerate(params):
+        t, conv, elem = p["type"], _C_INPUT[p["type"]], _C_ELEM[p["type"]]
+        decls.append(f"es_p = es_lines[es_pos + {j}]; es_jv es_v{j} = es_val();")
+        if _C_DIMS[t] == 0:
+            decls.append(f"{elem} es_a{j} = {conv}(&es_v{j});")
+            args = [f"es_a{j}"]
+        elif _C_DIMS[t] == 1:
+            decls.append(f"int es_a{j}_n = es_v{j}.n; {elem} *es_a{j} = {conv}(&es_v{j});")
+            args = [f"es_a{j}", f"es_a{j}_n"]
+        else:
+            decls.append(f"int es_a{j}_n = es_v{j}.n; int *es_a{j}_c = NULL; {elem} **es_a{j} = {conv}(&es_v{j}, &es_a{j}_c);")
+            args = [f"es_a{j}", f"es_a{j}_n", f"es_a{j}_c"]
+        if not p.get("internal"):
+            call_args += args
+    list_i, pos_i = _cycle_indices(spec)
+    if list_i >= 0:
+        decls.append(f"es_cycle(es_a{list_i}, es_a{pos_i});")
+
+    dims, elem = _C_DIMS[ret], _C_ELEM[ret]
+    if dims >= 1:
+        call_args.append("&es_rs")
+    if dims == 2:
+        call_args.append("&es_rcs")
+    call = f"{elem}{'*' * dims} es_r = {spec['name']}({', '.join(call_args)});"
+    if ret == "ListNode":
+        put = "es_put_list(&es_res, es_r);"
+    elif ret == "TreeNode":
+        put = "es_put_tree(&es_res, es_r);"
+    elif dims == 0:
+        put = f"{_C_PUT[elem]}(&es_res, es_r);"
+    elif dims == 1:
+        put = (
+            'if (!es_r && es_rs > 0) { es_err = "returned NULL with *returnSize > 0"; } else {\n'
+            '                es_puts(&es_res, "[");\n'
+            f'                for (int k = 0; k < es_rs; k++) {{ if (k) es_puts(&es_res, ","); {_C_PUT[elem]}(&es_res, es_r[k]); }}\n'
+            '                es_puts(&es_res, "]"); }'
+        )
+    else:
+        put = (
+            'if ((!es_r || !es_rcs) && es_rs > 0) { es_err = "returned NULL array or *returnColumnSizes with *returnSize > 0"; } else {\n'
+            '                es_puts(&es_res, "[");\n'
+            '                for (int k = 0; k < es_rs; k++) {\n'
+            '                    if (k) es_puts(&es_res, ","); es_puts(&es_res, "[");\n'
+            f'                    for (int m = 0; m < es_rcs[k]; m++) {{ if (m) es_puts(&es_res, ","); {_C_PUT[elem]}(&es_res, es_r[k][m]); }}\n'
+            '                    es_puts(&es_res, "]"); }\n'
+            '                es_puts(&es_res, "]"); }'
+        )
+    body = "\n            ".join(decls)
+    return _C_PRELUDE + "\n" + code + "\n" + _C_SUPPORT + f'''
+int main(void) {{
+    FILE *es_in = fopen("{INPUT_FILE}", "rb");
+    if (!es_in) {{ fprintf(stderr, "cannot open test data\\n"); return 2; }}
+    fseek(es_in, 0, SEEK_END); long es_size = ftell(es_in); fseek(es_in, 0, SEEK_SET);
+    char *es_buf = (char*) malloc((size_t) es_size + 1);
+    size_t es_got = fread(es_buf, 1, (size_t) es_size, es_in); es_buf[es_got] = 0; fclose(es_in);
+    int es_nlines = 0, es_cap = 1024; char **es_lines = (char**) malloc(sizeof(char*) * es_cap);
+    for (char *q = es_buf; q && *q; ) {{
+        if (es_nlines == es_cap) {{ es_cap *= 2; es_lines = (char**) realloc(es_lines, sizeof(char*) * es_cap); }}
+        es_lines[es_nlines++] = q;
+        char *nl = strchr(q, '\\n'); if (!nl) break; *nl = 0; q = nl + 1;
+    }}
+    int es_cases = atoi(es_lines[0]), es_k = {len(params)}, es_pos = 1;
+    for (int es_i = 0; es_i < es_cases; es_i++) {{
+        es_sb es_res = {{0}}, es_rec = {{0}};
+        const char *es_err = NULL;
+        int es_rs = 0; int *es_rcs = NULL;
+        (void) es_rs; (void) es_rcs;
+        fflush(stdout);
+        FILE *es_tmp = tmpfile(); int es_saved = -1;
+        if (es_tmp) {{ es_saved = dup(1); dup2(fileno(es_tmp), 1); }}
+        double es_t0 = es_now_ms();
+        {{
+            {body}
+            {call}
+            {put}
+        }}
+        double es_ms = es_now_ms() - es_t0;
+        fflush(stdout);
+        char es_out[2001]; ssize_t es_outn = 0;
+        if (es_tmp) {{
+            dup2(es_saved, 1); close(es_saved);
+            lseek(fileno(es_tmp), 0, SEEK_SET);
+            es_outn = read(fileno(es_tmp), es_out, 2000); if (es_outn < 0) es_outn = 0;
+            fclose(es_tmp);
+        }}
+        char es_hdr[64]; snprintf(es_hdr, sizeof es_hdr, "{{\\"i\\":%d,", es_i); es_puts(&es_rec, es_hdr);
+        if (es_err) {{ es_puts(&es_rec, "\\"ok\\":false,\\"error\\":"); es_put_str(&es_rec, es_err); }}
+        else {{ es_puts(&es_rec, "\\"ok\\":true,\\"result\\":"); es_puts(&es_rec, es_res.b ? es_res.b : "null"); }}
+        char es_msb[64]; snprintf(es_msb, sizeof es_msb, ",\\"ms\\":%.3f,\\"stdout\\":", es_ms); es_puts(&es_rec, es_msb);
+        es_put_strn(&es_rec, es_out, (size_t) es_outn); es_puts(&es_rec, "}}");
+        printf("{RESULT_MARKER}%s\\n", es_rec.b); fflush(stdout);
+        free(es_res.b); free(es_rec.b);
+        es_pos += es_k;
+    }}
+    return 0;
+}}
+'''
+
+
 _HARNESS = {
     "python": _python_harness,
     "javascript": _javascript_harness,
     "java": _java_harness,
     "cpp": _cpp_harness,
+    "c": _c_harness,
 }
 
 
