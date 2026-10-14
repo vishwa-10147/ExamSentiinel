@@ -14,6 +14,7 @@ from app.models.proctoring_event import ProctoringEvent
 from app.models.review_case import ReviewAction, ReviewCase, ReviewStatus
 from app.models.session import ExamSession
 from app.models.user import User, UserRole
+from app.services.storage_service import storage_service
 from app.schemas.review import ReviewActionCreate, ReviewCaseList, ReviewCaseResponse
 
 router = APIRouter(prefix="/reviews", tags=["Human Review"])
@@ -100,8 +101,8 @@ async def get_review_evidence(
                 "event_type": event.event_type,
                 "category": event.category,
                 "severity": event.severity,
-                "details": event.details,
-                "snapshot_url": event.snapshot_url,
+                "details": storage_service.presign_details(event.details),
+                "snapshot_url": storage_service.presign(event.snapshot_url),
                 "created_at": event.created_at,
             }
             for event in events

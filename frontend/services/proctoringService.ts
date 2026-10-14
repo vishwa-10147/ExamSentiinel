@@ -14,8 +14,10 @@ export type ProctoringEventType =
   | "NETWORK_DISCONNECT"
   | "NETWORK_RECONNECT"
   | "MULTIPLE_FACES"
-  | "NO_FACE"
-  | "LOOKING_AWAY";
+  | "FACE_NOT_DETECTED"
+  | "PHONE_DETECTED"
+  | "CAMERA_DENIED"
+  | "MULTI_TAB";
 
 export interface ProctoringEventResult {
   session_id: string;

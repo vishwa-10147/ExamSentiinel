@@ -1,0 +1,35 @@
+# Self-hosted Piston code-execution engine.
+#
+# The public emkc.org Piston API is whitelist-only since 2026-02-15, so every
+# environment runs its own instance. Piston isolates each run with its own
+# sandbox and therefore needs a privileged container (not supported on
+# Fargate; run on EC2 / ECS-on-EC2 in AWS — see docs/AWS_DEPLOYMENT.md).
+#
+#   docker compose -f docker-compose.piston.yml up -d
+#   python scripts/install_piston_runtimes.py
+#
+services:
+  piston:
+    build:
+      context: ./infra/piston
+    image: examsentinel-piston:latest
+    container_name: examsentinel-piston
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - PISTON_RUN_TIMEOUT=10000
+      - PISTON_COMPILE_TIMEOUT=15000
+      - PISTON_OUTPUT_MAX_SIZE=8388608
+      - PISTON_MAX_PROCESS_COUNT=64
+      - PISTON_RUN_MEMORY_LIMIT=268435456
+      - PISTON_COMPILE_MEMORY_LIMIT=536870912
+    ports:
+      - "127.0.0.1:2000:2000"
+    volumes:
+      - piston_packages:/piston/packages
+    tmpfs:
+      - /piston/jobs:exec,uid=1000,gid=1000,mode=711
+      - /tmp:exec
+
+volumes:
+  piston_packages: null

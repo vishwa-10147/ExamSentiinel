@@ -13,8 +13,14 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_* values are inlined into the JS bundle at build time, so they
+# must be passed as build args (setting them on the running container is too late).
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 # Next.js telemetry disable
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN test -n "$NEXT_PUBLIC_API_URL" || (echo "Build arg NEXT_PUBLIC_API_URL is required" && exit 1)
 RUN npm run build
 
 # Production image, copy all the files and run next

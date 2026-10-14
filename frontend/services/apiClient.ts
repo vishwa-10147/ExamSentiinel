@@ -213,6 +213,26 @@ class ApiClient {
     return data;
   }
 
+  /** Configured single sign-on providers (empty when SSO isn't set up). */
+  public getSsoProviders(): Promise<{ id: string; name: string }[]> {
+    return this.get<{ id: string; name: string }[]>("/api/auth/sso/providers");
+  }
+
+  /** Top-level navigation target that starts the provider's sign-in. */
+  public ssoLoginUrl(providerId: string): string {
+    return `${this.baseUrl}/api/auth/sso/${encodeURIComponent(providerId)}/login`;
+  }
+
+  /** Exchange the single-use ticket from the SSO redirect for a session. */
+  public async completeSsoLogin(ticket: string): Promise<TokenResponse> {
+    const data = await this.post<TokenResponse>("/api/auth/sso/exchange", { ticket });
+    this.setTokens(data.access_token, data.refresh_token);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user_profile", JSON.stringify(data.user));
+    }
+    return data;
+  }
+
   public async verifyOTP(userId: string, otpCode: string): Promise<TokenResponse> {
     const data = await this.post<TokenResponse>("/api/auth/verify-otp", { user_id: userId, otp_code: otpCode });
     this.setTokens(data.access_token, data.refresh_token);

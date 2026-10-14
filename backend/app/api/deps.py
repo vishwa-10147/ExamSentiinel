@@ -205,7 +205,7 @@ async def log_audit_event(
     return audit_entry
 
 
-from app.core.redis_client import redis_client
+from app.core.redis_client import redis_breaker, redis_client
 import time
 from fastapi import Request
 
@@ -215,6 +215,8 @@ def RateLimiter(calls: int, period: int):
     Uses MULTI/EXEC pipeline to ensure atomicity.
     """
     async def rate_limit_dependency(request: Request):
+        if redis_breaker.is_open:
+            return  # Redis recently unreachable: rate limiting is best-effort
         client_ip = extract_client_ip(request) or "127.0.0.1"
         key = f"rate_limit:{request.url.path}:{client_ip}"
         now = time.time()
@@ -244,6 +246,7 @@ def RateLimiter(calls: int, period: int):
         except Exception as e:
             if isinstance(e, HTTPException):
                 raise e
+            redis_breaker.trip()
             logger.debug(f"Redis rate limiter failed, bypassing: {e}")
             
     return rate_limit_dependency

@@ -15,15 +15,15 @@ from app.models.user import User, UserRole
 from app.models.audit_log import AuditLog
 from sqlalchemy.orm import joinedload
 import json
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, UserPasswordUpdate
+from app.schemas.user import AdminUserCreate, AdminUserCreated, UserCreate, UserResponse, UserUpdate, UserPasswordUpdate
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+@router.post("", response_model=AdminUserCreated, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=AdminUserCreated, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_user_by_admin(
-    user_in: UserCreate,
+    user_in: AdminUserCreate,
     request: Request,
     current_user: User = Depends(require_roles([UserRole.ADMIN])),
     db: AsyncSession = Depends(get_db),
@@ -52,14 +52,17 @@ async def create_user_by_admin(
             detail="A user with this email address already exists",
         )
 
-    # Create user with admin-specified role
-    hashed_pwd = get_password_hash(user_in.password)
+    # No password supplied: generate one and return it once so the admin can share it.
+    from app.services.password_policy import generate_random_password
+
+    temporary_password = None if user_in.password else generate_random_password(14)
+    hashed_pwd = get_password_hash(user_in.password or temporary_password)
     new_user = User(
         email=user_in.email.lower(),
         hashed_password=hashed_pwd,
         full_name=user_in.full_name,
         role=user_in.role,  # Administrator is authorized to assign any role
-        institution_id=user_in.institution_id,
+        institution_id=user_in.institution_id or current_user.institution_id,
         department=user_in.department,
         section=user_in.section,
         batch_year=user_in.batch_year,
@@ -96,7 +99,9 @@ async def create_user_by_admin(
             detail="A user with this email address already exists",
         )
 
-    return new_user
+    created = AdminUserCreated.model_validate(new_user)
+    created.temporary_password = temporary_password
+    return created
 
 
 @router.get("", response_model=List[UserResponse])

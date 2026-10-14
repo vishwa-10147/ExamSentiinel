@@ -12,12 +12,16 @@ export default defineConfig({
     trace: 'on-first-retry',
     headless: true,
   },
-  webServer: {
-    command: 'npm run dev -- -p 3110',
-    url: 'http://127.0.0.1:3110',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  // Start a dev server only when not pointed at a running app. Two `next dev`
+  // processes must never share one .next directory: they corrupt each other's chunks.
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : {
+        command: 'npm run dev -- -p 3110',
+        url: 'http://127.0.0.1:3110',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120000,
+      },
   projects: [
     {
       name: 'chromium',

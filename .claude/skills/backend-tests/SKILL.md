@@ -7,16 +7,28 @@ allowed-tools: Bash
 
 # ExamSentinel tests
 
-## Backend (pytest, ~6 min)
+## Backend (pytest)
 
 ```bash
 cd backend && ../.venv/Scripts/python.exe -m pytest -q -p no:cacheprovider
 ```
 - Pass `-k "<expr>"` (from `$ARGUMENTS`) to narrow the run.
-- Tests use their own temp SQLite DB (`tests/conftest.py`) — no Postgres/Redis needed. Slowness comes from Redis connection timeouts; that is expected.
+- Tests use their own temp SQLite DB (`tests/conftest.py`) — no Postgres/Redis needed.
+- `tests/test_practice.py` fakes the sandbox; its `test_real_engine_*` cases run only when Piston is up on :2000.
 - `-p no:cacheprovider` avoids a permission error writing `backend/.pytest_cache`.
 - Never set `DATABASE_URL=` to an empty string — config will fail to parse it.
-- Baseline: 81 passed (2026-10-14).
+- Baseline: 150 passed (2026-10-14), with Piston up and requirements-ai.txt installed (real-engine / Whisper tests skip otherwise).
+
+## End-to-end (live servers)
+
+```bash
+python scripts/e2e_roles_smoke.py
+```
+Needs backend on :8000, seeded users and practice problems, and Piston for the coding steps.
+
+## Browser tests
+
+See the `/frontend` skill (Playwright, 21 tests).
 
 ## Frontend type-check
 

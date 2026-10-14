@@ -1,6 +1,14 @@
 from typing import List, Union
+
+from dotenv import load_dotenv
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Several services read optional integrations straight from os.environ
+# (PISTON_URL, AWS_*, SMTP_*, *_API_KEY). Load .env into the process
+# environment so they see the same values as Settings. Real environment
+# variables (ECS task definitions, Secrets Manager) still take precedence.
+load_dotenv(".env", override=False)
 
 
 class Settings(BaseSettings):

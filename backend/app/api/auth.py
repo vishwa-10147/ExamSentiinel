@@ -20,10 +20,9 @@ from app.models.refresh_token import RefreshToken
 from app.models.user import User, UserRole
 from app.schemas.auth import TokenRefreshRequest, TokenResponse
 from app.schemas.user import UserCreate, UserLogin, UserResponse
-import random
-import redis.asyncio as redis
 from pydantic import BaseModel
 from app.services.email_service import email_service
+from app.services.otp_store import otp_store
 from app.services.email_templates import get_base_template
 
 
@@ -117,6 +116,67 @@ async def register_user(
     return user
 
 
+async def issue_login_session(db: AsyncSession, user: User, request: Request, method: str) -> TokenResponse:
+    """Start a new browser session for *user* (password or SSO login).
+
+    Enforces one active browser per user, rotates refresh tokens and audits
+    the login with the method used.
+    """
+    # Generate a fresh session ID for single-browser login enforcement
+    session_id = str(uuid.uuid4())
+    user.current_session_id = session_id
+    db.add(user)
+
+    # Revoke all previous refresh tokens for this user so old browser sessions cannot refresh
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
+
+    token_data = {
+        "user_id": str(user.id),
+        "email": user.email,
+        "role": user.role.value,
+        "institution_id": str(user.institution_id) if user.institution_id else None,
+        "sid": session_id,
+    }
+
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data=token_data)
+
+    # Persist refresh token in database for single-use rotation and revocation tracking
+    refresh_payload = decode_token(refresh_token)
+    refresh_entry = RefreshToken(
+        user_id=user.id,
+        jti=refresh_payload["jti"],
+        revoked=False,
+        expires_at=datetime.fromtimestamp(refresh_payload["exp"], tz=timezone.utc),
+    )
+    db.add(refresh_entry)
+
+    # Log audit event
+    await log_audit_event(
+        db=db,
+        action="USER_LOGIN",
+        resource_type="auth",
+        resource_id=str(user.id),
+        details={"email": user.email, "role": user.role.value, "sid": session_id, "method": method},
+        user_id=user.id,
+        institution_id=user.institution_id,
+        request=request,
+    )
+    await db.commit()
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserResponse.model_validate(user),
+    )
+
+
 @router.post("/login", dependencies=[Depends(RateLimiter(calls=5, period=60))])
 async def login(
     credentials: UserLogin,
@@ -164,59 +224,7 @@ async def login(
             detail="User account is inactive. Please contact your administrator.",
         )
 
-    # Generate a fresh session ID for single-browser login enforcement
-    session_id = str(uuid.uuid4())
-    user.current_session_id = session_id
-    db.add(user)
-
-    # Revoke all previous refresh tokens for this user so old browser sessions cannot refresh
-    await db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False))
-        .values(revoked=True)
-    )
-
-    token_data = {
-        "user_id": str(user.id),
-        "email": user.email,
-        "role": user.role.value,
-        "institution_id": str(user.institution_id) if user.institution_id else None,
-        "sid": session_id,
-    }
-
-    access_token = create_access_token(data=token_data)
-    refresh_token = create_refresh_token(data=token_data)
-
-    # Persist refresh token in database for single-use rotation and revocation tracking
-    refresh_payload = decode_token(refresh_token)
-    refresh_entry = RefreshToken(
-        user_id=user.id,
-        jti=refresh_payload["jti"],
-        revoked=False,
-        expires_at=datetime.fromtimestamp(refresh_payload["exp"], tz=timezone.utc),
-    )
-    db.add(refresh_entry)
-
-    # Log audit event
-    await log_audit_event(
-        db=db,
-        action="USER_LOGIN",
-        resource_type="auth",
-        resource_id=str(user.id),
-        details={"email": user.email, "role": user.role.value, "sid": session_id},
-        user_id=user.id,
-        institution_id=user.institution_id,
-        request=request,
-    )
-    await db.commit()
-
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse.model_validate(user),
-    )
+    return await issue_login_session(db, user, request, method="password")
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -397,103 +405,73 @@ async def get_current_user_profile(
     """Retrieve currently authenticated user profile and roles."""
     return current_user
 
-@router.post("/forgot-password", dependencies=[Depends(RateLimiter(calls=15, period=300))])
+_RESET_GENERIC = "If an account exists for that email, a verification code has been sent."
 
+
+@router.post("/forgot-password", dependencies=[Depends(RateLimiter(calls=15, period=300))])
 async def forgot_password(
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.email == payload.email.strip().lower()))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No registered account found with this email address. Please check your email or register."
-        )
-        
-    otp_code = str(random.randint(100000, 999999))
-    r = redis.from_url(str(settings.REDIS_URL))
-    await r.setex(f"auth:forgot:{user.id}", 300, otp_code)
-    await r.aclose()
-    
-    logger.info(f"=== [AUTH OTP LOG] Password Reset OTP generated for {user.email}: {otp_code} ===")
-    
+    """Send a reset code. The response is identical whether or not the email
+    is registered, so the endpoint can't be used to discover accounts."""
+    email = payload.email.strip().lower()
+    user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+    if not user or not user.is_active:
+        return {"status": "success", "message": _RESET_GENERIC}
+
+    otp_code = await otp_store.issue("password-reset", str(user.id))
     html_body = get_base_template(
         f"<h3>Password reset request</h3><p>Your one-time password is <strong>{otp_code}</strong>.</p>"
         "<p>This code expires in 5 minutes. If you did not request this, you can ignore this email.</p>"
     )
-    text_body = (
-        f"Your ExamSentinel password reset OTP is {otp_code}. "
-        "It expires in 5 minutes."
-    )
-    delivered, error_reason = await email_service.send_with_reason(
-        [user.email],
-        "ExamSentinel password reset OTP",
-        html_body,
-        text_body,
-    )
+    text_body = f"Your ExamSentinel password reset OTP is {otp_code}. It expires in 5 minutes."
+    delivered, error_reason = await email_service.send_with_reason([user.email], "ExamSentinel password reset OTP", html_body, text_body)
     if not delivered:
-        logger.warning(f"Password reset OTP generated for {user.email}, but email delivery failed: {error_reason}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unable to send OTP email: {error_reason}"
-        )
-    
-    return {"status": "success", "message": "Verification OTP has been sent to your email address."}
+        logger.warning("password_reset_email_failed", user_id=str(user.id), reason=error_reason)
+        if settings.DEBUG:
+            # Local development without an email provider: surface the code in the server log.
+            logger.info("password_reset_otp_dev_only", email=user.email, otp=otp_code)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="We couldn't send the verification email right now. Please try again shortly.",
+            )
+    return {"status": "success", "message": _RESET_GENERIC}
 
 
-@router.post("/verify-forgot-otp")
+@router.post("/verify-forgot-otp", dependencies=[Depends(RateLimiter(calls=20, period=300))])
 async def verify_forgot_otp(
     payload: VerifyForgotOTPRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.email == payload.email.strip().lower()))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=400, detail="Invalid request or expired user session.")
-        
-    r = redis.from_url(str(settings.REDIS_URL))
-    cached_otp = await r.get(f"auth:forgot:{user.id}")
-    await r.aclose()
-    
-    if not cached_otp or cached_otp.decode() != payload.otp_code:
+    user = (await db.execute(select(User).where(User.email == payload.email.strip().lower()))).scalar_one_or_none()
+    if not user or not await otp_store.verify("password-reset", str(user.id), payload.otp_code, consume=False):
         raise HTTPException(
             status_code=400,
-            detail="Invalid or expired 6-digit OTP code. Please verify the code or request a new one."
+            detail="Invalid or expired 6-digit code. Request a new code if you've tried several times.",
         )
-        
     return {"status": "success", "message": "OTP code verified successfully."}
 
 
-@router.post("/reset-password")
+@router.post("/reset-password", dependencies=[Depends(RateLimiter(calls=20, period=300))])
 async def reset_password(
     payload: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    if len(payload.new_password) < 8 or len(payload.new_password) > 128:
+        raise HTTPException(status_code=422, detail="Password must be 8-128 characters long.")
+    user = (await db.execute(select(User).where(User.email == payload.email.strip().lower()))).scalar_one_or_none()
+    if not user or not await otp_store.verify("password-reset", str(user.id), payload.otp_code, consume=True):
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 
-    result = await db.execute(select(User).where(User.email == payload.email.strip().lower()))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=400, detail="Invalid OTP")
-        
-    r = redis.from_url(str(settings.REDIS_URL))
-    cached_otp = await r.get(f"auth:forgot:{user.id}")
-    await r.aclose()
-    
-    if not cached_otp or cached_otp.decode() != payload.otp_code:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid or expired OTP"
-        )
-        
-    # Reset password
     user.hashed_password = get_password_hash(payload.new_password)
-    db.add(user)
+    # Sign out everywhere: a reset usually means the old password is compromised.
+    user.current_session_id = None
+    await db.execute(
+        update(RefreshToken).where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False)).values(revoked=True)
+    )
+    await log_audit_event(db=db, action="PASSWORD_RESET", resource_type="user", resource_id=str(user.id),
+                          details={}, user_id=user.id, institution_id=user.institution_id)
     await db.commit()
-    
-    # Delete OTP
-    r = redis.from_url(str(settings.REDIS_URL))
-    await r.delete(f"auth:forgot:{user.id}")
-    await r.aclose()
-    
     return {"status": "success", "message": "Password reset successfully."}

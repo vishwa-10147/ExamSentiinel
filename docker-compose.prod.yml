@@ -1,65 +1,115 @@
-version: '3.8'
+# Single-host production stack (one EC2 instance). For the managed AWS
+# setup (ECS Fargate + RDS + ElastiCache + S3) see docs/AWS_DEPLOYMENT.md.
+#
+#   cp .env.production.example .env.production   # fill in real values
+#   docker compose -f docker-compose.prod.yml --env-file .env.production build
+#   docker compose -f docker-compose.prod.yml --env-file .env.production run --rm migrate
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#   python scripts/install_piston_runtimes.py      # once, against :2000 on the host
+#
+# Put TLS in front (ALB, CloudFront or Caddy/nginx); only 80/443 should be public.
+
+x-backend-env: &backend-env
+  ENVIRONMENT: production
+  DEBUG: "false"
+  LOG_LEVEL: INFO
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
+  DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/examsentinel}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS to the public frontend URL}
+  PISTON_URL: http://piston:2000/api/v2/execute
+  AWS_REGION: ${AWS_REGION:-us-east-1}
+  AWS_BUCKET_NAME: ${AWS_BUCKET_NAME:-}
+  ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
 
 services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      args:
+        WITH_AI: ${WITH_AI:-true}
     image: examsentinel-backend:latest
     restart: always
+    environment: *backend-env
     ports:
-      - "8000:8000"
-    environment:
-      - ENVIRONMENT=production
-      - DEBUG=false
-      - LOG_LEVEL=INFO
-      - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=${DATABASE_URL}
-      - SYNC_DATABASE_URL=${SYNC_DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - CORS_ORIGINS=${CORS_ORIGINS}
-    volumes:
-      # CRITICAL: This allows the backend to spawn sandbox containers on the AWS EC2 host
-      - /var/run/docker.sock:/var/run/docker.sock
+      - "127.0.0.1:8000:8000"
     depends_on:
-      - db
-      - redis
-    # The sandbox spawns temporary containers. If this container crashes, we need to ensure zombie containers don't leak, 
-    # but the application logic already handles timeout kills.
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      piston:
+        condition: service_started
+
+  # One-off: `docker compose run --rm migrate` before (re)starting the backend.
+  migrate:
+    image: examsentinel-backend:latest
+    command: ["migrate"]
+    environment: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["tools"]
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL to the public API URL}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
     image: examsentinel-frontend:latest
     restart: always
     ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - "127.0.0.1:3000:3000"
     depends_on:
       - backend
 
+  piston:
+    build:
+      context: ./infra/piston
+    image: examsentinel-piston:latest
+    restart: always
+    privileged: true
+    environment:
+      - PISTON_RUN_TIMEOUT=10000
+      - PISTON_COMPILE_TIMEOUT=15000
+      - PISTON_OUTPUT_MAX_SIZE=8388608
+      - PISTON_MAX_PROCESS_COUNT=64
+      - PISTON_RUN_MEMORY_LIMIT=268435456
+      - PISTON_COMPILE_MEMORY_LIMIT=536870912
+    ports:
+      - "127.0.0.1:2000:2000"  # host-only: for install_piston_runtimes.py
+    volumes:
+      - piston_packages:/piston/packages
+    tmpfs:
+      - /piston/jobs:exec,uid=1000,gid=1000,mode=711
+      - /tmp:exec
+
   db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-examsentinel}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: examsentinel
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d examsentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
     restart: always
-    ports:
-      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redisdata:/data
 
 volumes:
   pgdata:
   redisdata:
+  piston_packages:

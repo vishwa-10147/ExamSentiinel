@@ -1,6 +1,8 @@
 """API endpoints for proctoring event ingestion and risk score queries."""
 
-from datetime import datetime, timezone
+import asyncio
+import base64
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from pydantic import BaseModel
 import uuid
@@ -35,69 +37,26 @@ from app.websocket.manager import manager
 router = APIRouter(tags=["Proctoring"])
 
 
-@router.post("/sessions/{session_id}/webcam/analyze")
-async def analyze_webcam_frame(
-    session_id: uuid.UUID,
-    frame: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Analyze one consented webcam frame and record reviewer-facing signals."""
-    session = (await db.execute(select(ExamSession).where(ExamSession.id == session_id))).scalar_one_or_none()
-    if session is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exam session not found")
-    if current_user.role == UserRole.CANDIDATE and session.candidate_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
-    try:
-        detections = computer_vision_service.analyze_frame(await frame.read())
-    except (RuntimeError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-
-    recorded = []
-    for detection in detections:
-        if detection.event_type is None:
-            continue
-        event = ProctoringEvent(
-            session_id=session.id,
-            candidate_id=session.candidate_id,
-            exam_id=session.exam_id,
-            event_type=detection.event_type,
-            category=EventCategory.WEBCAM,
-            severity=_EVENT_SEVERITY_MAP[detection.event_type],
-            details=detection.details,
-        )
-        db.add(event)
-        recorded.append(event)
-    await db.flush()
-    score, risk_level = await risk_engine.recalculate_and_update(db, session.id)
-    await db.commit()
-    return {
-        "session_id": session.id,
-        "risk_score": score,
-        "risk_level": risk_level,
-        "signals": [{"event_type": event.event_type, "details": event.details} for event in recorded],
-        "capabilities": {"face_detection": True, "phone_detection": bool(computer_vision_service.phone_model_path)},
-    }
-
-
-# ── Valid event types (for validation) ───────────────────────────────
+# ── Event catalogue ───────────────────────────────────────────────────
 
 _VALID_EVENT_TYPES = set(DEFAULT_RISK_WEIGHTS.keys())
 
-# Mapping from event type prefix to category
 _EVENT_CATEGORY_MAP: dict[str, EventCategory] = {
     "TAB_BLUR": EventCategory.BROWSER,
     "TAB_FOCUS": EventCategory.BROWSER,
+    "VISIBILITY_HIDDEN": EventCategory.BROWSER,
     "FULLSCREEN_EXIT": EventCategory.BROWSER,
     "PASTE_ATTEMPT": EventCategory.BROWSER,
     "RIGHT_CLICK": EventCategory.BROWSER,
     "RESIZE": EventCategory.BROWSER,
     "COPY_ATTEMPT": EventCategory.BROWSER,
+    "CUT_ATTEMPT": EventCategory.BROWSER,
+    "SECURITY_KEY_BLOCKED": EventCategory.BROWSER,
     "FACE_NOT_DETECTED": EventCategory.WEBCAM,
     "MULTIPLE_FACES": EventCategory.WEBCAM,
     "PHONE_DETECTED": EventCategory.WEBCAM,
     "OBJECT_DETECTED": EventCategory.WEBCAM,
+    "CAMERA_DENIED": EventCategory.WEBCAM,
     "LARGE_PASTE": EventCategory.CODE_INTEGRITY,
     "TYPING_CADENCE_ANOMALY": EventCategory.CODE_INTEGRITY,
     "CODE_SIMILARITY_HIGH": EventCategory.CODE_INTEGRITY,
@@ -112,15 +71,19 @@ _EVENT_CATEGORY_MAP: dict[str, EventCategory] = {
 _EVENT_SEVERITY_MAP: dict[str, EventSeverity] = {
     "TAB_BLUR": EventSeverity.LOW,
     "TAB_FOCUS": EventSeverity.INFO,
+    "VISIBILITY_HIDDEN": EventSeverity.INFO,
     "FULLSCREEN_EXIT": EventSeverity.HIGH,
     "PASTE_ATTEMPT": EventSeverity.MEDIUM,
     "RIGHT_CLICK": EventSeverity.LOW,
     "RESIZE": EventSeverity.LOW,
     "COPY_ATTEMPT": EventSeverity.LOW,
+    "CUT_ATTEMPT": EventSeverity.LOW,
+    "SECURITY_KEY_BLOCKED": EventSeverity.LOW,
     "FACE_NOT_DETECTED": EventSeverity.MEDIUM,
     "MULTIPLE_FACES": EventSeverity.CRITICAL,
     "PHONE_DETECTED": EventSeverity.HIGH,
     "OBJECT_DETECTED": EventSeverity.MEDIUM,
+    "CAMERA_DENIED": EventSeverity.HIGH,
     "LARGE_PASTE": EventSeverity.HIGH,
     "TYPING_CADENCE_ANOMALY": EventSeverity.LOW,
     "CODE_SIMILARITY_HIGH": EventSeverity.HIGH,
@@ -132,9 +95,211 @@ _EVENT_SEVERITY_MAP: dict[str, EventSeverity] = {
     "SCREEN_SHARE_UNAUTHORIZED": EventSeverity.HIGH,
 }
 
+# Events that count toward the automatic-submission limit. Switching tabs
+# fires both TAB_BLUR and VISIBILITY_HIDDEN, so only TAB_BLUR counts.
+_SECURITY_EVENT_TYPES = {
+    "TAB_BLUR", "FULLSCREEN_EXIT", "PASTE_ATTEMPT", "SECURITY_KEY_BLOCKED", "MULTI_TAB",
+    "MULTIPLE_FACES", "PHONE_DETECTED", "SCREEN_SHARE_UNAUTHORIZED",
+}
+AUTO_SUBMIT_VIOLATIONS = 4
+
+# Repeated signals of the same type within this window describe one incident:
+# a phone held up for a minute is one violation, not one per video frame.
+_DEDUPE_WINDOW_SECONDS: dict[str, int] = {
+    "FACE_NOT_DETECTED": 30,
+    "MULTIPLE_FACES": 30,
+    "PHONE_DETECTED": 30,
+    "OBJECT_DETECTED": 30,
+    "CAMERA_DENIED": 60,
+    "TAB_BLUR": 3,
+    "VISIBILITY_HIDDEN": 3,
+    "FULLSCREEN_EXIT": 3,
+    "PASTE_ATTEMPT": 5,
+    "COPY_ATTEMPT": 5,
+    "CUT_ATTEMPT": 5,
+    "SECURITY_KEY_BLOCKED": 5,
+    "RIGHT_CLICK": 5,
+    "RESIZE": 10,
+}
+
+
+async def _is_duplicate(db: AsyncSession, session_id: uuid.UUID, event_type: str, now: datetime) -> bool:
+    window = _DEDUPE_WINDOW_SECONDS.get(event_type)
+    if not window:
+        return False
+    recent = await db.execute(
+        select(ProctoringEvent.id)
+        .where(
+            ProctoringEvent.session_id == session_id,
+            ProctoringEvent.event_type == event_type,
+            ProctoringEvent.created_at >= now - timedelta(seconds=window),
+        )
+        .limit(1)
+    )
+    return recent.scalar_one_or_none() is not None
+
+
+async def _ingest_signals(
+    db: AsyncSession,
+    session: ExamSession,
+    signals: list[dict],
+) -> tuple[RiskScoreResponse, list[ProctoringEvent]]:
+    """Record proctoring signals for *session*, then update risk and enforcement.
+
+    Each signal: ``event_type`` plus optional ``category``, ``severity``,
+    ``details``, ``client_timestamp``, ``snapshot_url``. Duplicates within the
+    de-duplication window and signals for sessions that are no longer in
+    progress are not recorded. Shared by browser telemetry and server-side
+    webcam analysis so both follow identical rules.
+    """
+    now = datetime.now(timezone.utc)
+    active = session.status in (SessionStatus.READY, SessionStatus.IN_PROGRESS)
+    recorded: list[ProctoringEvent] = []
+    if active:
+        for signal in signals:
+            event_type = signal["event_type"]
+            if await _is_duplicate(db, session.id, event_type, now):
+                continue
+            event = ProctoringEvent(
+                session_id=session.id,
+                candidate_id=session.candidate_id,
+                exam_id=session.exam_id,
+                event_type=event_type,
+                category=signal.get("category") or _EVENT_CATEGORY_MAP.get(event_type, EventCategory.BROWSER),
+                severity=signal.get("severity") or _EVENT_SEVERITY_MAP.get(event_type, EventSeverity.LOW),
+                details=signal.get("details") or {},
+                client_timestamp=signal.get("client_timestamp"),
+                snapshot_url=signal.get("snapshot_url"),
+                created_at=now,
+            )
+            db.add(event)
+            recorded.append(event)
+            if event_type in _SECURITY_EVENT_TYPES:
+                session.violation_count = (session.violation_count or 0) + 1
+
+    is_terminated = False
+    if active and (session.violation_count or 0) >= AUTO_SUBMIT_VIOLATIONS:
+        from app.services.grading_service import grading_service
+
+        session.status = SessionStatus.SUBMITTED
+        session.submitted_at = now
+        is_terminated = True
+        await db.flush()
+        await grading_service.grade_session(db, session.id)
+        # An automatic submission is held for a human: results stay
+        # unpublished until a reviewer/admin acts on the review case.
+        session.results_published = False
+
+    await db.flush()
+    score, risk_level = await risk_engine.recalculate_and_update(db, session.id)
+    if is_terminated:
+        session.risk_level = risk_level = "CRITICAL"
+        await risk_engine.ensure_review_case(db, session, score, risk_level)
+
+    count_rows = await db.execute(
+        select(ProctoringEvent.category, func.count(ProctoringEvent.id))
+        .where(ProctoringEvent.session_id == session.id)
+        .group_by(ProctoringEvent.category)
+    )
+    event_counts = [EventCountByCategory(category=cat, count=cnt) for cat, cnt in count_rows.all()]
+    total_events = sum(item.count for item in event_counts)
+    await db.commit()
+
+    for event in recorded:
+        await manager.broadcast_event(str(session.id), str(session.exam_id), {
+            "id": str(event.id),
+            "event_type": event.event_type,
+            "category": event.category.value,
+            "severity": event.severity.value,
+            "details": storage_service.presign_details(event.details),
+            "snapshot_url": storage_service.presign(event.snapshot_url),
+            "violation_count": session.violation_count,
+            "is_terminated": is_terminated,
+            "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None,
+        })
+    if recorded or is_terminated:
+        await manager.broadcast_risk_update(str(session.id), str(session.exam_id), {
+            "current_risk_score": score,
+            "risk_level": risk_level,
+            "violation_count": session.violation_count,
+            "is_terminated": is_terminated,
+            "total_events": total_events,
+            "event_counts": [item.model_dump(mode="json") for item in event_counts],
+        })
+
+    return RiskScoreResponse(
+        session_id=session.id,
+        event_type=signals[0]["event_type"] if signals else None,
+        current_risk_score=score,
+        risk_level=risk_level,
+        violation_count=session.violation_count or 0,
+        is_terminated=is_terminated or session.status == SessionStatus.SUBMITTED,
+        recorded=bool(recorded),
+        event_counts=event_counts,
+        total_events=total_events,
+    ), recorded
+
+
+async def _load_session_for(db: AsyncSession, session_id: uuid.UUID, user: User) -> ExamSession:
+    session = (await db.execute(select(ExamSession).where(ExamSession.id == session_id))).scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exam session not found")
+    if user.role == UserRole.CANDIDATE and session.candidate_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return session
+
+
+# ── POST /sessions/{session_id}/webcam/analyze ──────────────────────
+
+MAX_FRAME_BYTES = 2 * 1024 * 1024
+
+
+@router.post("/sessions/{session_id}/webcam/analyze")
+async def analyze_webcam_frame(
+    session_id: uuid.UUID,
+    frame: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Analyse one consented webcam frame (phones, people) and record any signals.
+
+    A snapshot is stored as evidence only when a new signal is recorded.
+    """
+    session = await _load_session_for(db, session_id, current_user)
+    data = await frame.read()
+    if len(data) > MAX_FRAME_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Frame exceeds 2 MB")
+    try:
+        detections = await asyncio.to_thread(computer_vision_service.analyze_frame, data)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+
+    signals = [
+        {"event_type": d.event_type, "category": EventCategory.WEBCAM, "details": d.details}
+        for d in detections
+        if d.event_type is not None
+    ]
+    # Store the evidence frame only if at least one signal is new.
+    now = datetime.now(timezone.utc)
+    fresh = [s for s in signals if not await _is_duplicate(db, session.id, s["event_type"], now)]
+    if fresh:
+        image_url = await asyncio.to_thread(
+            storage_service.upload_base64_image, base64.b64encode(data).decode(), f"evidence/{session_id}"
+        )
+        for s in signals:
+            s["snapshot_url"] = image_url or None
+            s["details"] = {**s["details"], "evidence_stored": bool(image_url)}
+
+    result, recorded = await _ingest_signals(db, session, signals)
+    return {
+        **result.model_dump(mode="json"),
+        "signals": [{"event_type": e.event_type, "details": e.details} for e in recorded],
+        "detections": [{"event_type": d.event_type, "details": d.details} for d in detections],
+        "capabilities": computer_vision_service.capabilities,
+    }
+
 
 # ── POST /events ─────────────────────────────────────────────────────
-
 
 @router.post("/events", response_model=RiskScoreResponse, status_code=status.HTTP_201_CREATED)
 async def submit_proctoring_event(
@@ -142,140 +307,27 @@ async def submit_proctoring_event(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Record a proctoring event (browser / webcam signal) and recalculate risk.
+    """Record a browser / webcam signal and recalculate risk.
 
     Callable by candidates (for their own session) and by admins/proctors.
     """
-    now = datetime.now(timezone.utc)
-
-    # 1. Validate event type
-    event_type = payload.event_type
-    if event_type not in _VALID_EVENT_TYPES:
+    if payload.event_type not in _VALID_EVENT_TYPES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Unknown event type: {event_type}. "
-                   f"Valid types: {sorted(_VALID_EVENT_TYPES)}",
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Unknown event type: {payload.event_type}. Valid types: {sorted(_VALID_EVENT_TYPES)}",
         )
-
-    # 2. Load session and authorise
-    result = await db.execute(
-        select(ExamSession).where(ExamSession.id == payload.session_id)
-    )
-    session = result.scalar_one_or_none()
-    if session is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Exam session not found",
-        )
-    if current_user.role == UserRole.CANDIDATE and session.candidate_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied",
-        )
-
-    # 3. Store event & Track security violations
-    category = payload.category if hasattr(payload, "category") and payload.category else _EVENT_CATEGORY_MAP.get(event_type, EventCategory.BROWSER)
-    severity = payload.severity if hasattr(payload, "severity") and payload.severity else _EVENT_SEVERITY_MAP.get(event_type, EventSeverity.LOW)
-
-    event = ProctoringEvent(
-        session_id=session.id,
-        candidate_id=session.candidate_id,
-        exam_id=session.exam_id,
-        event_type=event_type,
-        category=category,
-        severity=severity,
-        details=payload.details,
-        client_timestamp=payload.client_timestamp,
-        snapshot_url=payload.snapshot_url if hasattr(payload, "snapshot_url") else None,
-    )
-    db.add(event)
-
-    # Security violation triggers
-    security_event_types = {
-        "TAB_BLUR", "VISIBILITY_HIDDEN", "FULLSCREEN_EXIT", "PASTE_ATTEMPT",
-        "SECURITY_KEY_BLOCKED", "MULTI_TAB", "MULTIPLE_FACES", "PHONE_DETECTED",
-        "SCREEN_SHARE_UNAUTHORIZED"
-    }
-
-    if event_type in security_event_types:
-        session.violation_count = (session.violation_count or 0) + 1
-
-    is_terminated = False
-    if (session.violation_count or 0) >= 4 and session.status != SessionStatus.SUBMITTED:
-        from app.services.grading_service import grading_service
-        session.status = SessionStatus.SUBMITTED
-        session.risk_level = "CRITICAL"
-        session.submitted_at = now
-        session.results_published = True
-        is_terminated = True
-        await db.flush()
-        await grading_service.grade_session(db, session.id)
-
-    await db.flush()
-
-    # 4. Recalculate risk score
-    score, risk_level = await risk_engine.recalculate_and_update(db, session.id)
-    if (session.violation_count or 0) >= 4:
-        session.risk_level = "CRITICAL"
-        risk_level = "CRITICAL"
-        # An automatic submission must always reach a human reviewer.
-        await risk_engine.ensure_review_case(db, session, score, risk_level)
-
-    # 5. Count events by category for the response
-    count_result = await db.execute(
-        select(
-            ProctoringEvent.category,
-            func.count(ProctoringEvent.id),
-        )
-        .where(ProctoringEvent.session_id == session.id)
-        .group_by(ProctoringEvent.category)
-    )
-    event_counts = [
-        EventCountByCategory(category=cat, count=cnt)
-        for cat, cnt in count_result.all()
-    ]
-    total_events_result = await db.execute(
-        select(func.count(ProctoringEvent.id))
-        .where(ProctoringEvent.session_id == session.id)
-    )
-    total_events = total_events_result.scalar_one()
-
-    await db.commit()
-
-    event_payload = {
-        "id": str(event.id),
-        "event_type": event.event_type,
-        "category": event.category.value,
-        "severity": event.severity.value,
-        "details": event.details,
-        "violation_count": session.violation_count,
-        "is_terminated": is_terminated,
-        "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None,
-    }
-    await manager.broadcast_event(str(session.id), str(session.exam_id), event_payload)
-    await manager.broadcast_risk_update(
-        str(session.id),
-        str(session.exam_id),
-        {
-            "current_risk_score": score,
-            "risk_level": risk_level,
-            "violation_count": session.violation_count,
-            "is_terminated": is_terminated,
-            "total_events": total_events,
-            "event_counts": [item.model_dump(mode="json") for item in event_counts],
-        },
-    )
-
-    return RiskScoreResponse(
-        session_id=session.id,
-        event_type=event.event_type,
-        current_risk_score=score,
-        risk_level=risk_level,
-        violation_count=session.violation_count or 0,
-        is_terminated=is_terminated,
-        event_counts=event_counts,
-        total_events=total_events,
-    )
+    session = await _load_session_for(db, payload.session_id, current_user)
+    result, _ = await _ingest_signals(db, session, [{
+        "event_type": payload.event_type,
+        "category": payload.category,
+        "severity": payload.severity,
+        "details": payload.details,
+        "client_timestamp": payload.client_timestamp,
+        # Only references to our own evidence bucket: a client-supplied URL
+        # would otherwise be rendered to reviewers as-is.
+        "snapshot_url": payload.snapshot_url if storage_service.is_own_reference(payload.snapshot_url) else None,
+    }])
+    return result
 
 
 # ── GET /events/{session_id} ─────────────────────────────────────────
@@ -318,7 +370,13 @@ async def get_session_events(
     events = (await db.execute(events_q)).scalars().all()
 
     return ProctoringEventList(
-        items=[ProctoringEventResponse.model_validate(e) for e in events],
+        items=[
+            ProctoringEventResponse.model_validate(e).model_copy(update={
+                "snapshot_url": storage_service.presign(e.snapshot_url),
+                "details": storage_service.presign_details(e.details),
+            })
+            for e in events
+        ],
         total=total,
         page=page,
         page_size=page_size,
@@ -328,7 +386,7 @@ async def get_session_events(
 # ── GET /risk/{session_id} ───────────────────────────────────────────
 
 
-@router.get("/risk/{session_id}", response_model=RiskScoreResponse)
+@router.get("/risk/{session_id:uuid}", response_model=RiskScoreResponse)
 async def get_risk_score(
     session_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -498,12 +556,14 @@ async def dev_analyze_webcam_frame(
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.PROCTOR])),
 ):
     """DEV TOOL: Test the AI Computer Vision engine raw output without a session."""
+    content = await frame.read()
+    if len(content) > MAX_FRAME_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Frame exceeds 2 MB")
     try:
-        content = await frame.read()
-        detections = computer_vision_service.analyze_frame(content)
-        return {"success": True, "detections": detections}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        detections = await asyncio.to_thread(computer_vision_service.analyze_frame, content)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+    return {"success": True, "detections": detections, "capabilities": computer_vision_service.capabilities}
 
 
 class EvidenceRequest(BaseModel):
@@ -544,7 +604,7 @@ async def upload_evidence(
     db.add(new_event)
     await db.commit()
     
-    return {"status": "success", "image_url": image_url}
+    return {"status": "success", "image_url": storage_service.presign(image_url)}
 
 
 class InterveneRequest(BaseModel):

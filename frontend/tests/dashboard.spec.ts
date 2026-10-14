@@ -5,7 +5,9 @@ test.describe('ExamSentinel UI Integration Tests', () => {
     await page.goto('/auth/login');
     // Look for the "Sign in" or "Log In" text dynamically
     await expect(page.locator('text=Sign In').first()).toBeVisible();
-    await expect(page.locator('text=Admin:')).toBeVisible(); // The quick demo credentials block
+    // No demo credentials on the login page: just the real form.
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toBeVisible();
   });
 
   test('Verify Registration Page UI renders', async ({ page }) => {

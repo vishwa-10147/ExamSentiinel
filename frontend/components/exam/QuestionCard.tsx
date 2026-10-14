@@ -3,13 +3,20 @@
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { QuestionCandidate } from "@/services/examService";
+import DOMPurify from "dompurify";
 import { apiClient } from "@/services/apiClient";
+import Markdown from "@/components/practice/Markdown";
 
 // Lazy load Monaco Editor (massive bundle) only when needed, disable SSR
 const Editor = dynamic(() => import("@monaco-editor/react"), { 
   ssr: false, 
   loading: () => <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">Loading IDE...</div>
 });
+
+const DEFAULT_LANGUAGES = ["python", "javascript", "java", "c", "cpp"];
+const LANGUAGE_NAMES: Record<string, string> = {
+  python: "Python", javascript: "JavaScript", java: "Java", c: "C", cpp: "C++", sql: "SQL",
+};
 
 interface QuestionCardProps {
   question: QuestionCandidate;
@@ -42,17 +49,49 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   isLast,
   sessionId,
 }) => {
+  // Questions created from a practice problem carry its languages and starter code;
+  // "Run" then checks the sample tests (the hidden ones are used for grading).
+  const opts = question.options && !Array.isArray(question.options) ? (question.options as Record<string, any>) : {};
+  const linkedProblemId: string | undefined = opts.practice_problem_id;
+  const allowedLanguages: string[] = linkedProblemId ? opts.allowed_languages ?? ["python"] : DEFAULT_LANGUAGES;
+  const starterCode: Record<string, string> = linkedProblemId ? opts.starter_code ?? {} : {};
+
   const [isExecuting, setIsExecuting] = useState(false);
   const [output, setOutput] = useState<string[]>([]);
-  const [activeLang, setActiveLang] = useState("python");
+  const [activeLang, setActiveLang] = useState<string>(responseData?.language || allowedLanguages[0] || "python");
+
+  const runSamples = async (languageOverride: string, code: string) => {
+    const r = await apiClient.post<any>("/api/practice/exam-run", {
+      session_id: sessionId,
+      question_id: question.id,
+      language: languageOverride,
+      code,
+    });
+    const lines = [`${String(r.verdict).replace(/_/g, " ")} — ${r.passed_count}/${r.total_count} sample tests passed`];
+    if (r.compile_output) lines.push(...String(r.compile_output).split("\n"));
+    for (const c of r.cases ?? []) {
+      lines.push(`Case ${c.index + 1}: ${c.passed ? "passed" : "failed"}`);
+      if (!c.passed) {
+        if (c.error) lines.push(`  error: ${c.error}`);
+        else lines.push(`  output: ${c.output}`, `  expected: ${c.expected}`);
+      }
+      if (c.stdout) lines.push(`  stdout: ${String(c.stdout).trim()}`);
+    }
+    setOutput(lines);
+  };
 
   const runCode = async (languageOverride = activeLang) => {
-    if (!responseData?.text) return;
+    const code = responseData?.text || starterCode[languageOverride];
+    if (!code) return;
     setIsExecuting(true);
     setOutput(["Executing code..."]);
     try {
       if (!sessionId) throw new Error("Exam session is not ready");
-      
+      if (linkedProblemId) {
+        await runSamples(languageOverride, code);
+        return;
+      }
+
       const data = await apiClient.post<any>("/api/code/execute", {
         session_id: sessionId,
         question_id: question.id,
@@ -62,10 +101,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       let outLines: string[] = [];
       if (data.stderr) {
          outLines.push("=== Error ===");
-         outLines = outLines.concat(data.stderr.split('\\n'));
+         outLines = outLines.concat(data.stderr.split("\n"));
       }
       if (data.stdout) {
-         outLines = outLines.concat(data.stdout.split('\\n'));
+         outLines = outLines.concat(data.stdout.split("\n"));
       }
       if (outLines.length === 0 || (outLines.length === 1 && outLines[0] === "")) {
         outLines = ["(Program exited successfully with no output)"];
@@ -180,10 +219,15 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
         {/* Title & Content */}
         <h2 className="text-lg font-bold text-slate-900 mb-2">{question.title}</h2>
-        <div
-          className="prose prose-slate max-w-none text-slate-700 text-sm mb-6 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: question.content_rich_text }}
-        />
+        {linkedProblemId ? (
+          <Markdown source={question.content_rich_text} className="mb-6 text-sm text-slate-700" />
+        ) : (
+          <div
+            className="prose prose-slate max-w-none text-slate-700 text-sm mb-6 leading-relaxed"
+            // Question text may come from CSV imports or AI generation: strip scripts and handlers.
+            dangerouslySetInnerHTML={{ __html: typeof window === "undefined" ? "" : DOMPurify.sanitize(question.content_rich_text) }}
+          />
+        )}
 
         {/* Answer Options / Inputs */}
         <div className="space-y-3 mt-4">
@@ -321,7 +365,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   height="100%"
                   theme="vs"
                   language="sql"
-                  value={responseData?.text || "-- Write your SQL query here\n"}
+                  value={responseData?.text || starterCode.sql || "-- Write your SQL query here\n"}
                   onChange={(val) => onAnswerChange({ text: val || "" })}
                   options={{
                     minimap: { enabled: false },
@@ -360,11 +404,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                     }}
                     className="bg-white border border-slate-200 text-xs text-slate-800 rounded-lg px-2 py-1 outline-none font-medium"
                   >
-                    <option value="python">Python</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="java">Java</option>
-                    <option value="c">C</option>
-                    <option value="cpp">C++</option>
+                    {allowedLanguages.map((lang) => (
+                      <option key={lang} value={lang}>{LANGUAGE_NAMES[lang] ?? lang}</option>
+                    ))}
                   </select>
                 </div>
                 <button 
@@ -381,7 +423,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   height="100%"
                   theme="vs"
                   language={activeLang}
-                  value={responseData?.text || "# Write your code here\n"}
+                  value={responseData?.text || starterCode[activeLang] || "# Write your code here\n"}
                   onChange={(val) => onAnswerChange({ text: val || "", language: activeLang })}
                   options={{
                     minimap: { enabled: false },

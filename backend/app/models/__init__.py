@@ -59,3 +59,11 @@ __all__ = [
 ]
 
 from app.models.batch import Batch
+from app.models.practice import (  # noqa: E402
+    JudgeMode,
+    PracticeProblem,
+    PracticeSubmission,
+    PracticeTestCase,
+    ProblemDifficulty,
+    Verdict,
+)

@@ -22,3 +22,10 @@ class InterviewScoreCreate(BaseModel):
 class InterviewTranscriptUpdate(BaseModel):
     segments: list[Dict[str, Any]] = Field(default_factory=list)
     language: Optional[str] = None
+
+class InterviewStatusUpdate(BaseModel):
+    status: Literal["SCHEDULED", "READY", "LIVE", "COMPLETED"]
+
+
+class InterviewTopicsUpdate(BaseModel):
+    topics: list[str] = Field(default_factory=list, max_length=30)

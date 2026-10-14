@@ -1,8 +1,4 @@
-import json
-import uuid
 import asyncio
-import redis.asyncio as redis
-from app.core.config import settings
 import datetime
 import uuid
 from typing import Optional
@@ -35,7 +31,52 @@ def extract_option_val(val) -> str:
     return str(val).strip()
 
 
+def _normalize_output(text: str) -> str:
+    return "\n".join(line.rstrip() for line in (text or "").strip().splitlines())
+
+
 class GradingService:
+    async def _grade_code(self, code: str, language: str, test_cases: list, points: float) -> tuple[float, Optional[bool]]:
+        """Run a coding answer against stdin/stdout test cases on the sandbox.
+
+        Returns (marks, is_correct). is_correct is None when the engine is
+        unavailable, so the answer falls back to manual grading.
+        """
+        language = "cpp" if language.lower() in ("c++", "cpp") else language.lower()
+        results = await asyncio.gather(*[
+            sandbox_service.execute_async(language, code, str(tc.get("input", "")), 5.0, 128) for tc in test_cases
+        ])
+        if any(r.status == "system_error" for r in results):
+            return 0.0, None
+        passed = sum(
+            1
+            for tc, r in zip(test_cases, results)
+            if r.status == "success" and _normalize_output(r.stdout) == _normalize_output(str(tc.get("output", "")))
+        )
+        return points * passed / len(test_cases), passed == len(test_cases)
+
+    async def _grade_practice_problem(
+        self, db: AsyncSession, problem_id: str, code: str, language: str, points: float
+    ) -> tuple[float, Optional[bool]]:
+        """Grade against every test of a linked practice problem (hidden ones included)."""
+        from app.models.practice import PracticeProblem, Verdict
+        from app.services.practice_judge import JudgeCase, JudgeSpecError, judge
+
+        problem = (await db.execute(
+            select(PracticeProblem).options(selectinload(PracticeProblem.test_cases))
+            .where(PracticeProblem.id == uuid.UUID(problem_id))
+        )).scalar_one_or_none()
+        if problem is None or not problem.test_cases:
+            return 0.0, None
+        cases = [JudgeCase(tc.input_data, tc.expected_output, tc.is_sample) for tc in problem.test_cases]
+        try:
+            outcome = await judge(problem, language.lower(), code, cases)
+        except JudgeSpecError:
+            return 0.0, False  # e.g. a language this problem doesn't support
+        if outcome.verdict == Verdict.SYSTEM_ERROR:
+            return 0.0, None
+        return points * outcome.passed_count / len(cases), outcome.verdict == Verdict.ACCEPTED
+
     async def grade_session(self, db: AsyncSession, session_id: uuid.UUID) -> ExamSession:
         """Grades an exam session and computes total score."""
         session = (await db.execute(
@@ -180,53 +221,30 @@ class GradingService:
                     except Exception:
                         logger.warning("Essay response requires manual grading", extra={"response_id": str(response.id)})
                         is_correct = None
-            elif question.type == QuestionType.CODING:
+            elif question.type in (QuestionType.CODING, QuestionType.SQL):
                 code = response.response_data.get("text") or response.response_data.get("code")
-                language = response.response_data.get("language") or "python"
-                if code and language:
-                    # Async grading via Redis Sandbox Worker
-                    test_cases = []
-                    if isinstance(question.correct_answer, dict) and "test_cases" in question.correct_answer:
-                        test_cases = question.correct_answer["test_cases"]
-                        
-                    job_id = str(uuid.uuid4())
-                    r = None
-                    try:
-                        r = redis.from_url(str(settings.REDIS_URL))
-                        payload = json.dumps({
-                            "job_id": job_id,
-                            "language": language.lower(),
-                            "code": code,
-                            "test_cases": test_cases if test_cases else None
-                        })
-                        await r.rpush("examsentinel:sandbox:queue", payload)
-                        
-                        # Wait for execution to complete
-                        for _ in range(75):
-                            result_bytes = await r.get(f"examsentinel:sandbox:result:{job_id}")
-                            if result_bytes:
-                                res = json.loads(result_bytes)
-                                
-                                if res.get("status") == "success" and "test_results" in res:
-                                    passed = sum(1 for tr in res["test_results"] if tr.get("status") == "success")
-                                    total_tc = len(res["test_results"])
-                                    if total_tc > 0:
-                                        marks = question_points * (passed / total_tc)
-                                        is_correct = (passed == total_tc)
-                                    else:
-                                        marks = question_points
-                                        is_correct = True
-                                elif res.get("status") == "success":
-                                    marks = question_points
-                                    is_correct = True
-                                break
-                            await asyncio.sleep(0.2)
-                    except Exception:
-                        logger.warning("Coding response requires manual grading because the execution worker is unavailable", extra={"response_id": str(response.id)})
-                        is_correct = None
-                    finally:
-                        if r is not None:
-                            await r.aclose()
+                default_language = "sql" if question.type == QuestionType.SQL else "python"
+                language = response.response_data.get("language") or default_language
+                linked_problem = (
+                    question.correct_answer.get("practice_problem_id")
+                    if isinstance(question.correct_answer, dict) else None
+                )
+                test_cases = []
+                if isinstance(question.correct_answer, dict):
+                    test_cases = question.correct_answer.get("test_cases") or []
+                elif isinstance(question.correct_answer, list):
+                    test_cases = question.correct_answer
+                if code and linked_problem:
+                    marks, is_correct = await self._grade_practice_problem(db, linked_problem, code, language, question_points)
+                    if is_correct is None:
+                        logger.warning("Coding response requires manual grading because the execution engine is unavailable", extra={"response_id": str(response.id)})
+                elif code and test_cases and question.type == QuestionType.CODING:
+                    marks, is_correct = await self._grade_code(code, language, test_cases, question_points)
+                    if is_correct is None:
+                        logger.warning("Coding response requires manual grading because the execution engine is unavailable", extra={"response_id": str(response.id)})
+                else:
+                    # Nothing to run against (or no code): an instructor grades it.
+                    is_correct = None
             
             elif question.type == QuestionType.ESSAY:
                 # Manual grading required for essay

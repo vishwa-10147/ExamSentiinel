@@ -82,8 +82,15 @@ export default function QuestionsPage() {
     const form = new FormData();
     form.append("file", file);
     try {
-      await apiClient.upload("/api/questions/bulk", form);
-      toast.success("Questions imported successfully!");
+      const res = await apiClient.upload<{ inserted: number; skipped: number; errors: { line: number; error: string }[] }>(
+        "/api/questions/bulk",
+        form
+      );
+      toast.success(`Imported ${res.inserted} question(s).`);
+      if (res.skipped > 0) {
+        const first = res.errors.slice(0, 3).map((e) => `line ${e.line}: ${e.error}`).join("; ");
+        toast.error(`Skipped ${res.skipped} row(s): ${first}`, { duration: 10000 });
+      }
       void fetchQuestions();
     } catch (err: any) {
       console.error(err);

@@ -36,6 +36,18 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
+## Code runner (Piston, needs Docker Desktop)
+
+The public Piston API is whitelist-only since 2026-02-15, so code execution
+(practice problems, playground, coding exam questions) uses our own container:
+
+```bash
+docker compose -f docker-compose.piston.yml up -d --build
+.venv/Scripts/python.exe scripts/install_piston_runtimes.py   # once; runtimes persist in a volume
+```
+The backend reaches it at `PISTON_URL` (default `http://localhost:2000/api/v2/execute`).
+`infra/piston/Dockerfile` raises Piston's 100 kB request limit to 8 MB.
+
 ## Start
 
 Preferred: the Browser pane via `.claude/launch.json` configs `backend` then `frontend` (`preview_start`).
@@ -55,13 +67,21 @@ cd backend && ../.venv/Scripts/python.exe seed_admin.py
 ```
 Creates `admin@`, `proctor@`, `reviewer@`, `candidate@sentinel.edu`; the shared demo password is in `seed_admin.py`.
 
+Seed the practice problem bank (idempotent):
+```bash
+cd backend && ../.venv/Scripts/python.exe seed_practice.py
+```
+
 ## Smoke test
 
-1. `curl localhost:8000/api/health` → `database: healthy`. `redis: unhealthy` + HTTP 503 is expected without Redis; the app degrades gracefully.
+1. `curl localhost:8000/api/health` → 200 with `database: healthy`; without Redis the status is `degraded` (Redis is optional).
 2. Open `http://localhost:3000/auth/login`, sign in as `reviewer@sentinel.edu` → lands on `/reviewer/dashboard`; `GET /api/proctoring/review-queue` returns 200.
+3. `python scripts/e2e_roles_smoke.py` → every step passes (exam lifecycle for all roles, coding grading, practice).
 
 ## Known limits in local mode
 
-- No Redis → forgot-password / OTP endpoints return 500; coding answers fall back to manual grading.
-- Code execution calls the public Piston API (`emkc.org`), which needs a whitelisted token — runs may return `system_error`.
+- No Redis → reset codes live in process memory and rate limiting is skipped (fine for one local process).
+- No email provider → in DEBUG the password-reset code is written to the backend log.
+- Docker Desktop stopped → the code runner is down; restart Docker and the `examsentinel-piston` container comes back.
+- Without the Piston container, runs return `SYSTEM_ERROR` ("engine unavailable") and coding exam answers fall back to manual grading.
 - YOLO / Whisper packages are not installed → proctoring vision and interview transcription use mock fallbacks.

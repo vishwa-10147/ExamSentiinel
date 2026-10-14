@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { apiClient } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { UserPlus, Loader2, ArrowLeft } from "lucide-react";
+import { UserPlus, Loader2, ArrowLeft, Copy, KeyRound } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -29,6 +29,9 @@ export default function CreateUserPage() {
     rollNumber: "",
   });
   const [generatePassword, setGeneratePassword] = useState(true);
+  const [password, setPassword] = useState("");
+  // Shown once after creation when the server generated the password.
+  const [created, setCreated] = useState<{ email: string; temporary_password: string } | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
@@ -42,16 +45,21 @@ export default function CreateUserPage() {
     setLoading(true);
 
     try {
-      await apiClient.post("/api/users", {
+      const res = await apiClient.post<{ email: string; temporary_password?: string | null }>("/api/users", {
         full_name: formData.fullName,
         email: formData.email,
         role: formData.role,
         department: formData.department || undefined,
         batch_year: formData.batchYear ? Number(formData.batchYear) : undefined,
         roll_no: formData.rollNumber || undefined,
+        password: generatePassword ? undefined : password,
       });
       toast.success("User created successfully!");
-      router.push("/admin/users");
+      if (res.temporary_password) {
+        setCreated({ email: res.email, temporary_password: res.temporary_password });
+      } else {
+        router.push("/admin/users");
+      }
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : "Failed to create user.");
@@ -75,7 +83,40 @@ export default function CreateUserPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 max-w-2xl">
+      {created && (
+        <div className="max-w-2xl rounded-2xl border border-emerald-200 bg-emerald-50 p-6" role="status">
+          <h2 className="flex items-center gap-2 font-semibold text-emerald-900">
+            <KeyRound className="h-5 w-5" /> Account created for {created.email}
+          </h2>
+          <p className="mt-1 text-sm text-emerald-800">
+            Share this temporary password securely. It is shown only once; the user can change it from their profile.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <code className="flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 font-mono text-sm text-slate-900">
+              {created.temporary_password}
+            </code>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard?.writeText(created.temporary_password);
+                toast.success("Copied");
+              }}
+              className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
+            >
+              <Copy className="h-4 w-4" /> Copy
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/admin/users")}
+            className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            Done
+          </button>
+        </div>
+      )}
+
+      <div className={`bg-white rounded-2xl shadow-sm border border-slate-200 p-6 max-w-2xl ${created ? "hidden" : ""}`}>
         <form onSubmit={handleSubmit} className="space-y-6">
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -161,17 +202,35 @@ export default function CreateUserPage() {
             )}
           </div>
 
-          <div className="flex items-center pt-2">
-            <input
-              id="generatePassword"
-              type="checkbox"
-              checked={generatePassword}
-              onChange={(e) => setGeneratePassword(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="generatePassword" className="ml-2 block text-sm text-slate-700">
-              Generate Sequential Password and Email User
-            </label>
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center">
+              <input
+                id="generatePassword"
+                type="checkbox"
+                checked={generatePassword}
+                onChange={(e) => setGeneratePassword(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="generatePassword" className="ml-2 block text-sm text-slate-700">
+                Generate a secure temporary password (shown once after creating)
+              </label>
+            </div>
+            {!generatePassword && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  className="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end pt-4 border-t border-slate-100">
@@ -184,7 +243,7 @@ export default function CreateUserPage() {
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.fullName || !formData.email}
+              disabled={loading || !formData.fullName || !formData.email || (!generatePassword && password.length < 8)}
               className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
