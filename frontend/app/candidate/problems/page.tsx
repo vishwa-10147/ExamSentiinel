@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Code2, Flame, Search, Target, Trophy, X } from "lucide-react";
+import { BarChart3, Code2, Flame, Search, Target, Trophy, X } from "lucide-react";
 import {
   Difficulty,
   LeaderboardEntry,
@@ -82,7 +82,9 @@ export default function ProblemsPage() {
   const [difficulty, setDifficulty] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [tag, setTag] = useState<string>("");
-  const [sort, setSort] = useState<"difficulty" | "acceptance" | "title">("difficulty");
+  const [topic, setTopic] = useState<string>("");
+  const [showAllTags, setShowAllTags] = useState(false);
+  const [sort, setSort] = useState<"number" | "difficulty" | "acceptance" | "title">("number");
 
   const load = useCallback(async () => {
     try {
@@ -108,25 +110,33 @@ export default function ProblemsPage() {
     void load();
   }, [load]);
 
-  // Stable problem numbers, independent of filtering and sorting.
-  const numberOf = useMemo(() => new Map(problems.map((p, i) => [p.id, i + 1])), [problems]);
+  // Deep links such as /candidate/problems?topic=Graphs pre-select a topic.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("topic");
+    if (t) setTopic(t);
+  }, []);
+
+  // Problem numbers are stable IDs from the server; unnumbered problems sort last.
+  const idOf = (p: ProblemListItem) => p.number ?? Number.MAX_SAFE_INTEGER;
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = search.trim().toLowerCase().replace(/^#/, "");
     const rows = problems.filter(
       (p) =>
-        (!q || p.title.toLowerCase().includes(q) || p.tags.some((t) => t.includes(q))) &&
+        (!q || p.title.toLowerCase().includes(q) || p.slug.includes(q) || String(p.number ?? "") === q || p.tags.some((t) => t.includes(q))) &&
         (!difficulty || p.difficulty === difficulty) &&
         (!status || p.status === status) &&
+        (!topic || p.topic === topic) &&
         (!tag || p.tags.includes(tag))
     );
     const rank: Record<Difficulty, number> = { EASY: 0, MEDIUM: 1, HARD: 2 };
     return [...rows].sort((a, b) => {
       if (sort === "title") return a.title.localeCompare(b.title);
-      if (sort === "acceptance") return (b.acceptance_rate ?? -1) - (a.acceptance_rate ?? -1);
-      return rank[a.difficulty] - rank[b.difficulty] || (numberOf.get(a.id)! - numberOf.get(b.id)!);
+      if (sort === "acceptance") return (b.acceptance_rate ?? -1) - (a.acceptance_rate ?? -1) || idOf(a) - idOf(b);
+      if (sort === "difficulty") return rank[a.difficulty] - rank[b.difficulty] || idOf(a) - idOf(b);
+      return idOf(a) - idOf(b);
     });
-  }, [problems, search, difficulty, status, tag, sort, numberOf]);
+  }, [problems, search, difficulty, status, tag, topic, sort]);
 
   const counts = useMemo(() => {
     const c: Record<string, { total: number; solved: number }> = { "": { total: 0, solved: 0 } };
@@ -145,8 +155,9 @@ export default function ProblemsPage() {
     setDifficulty("");
     setStatus("");
     setTag("");
+    setTopic("");
   };
-  const hasFilters = search || difficulty || status || tag;
+  const hasFilters = search || difficulty || status || tag || topic;
 
   return (
     <div className="flex-1 overflow-auto p-6 pb-12 sm:p-8">
@@ -161,12 +172,20 @@ export default function ProblemsPage() {
               Practice coding problems with instant feedback. Practice never affects your exam results.
             </p>
           </div>
-          <Link
-            href="/candidate/practice"
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          >
-            Open Playground
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/candidate/progress"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              <BarChart3 className="h-4 w-4" /> Progress &amp; history
+            </Link>
+            <Link
+              href="/candidate/practice"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              Open Playground
+            </Link>
+          </div>
         </div>
 
         {error && (
@@ -233,7 +252,7 @@ export default function ProblemsPage() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search problems or tags"
+                  placeholder="Search by title, #ID or tag"
                   aria-label="Search problems"
                   className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                 />
@@ -244,9 +263,23 @@ export default function ProblemsPage() {
                 aria-label="Sort problems"
                 className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
               >
+                <option value="number">Sort: ID</option>
                 <option value="difficulty">Sort: Easy → Hard</option>
                 <option value="acceptance">Sort: Acceptance (high → low)</option>
                 <option value="title">Sort: Title</option>
+              </select>
+              <select
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                aria-label="Filter by topic"
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+              >
+                <option value="">All topics</option>
+                {(stats?.by_topic ?? []).map((t) => (
+                  <option key={t.topic} value={t.topic}>
+                    {t.topic} ({t.solved}/{t.total})
+                  </option>
+                ))}
               </select>
               <select
                 value={status}
@@ -289,7 +322,7 @@ export default function ProblemsPage() {
 
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {tags.map((t) => (
+                {(showAllTags ? tags : tags.slice(0, 16)).map((t) => (
                   <button
                     key={t}
                     onClick={() => setTag(tag === t ? "" : t)}
@@ -302,6 +335,11 @@ export default function ProblemsPage() {
                     {t}
                   </button>
                 ))}
+                {tags.length > 16 && (
+                  <button onClick={() => setShowAllTags((v) => !v)} className="px-2 py-1 text-xs font-medium text-blue-600 hover:underline">
+                    {showAllTags ? "Fewer tags" : `All ${tags.length} tags`}
+                  </button>
+                )}
               </div>
             )}
 
@@ -310,8 +348,9 @@ export default function ProblemsPage() {
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900/50">
                   <tr>
                     <th className="w-12 px-4 py-3">Status</th>
+                    <th className="w-14 px-2 py-3 text-right">#</th>
                     <th className="px-4 py-3">Title</th>
-                    <th className="hidden px-4 py-3 md:table-cell">Topics</th>
+                    <th className="hidden px-4 py-3 md:table-cell">Topic</th>
                     <th className="w-28 px-4 py-3 text-right">Acceptance</th>
                     <th className="w-28 px-4 py-3">Difficulty</th>
                   </tr>
@@ -320,32 +359,39 @@ export default function ProblemsPage() {
                   {loading &&
                     Array.from({ length: 6 }).map((_, i) => (
                       <tr key={i}>
-                        <td colSpan={5} className="px-4 py-3">
+                        <td colSpan={6} className="px-4 py-3">
                           <div className="h-4 animate-pulse rounded bg-slate-100 dark:bg-slate-700" />
                         </td>
                       </tr>
                     ))}
                   {!loading && filtered.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-slate-500">
+                      <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
                         No problems match these filters.
                       </td>
                     </tr>
                   )}
-                  {filtered.map((p, i) => (
+                  {filtered.map((p) => (
                     <tr key={p.id} className="transition hover:bg-slate-50 dark:hover:bg-slate-700/40">
                       <td className="px-4 py-3"><StatusIcon status={p.status} /></td>
+                      <td className="px-2 py-3 text-right tabular-nums text-slate-400">{p.number ?? "—"}</td>
                       <td className="px-4 py-3">
                         <Link href={`/candidate/problems/${p.slug}`} className="font-medium text-slate-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
-                          {numberOf.get(p.id)}. {p.title}
+                          {p.title}
                         </Link>
+                        <div className="mt-0.5 flex flex-wrap gap-1 md:hidden">
+                          {p.topic && <span className="text-[11px] text-slate-500">{p.topic}</span>}
+                        </div>
                       </td>
                       <td className="hidden px-4 py-3 md:table-cell">
-                        <div className="flex flex-wrap gap-1">
-                          {p.tags.slice(0, 3).map((t) => (
-                            <span key={t} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600 dark:bg-slate-700 dark:text-slate-300">{t}</span>
-                          ))}
-                        </div>
+                        {p.topic && (
+                          <button
+                            onClick={() => setTopic(topic === p.topic ? "" : p.topic!)}
+                            className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-blue-50 hover:text-blue-700 dark:bg-slate-700 dark:text-slate-300"
+                          >
+                            {p.topic}
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">
                         {p.acceptance_rate != null ? `${p.acceptance_rate}%` : "—"}
@@ -360,6 +406,33 @@ export default function ProblemsPage() {
 
           {/* Sidebar */}
           <aside className="space-y-6">
+            {stats && (stats.by_topic?.length ?? 0) > 0 && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <h2 className="mb-3 text-sm font-bold text-slate-900 dark:text-white">Topics</h2>
+                <ul className="space-y-2">
+                  {stats.by_topic.map((t) => (
+                    <li key={t.topic}>
+                      <button
+                        onClick={() => setTopic(topic === t.topic ? "" : t.topic)}
+                        aria-pressed={topic === t.topic}
+                        className={`w-full rounded-lg px-2 py-1 text-left text-xs transition ${
+                          topic === t.topic ? "bg-blue-50 dark:bg-blue-500/10" : "hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                        }`}
+                      >
+                        <div className="flex justify-between gap-2">
+                          <span className="font-medium text-slate-700 dark:text-slate-200">{t.topic}</span>
+                          <span className="tabular-nums text-slate-500">{t.solved}/{t.total}</span>
+                        </div>
+                        <div className="mt-1 h-1 rounded-full bg-slate-100 dark:bg-slate-700">
+                          <div className="h-1 rounded-full bg-emerald-500" style={{ width: `${t.total ? (100 * t.solved) / t.total : 0}%` }} />
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
               <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
                 <Trophy className="h-4 w-4 text-amber-500" /> Top Solvers

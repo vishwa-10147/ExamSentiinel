@@ -63,6 +63,7 @@ services:
     - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
     - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:3000","http://127.0.0.1:3000","http://localhost:8000"]}
     - CV_MODEL_PATH=${CV_MODEL_PATH:-/ai/models/yolo11n.pt}
+    - PISTON_URL=${PISTON_URL:-http://piston:2000/api/v2/execute}
     ports:
     - ${BACKEND_PORT:-8000}:8000
     volumes:
@@ -99,28 +100,37 @@ services:
     - backend
     networks:
     - examsentinel-network
-  sandbox-worker:
+  # Code execution engine. User code runs only here, inside Piston's per-run
+  # isolate sandbox (no network, non-root, CPU/memory/process/file limits). The
+  # container is privileged so it can create those sandboxes; nothing mounts the
+  # Docker socket. Install runtimes once: python scripts/install_piston_runtimes.py
+  piston:
     build:
-      context: ./execution-workers
-      dockerfile: Dockerfile
-    container_name: examsentinel-sandbox-worker
+      context: ./infra/piston
+    image: examsentinel-piston:latest
+    container_name: examsentinel-piston
     restart: unless-stopped
+    privileged: true
     environment:
-    - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-    - SANDBOX_REDIS_QUEUE=${SANDBOX_REDIS_QUEUE:-examsentinel:sandbox:queue}
-    - SANDBOX_CPU_LIMIT=${SANDBOX_CPU_LIMIT:-1.0}
-    - SANDBOX_MEMORY_LIMIT_MB=${SANDBOX_MEMORY_LIMIT_MB:-256}
-    - SANDBOX_TIMEOUT_SEC=${SANDBOX_TIMEOUT_SEC:-5.0}
-    depends_on:
-      redis:
-        condition: service_healthy
+    - PISTON_RUN_TIMEOUT=10000
+    - PISTON_COMPILE_TIMEOUT=15000
+    - PISTON_OUTPUT_MAX_SIZE=8388608
+    - PISTON_MAX_PROCESS_COUNT=64
+    - PISTON_RUN_MEMORY_LIMIT=268435456
+    - PISTON_COMPILE_MEMORY_LIMIT=536870912
+    ports:
+    - 127.0.0.1:2000:2000
+    volumes:
+    - piston_packages:/piston/packages
+    tmpfs:
+    - /piston/jobs:exec,uid=1000,gid=1000,mode=711
+    - /tmp:exec
     networks:
     - examsentinel-network
-    volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
 networks:
   examsentinel-network:
     driver: bridge
 volumes:
   postgres_data: null
   redis_data: null
+  piston_packages: null

@@ -1,4 +1,5 @@
 import ipaddress
+from collections import deque
 from typing import AsyncGenerator, Callable, List, Optional
 import uuid
 from fastapi import Depends, HTTPException, Request, status
@@ -209,17 +210,42 @@ from app.core.redis_client import redis_breaker, redis_client
 import time
 from fastapi import Request
 
-def RateLimiter(calls: int, period: int):
+# Per-process sliding windows used when Redis is unavailable (see RateLimiter).
+_local_windows: dict[str, "deque[float]"] = {}
+_LOCAL_WINDOW_MAX_KEYS = 50_000
+
+
+def _local_rate_limit(key: str, calls: int, period: int, now: float) -> None:
+    window = _local_windows.get(key)
+    if window is None:
+        if len(_local_windows) >= _LOCAL_WINDOW_MAX_KEYS:
+            _local_windows.clear()  # bounded memory; a reset only loosens limits briefly
+        window = _local_windows[key] = deque()
+    while window and window[0] <= now - period:
+        window.popleft()
+    if len(window) >= calls:
+        logger.warning("rate_limit_exceeded", key=key, backend="local")
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too Many Requests")
+    window.append(now)
+
+
+def RateLimiter(calls: int, period: int, local_fallback: bool = False):
     """
     Returns a FastAPI dependency that implements a sliding window rate limit using Redis.
     Uses MULTI/EXEC pipeline to ensure atomicity.
+
+    Without Redis the limit is skipped, unless ``local_fallback`` is set: then a
+    per-process window enforces it (used for code execution, which must stay
+    limited even when Redis is down; with N workers the effective limit is N x calls).
     """
     async def rate_limit_dependency(request: Request):
-        if redis_breaker.is_open:
-            return  # Redis recently unreachable: rate limiting is best-effort
         client_ip = extract_client_ip(request) or "127.0.0.1"
         key = f"rate_limit:{request.url.path}:{client_ip}"
         now = time.time()
+        if redis_breaker.is_open:
+            if local_fallback:
+                _local_rate_limit(key, calls, period, now)
+            return  # Redis recently unreachable: rate limiting is best-effort
         
         try:
             # Redis MULTI/EXEC block for sliding window
@@ -248,5 +274,7 @@ def RateLimiter(calls: int, period: int):
                 raise e
             redis_breaker.trip()
             logger.debug(f"Redis rate limiter failed, bypassing: {e}")
+            if local_fallback:
+                _local_rate_limit(key, calls, period, now)
             
     return rate_limit_dependency

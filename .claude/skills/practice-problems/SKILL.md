@@ -8,7 +8,7 @@ allowed-tools: Bash, Read, Edit
 # Practice problems
 
 Code: `backend/app/services/practice_judge.py` (judge + harness), `backend/app/api/practice.py` (API),
-`backend/practice_bank/` (problem definitions: `core`, `algorithms`, `sql`) + `backend/seed_practice.py` (seeder), `frontend/app/candidate/problems/` (student UI), `frontend/app/admin/problems/` (authoring UI).
+`backend/practice_bank/` (problem definitions: `core`, `algorithms`, `sql`, `dsa_basics`, `dsa_search_lists`, `dsa_structures`, `dsa_advanced`; numbers/topics for the first three in `metadata.py`) + `backend/seed_practice.py` (seeder), `frontend/app/candidate/problems/` (student UI), `frontend/app/admin/problems/` (authoring UI).
 
 ## Answer styles
 
@@ -18,8 +18,14 @@ Code: `backend/app/services/practice_judge.py` (judge + harness), `backend/app/a
 | `STDIO` | a full program reading stdin | raw stdin (≤ 128 KB) | stdout, trailing whitespace ignored |
 | `SQL` | one SQLite `SELECT` | `INSERT`s for that dataset (schema in `sql_schema`) | JSON array of rows; any order unless `compare_mode="exact"` |
 
-`function_spec` types: `int long double bool string`, their `[]` arrays, `int[][]`, `string[][]`.
-`compare_mode`: `exact`, `unordered` (list in any order), `float` (1e-5).
+`function_spec` types: `int long double bool string`, their `[]` arrays, `int[][]`, `string[][]`, `ListNode`
+(JSON array), `TreeNode` (level order with nulls). Params may be `"internal": true` (in the input, not passed);
+`"cycle": {"list": …, "pos": …}` wires a list's tail to node `pos`.
+`compare_mode`: `exact`, `unordered` (list in any order), `float` (1e-5), `checker` (Python `check(args, output, expected)`
+in the problem's `checker` — bank only; the admin API refuses checkers).
+
+Every bank problem needs `number` (permanent, next free — 116 DSA + SQL 201–211 as of 2026-10-14), `topic`
+(from `common.TOPICS`), `complexity`, `editorial`, `hints`, 2–3 samples, ≥ 2 hidden. `tests/test_practice_bank.py` enforces this.
 
 ## Adding problems
 
@@ -41,7 +47,8 @@ Then:
 ```bash
 cd backend && ../.venv/Scripts/python.exe seed_practice.py
 ```
-and validate (admin UI: Practice Problems → shield icon, or `POST /api/practice/admin/problems/{id}/validate`).
+and validate (admin UI: Practice Problems → shield icon, or `POST /api/practice/admin/problems/{id}/validate`),
+or with Piston up: `python -m pytest tests/test_sandbox_engine.py -k <slug>` (runs the reference on the engine).
 A problem is only ready when its reference passes **every** test on the real engine.
 
 ## How the judge runs code
@@ -67,4 +74,5 @@ the band (≥ 60% Easy, 35–60% Medium, < 35% Hard).
 1. Reproduce with `judge()` directly (see `tests/test_practice.py::test_real_engine_*`).
 2. `COMPILE_ERROR` on every language → check the harness template for that language.
 3. Verdicts on big inputs only → Piston limits (`docker-compose.piston.yml`: run timeout 10 s, output 8 MB).
-4. Add a regression test to `tests/test_practice.py`.
+4. Add a regression test to `tests/test_practice.py` (faked engine) or `tests/test_sandbox_engine.py` (real engine).
+5. Total test data per problem must stay under ~6 MB (8 MB request after base64) — graph problems are capped at n ≤ 5·10^4.

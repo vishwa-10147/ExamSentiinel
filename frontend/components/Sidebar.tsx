@@ -24,6 +24,7 @@ import {
   User,
   Code2,
   Library,
+  BarChart3,
   LogOut,
   CheckCircle2,
   AlertTriangle,
@@ -69,6 +70,7 @@ export default function Sidebar() {
     // Candidate routes
     { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
     { label: "Problem Set", href: "/candidate/problems", icon: Library, roles: ["candidate"] },
+    { label: "Practice Progress", href: "/candidate/progress", icon: BarChart3, roles: ["candidate"] },
     { label: "Code Playground", href: "/candidate/practice", icon: Code2, roles: ["candidate"] },
     { label: "My Results", href: "/candidate/results", icon: FileCheck2, roles: ["candidate"] },
     { label: "Leaderboard", href: "/candidate/leaderboard", icon: Trophy, roles: ["candidate"] },

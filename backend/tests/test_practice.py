@@ -416,7 +416,10 @@ async def test_problem_added_to_exam_is_run_and_graded_by_its_tests(async_client
     # The candidate sees starter code but never the tests or the link's answer.
     q = next(q for q in session["questions"] if q["id"] == qid)
     assert q["type"] == "CODING" and "python" in q["options"]["starter_code"]
-    assert "test_cases" not in json.dumps(q) and "99" not in json.dumps(q["options"])
+    assert "test_cases" not in json.dumps(q)
+    # The hidden case's expected output (99) must not leak; ignore the random problem UUID, which may contain "99".
+    visible_options = {k: v for k, v in q["options"].items() if k != "practice_problem_id"}
+    assert "99" not in json.dumps(visible_options)
 
     # Run = sample tests only (one sample in PROBLEM_PAYLOAD).
     fake_sandbox.result = SandboxResult("success", _records({"i": 0, "ok": True, "result": 6, "ms": 1, "stdout": ""}), "", 0, 5)

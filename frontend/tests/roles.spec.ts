@@ -35,11 +35,11 @@ async function setEditorCode(page: Page, code: string) {
 test("candidate solves a practice problem: run then submit", async ({ page }) => {
   await login(page, "candidate@sentinel.edu");
   await page.goto("/candidate/problems");
-  await expect(page.getByRole("heading", { name: "Problem Set" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Problem Set" })).toBeVisible({ timeout: 20000 });
   await expect(page.getByRole("tab", { name: /Hard/ })).toBeVisible();
 
   await page.goto("/candidate/problems/balanced-brackets");
-  await expect(page.getByRole("heading", { name: "Balanced Brackets" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Balanced Brackets" })).toBeVisible({ timeout: 20000 });
   await setEditorCode(
     page,
     [
@@ -64,6 +64,63 @@ test("candidate solves a practice problem: run then submit", async ({ page }) =>
 
   await page.getByRole("button", { name: "Submit" }).click();
   await expect(page.getByText("Solution recorded in your submissions.")).toBeVisible({ timeout: 30000 });
+});
+
+test("candidate browses the DSA bank by topic and ID", async ({ page }) => {
+  await login(page, "candidate@sentinel.edu");
+  await page.goto("/candidate/problems?topic=Linked%20Lists");
+  const rows = page.locator("tbody tr");
+  await expect(rows).toHaveCount(8, { timeout: 20000 });
+  await expect(rows.first()).toContainText("Reverse a Linked List");
+
+  await page.getByLabel("Filter by topic").selectOption("");
+  await page.getByLabel("Search problems").fill("#111");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText("Order the Tasks");
+
+  await page.getByLabel("Search problems").fill("");
+  await page.getByLabel("Sort problems").selectOption("number");
+  await expect(rows.first()).toContainText("Pair With Target Sum");
+  expect(await rows.count()).toBeGreaterThanOrEqual(127);
+});
+
+test("candidate solves a linked-list problem in C++ and unlocks the editorial", async ({ page }) => {
+  await login(page, "candidate@sentinel.edu");
+  await page.goto("/candidate/problems/middle-node");
+  await expect(page.getByRole("heading", { name: /77\. / })).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText("Input format")).toBeVisible();
+
+  await page.getByLabel("Language").selectOption("cpp");
+  await setEditorCode(
+    page,
+    "class Solution {\npublic:\n    ListNode* middleNode(ListNode* head) {\n        ListNode *slow = head, *fast = head;\n        while (fast && fast->next) { slow = slow->next; fast = fast->next->next; }\n        return slow;\n    }\n};\n"
+  );
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText("Solution recorded in your submissions.")).toBeVisible({ timeout: 60000 });
+
+  await page.getByRole("tab", { name: "Editorial" }).click();
+  await expect(page.getByText("Approach")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/Solve this problem to unlock/)).toHaveCount(0);
+});
+
+test("candidate sees progress by topic and submission history", async ({ page }) => {
+  await login(page, "candidate@sentinel.edu");
+  await page.goto("/candidate/progress");
+  await expect(page.getByRole("heading", { name: "Practice Progress" })).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole("heading", { name: "By topic" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Graphs/ })).toBeVisible();
+  await expect(page.getByText(/Submission history \(\d+\)/)).toBeVisible();
+});
+
+test("candidate runs a C program with stdin in the playground", async ({ page }) => {
+  await login(page, "candidate@sentinel.edu");
+  await page.goto("/candidate/practice");
+  await page.getByLabel("Language").selectOption("c");
+  await setEditorCode(page, '#include <stdio.h>\nint main(void) {\n    int a, b;\n    scanf("%d %d", &a, &b);\n    printf("%d\\n", a * b);\n    return 0;\n}\n');
+  await page.getByLabel("Standard input").fill("6 7");
+  await page.getByRole("button", { name: "Run" }).click();
+  await expect(page.locator("pre").filter({ hasText: "42" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Finished")).toBeVisible();
 });
 
 test("candidate is kept out of staff areas", async ({ page }) => {

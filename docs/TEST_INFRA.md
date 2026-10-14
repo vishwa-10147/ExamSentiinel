@@ -1,4 +1,38 @@
-# ExamSentinel — E2E Test Infrastructure & Specification (Tiers 1–4)
+# ExamSentinel — Test Infrastructure
+
+## Current suites and latest results
+
+Recorded 2026-10-14 on Windows 11 with the Piston engine running (so no real-engine test was
+skipped). Re-run them yourself; do not rely on these numbers after code changes.
+
+| Suite | Command | Result |
+|---|---|---|
+| Backend (unit, API, bank, real engine) | `cd backend && ../.venv/Scripts/python -m pytest -q -p no:cacheprovider` | **564 passed**, 0 failed, 0 skipped (9 min) |
+| Frontend type check | `cd frontend && npx tsc --noEmit` | 0 errors |
+| Frontend lint | `cd frontend && npx next lint` | no warnings or errors |
+| Production build | `cd frontend && npm run build` | compiled; 45 static pages; 0 warnings |
+| Browser (Playwright) | `cd frontend && PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test` | **25 passed** |
+| Live end-to-end | `python scripts/e2e_roles_smoke.py` | **73/73 steps passed** |
+
+Backend test files:
+
+| File | Tests | Needs |
+|---|---|---|
+| `test_practice_bank.py` | 247 | nothing — ≥ 100 DSA problems, topic minimums, unique/stable IDs, required fields per problem, harness generation in every language, checker behaviour, idempotent seeding |
+| `test_sandbox_engine.py` | 159 | **Piston** (skipped otherwise): programs in C/C++/Java/Python/JS with stdin/stdout/stderr, compile and runtime errors, isolation and limits (network, time, memory, processes, output, file size, non-root, no Docker socket, no secrets, no persistence), Java/C++/JS solutions for list/tree/checker problems, and **every reference solution** in the bank |
+| `test_practice.py` | 34 | faked engine (2 real-engine cases need Piston): verdict logic, harness, admin authoring, hidden-data redaction, SQL mode, practice-in-exam grading |
+| `test_practice_dsa_api.py` | 8 | faked engine: IDs/topics/sort/search, editorial gating, checker never exposed or settable, number uniqueness, history and topic progress, playground limits, rate limiting without Redis |
+| other `test_*.py` | 116 | auth, RBAC, SSO, password reset, exams, proctoring/AI, interviews, IRT, adversarial and security checks |
+
+Browser tests (`frontend/tests/*.spec.ts`): unauthenticated route protection, login/registration
+rendering, and role journeys against the running stack — solving a problem (Run + Submit),
+browsing the DSA bank by topic/ID, solving a linked-list problem in C++ and unlocking its
+editorial, the progress page, a C program with stdin in the playground, staff-area protection,
+admin user creation and problem authoring, reviewer/proctor dashboards.
+
+---
+
+The rest of this document is the original E2E test specification (Tiers 1–4).
 
 ## 1. Test Philosophy
 

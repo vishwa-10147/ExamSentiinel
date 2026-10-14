@@ -21,6 +21,8 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
 - `backend/app/services/` — business logic: `risk_engine.py` (weighted event score → LOW/MEDIUM/HIGH/CRITICAL; opens a ReviewCase at MEDIUM), `grading_service.py` (coding answers run on the sandbox), `sandbox_service.py` (self-hosted Piston via `PISTON_URL`), `practice_judge.py` (LeetCode-style judge), `irt_service.py`.
 - Code execution: `docker-compose.piston.yml` + `infra/piston/` (our Piston image). The public emkc.org API is whitelist-only — never point back at it. Large inputs go in files, not stdin (Piston truncates stdin past ~200 kB).
 - `backend/app/models/` — SQLAlchemy 2 models; `backend/alembic/versions/` — Postgres-only migrations.
+- `backend/practice_bank/` — 116 DSA + 11 SQL practice problems (permanent `number`s; append-only, shared seeded RNG); `seed_practice.py` computes expected outputs by running references. Docs: `docs/DSA_QUESTION_BANK.md`, `docs/CODE_EXECUTION.md`, `docs/SECURITY.md` (only verified controls), `docs/API.md`.
+- `backend/tests/test_sandbox_engine.py` — real-Piston tests (isolation, limits, all references); skipped when the engine is down.
 - `backend/requirements-ai.txt` — optional CPU PyTorch + ultralytics for webcam phone/person detection (`ai/models/yolo11n.pt`).
 - Auth: password login and OpenID Connect SSO (`app/api/sso.py`, `services/sso_service.py`; providers via `SSO_*`
   env vars) share `issue_login_session` in `app/api/auth.py`. Password reset codes live in `services/otp_store.py`.
