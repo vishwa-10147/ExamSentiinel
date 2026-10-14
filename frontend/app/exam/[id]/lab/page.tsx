@@ -134,7 +134,7 @@ export default function LabExamPage() {
             </div>
             <div className="flex-1 p-4 overflow-y-auto font-mono text-sm">
               {output.length === 0 ? (
-                <span className="text-slate-500">Output will appear here...</span>
+                <span className="text-slate-500 dark:text-slate-400">Output will appear here...</span>
               ) : (
                 output.map((line, i) => (
                   <div key={i} className="text-slate-300">{line}</div>

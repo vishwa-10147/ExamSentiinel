@@ -169,13 +169,13 @@ export default function BroadcastPage() {
   return (
     <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Mail className="h-6 w-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Mail className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             Email Broadcast Center
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Dispatch announcements, urgent exam reminders, and automated notices to targeted groups.
           </p>
         </div>
@@ -183,17 +183,17 @@ export default function BroadcastPage() {
         {/* SMTP Health Badge */}
         <div className="flex items-center gap-3">
           {statusLoading ? (
-            <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+            <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking SMTP Status...
             </div>
           ) : status?.configured ? (
-            <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-3 py-1.5 rounded-full">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               <span>SMTP Ready ({status.sender})</span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full" title="ENABLE_EMAILS is false or SMTP server settings are unconfigured in environment">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
+            <div className="flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-3 py-1.5 rounded-full" title="ENABLE_EMAILS is false or SMTP server settings are unconfigured in environment">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <span>SMTP Unconfigured (Sandbox Mode)</span>
             </div>
           )}
@@ -204,18 +204,18 @@ export default function BroadcastPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Form & Editor (2 Cols) */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
             
             {/* Header Tabs */}
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/50">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-6 py-4 bg-slate-50/50 dark:bg-slate-900/50">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setActiveTab("write")}
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                     activeTab === "write"
-                      ? "bg-white text-blue-600 shadow-sm border border-slate-200"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-slate-700"
+                      : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700"
                   }`}
                 >
                   <Edit3 className="h-4 w-4" /> Compose Message
@@ -226,15 +226,15 @@ export default function BroadcastPage() {
                   onClick={() => setActiveTab("preview")}
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                     activeTab === "preview"
-                      ? "bg-white text-blue-600 shadow-sm border border-slate-200"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-slate-700"
+                      : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700"
                   }`}
                 >
                   <Eye className="h-4 w-4" /> Live Email Preview
                 </button>
               </div>
 
-              <div className="text-xs text-slate-500 hidden sm:block">
+              <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
                 {wordCount} words • ~{estimatedReadTime} min read
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function BroadcastPage() {
               
               {/* Recipient Targeting Selector */}
               <div className="space-y-3">
-                <label className="block text-sm font-semibold text-slate-900">
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
                   Target Audience
                 </label>
                 
@@ -254,13 +254,13 @@ export default function BroadcastPage() {
                     onClick={() => setRecipientCategory("role")}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       recipientCategory === "role"
-                        ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20"
-                        : "border-slate-200 hover:border-slate-300 bg-white"
+                        ? "border-blue-600 bg-blue-50/50 dark:bg-blue-500/10 ring-2 ring-blue-500/20"
+                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300 bg-white dark:bg-slate-800"
                     }`}
                   >
-                    <Users className={`h-5 w-5 mb-1 ${recipientCategory === "role" ? "text-blue-600" : "text-slate-400"}`} />
-                    <div className="text-sm font-medium text-slate-900">User Role</div>
-                    <div className="text-xs text-slate-500">Filter by system role</div>
+                    <Users className={`h-5 w-5 mb-1 ${recipientCategory === "role" ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                    <div className="text-sm font-medium text-slate-900 dark:text-white">User Role</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Filter by system role</div>
                   </button>
 
                   <button
@@ -268,13 +268,13 @@ export default function BroadcastPage() {
                     onClick={() => setRecipientCategory("exam")}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       recipientCategory === "exam"
-                        ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20"
-                        : "border-slate-200 hover:border-slate-300 bg-white"
+                        ? "border-blue-600 bg-blue-50/50 dark:bg-blue-500/10 ring-2 ring-blue-500/20"
+                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300 bg-white dark:bg-slate-800"
                     }`}
                   >
-                    <BookOpen className={`h-5 w-5 mb-1 ${recipientCategory === "exam" ? "text-blue-600" : "text-slate-400"}`} />
-                    <div className="text-sm font-medium text-slate-900">Exam Specific</div>
-                    <div className="text-xs text-slate-500">Candidates in exam</div>
+                    <BookOpen className={`h-5 w-5 mb-1 ${recipientCategory === "exam" ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                    <div className="text-sm font-medium text-slate-900 dark:text-white">Exam Specific</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Candidates in exam</div>
                   </button>
 
                   <button
@@ -282,24 +282,24 @@ export default function BroadcastPage() {
                     onClick={() => setRecipientCategory("all")}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       recipientCategory === "all"
-                        ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20"
-                        : "border-slate-200 hover:border-slate-300 bg-white"
+                        ? "border-blue-600 bg-blue-50/50 dark:bg-blue-500/10 ring-2 ring-blue-500/20"
+                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300 bg-white dark:bg-slate-800"
                     }`}
                   >
-                    <Layers className={`h-5 w-5 mb-1 ${recipientCategory === "all" ? "text-blue-600" : "text-slate-400"}`} />
-                    <div className="text-sm font-medium text-slate-900">All System Users</div>
-                    <div className="text-xs text-slate-500">Global announcement</div>
+                    <Layers className={`h-5 w-5 mb-1 ${recipientCategory === "all" ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                    <div className="text-sm font-medium text-slate-900 dark:text-white">All System Users</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Global announcement</div>
                   </button>
                 </div>
 
                 {/* Sub-selectors */}
                 {recipientCategory === "role" && (
                   <div className="pt-2">
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Select Role Group</label>
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Select Role Group</label>
                     <select
                       value={targetRole}
                       onChange={(e: any) => setTargetRole(e.target.value)}
-                      className="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      className="w-full border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                     >
                       <option value="candidate">Candidates (Students / Test Takers)</option>
                       <option value="proctor">Proctors & Invigilators</option>
@@ -311,16 +311,16 @@ export default function BroadcastPage() {
 
                 {recipientCategory === "exam" && (
                   <div className="pt-2">
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Select Target Exam</label>
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Select Target Exam</label>
                     {examsLoading ? (
-                      <div className="flex items-center gap-2 text-xs text-slate-500 p-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Loading active exams...
+                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 p-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" /> Loading active exams...
                       </div>
                     ) : (
                       <select
                         value={selectedExamId}
                         onChange={(e) => setSelectedExamId(e.target.value)}
-                        className="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        className="w-full border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                       >
                         {exams.map((ex) => (
                           <option key={ex.id} value={ex.id}>
@@ -338,7 +338,7 @@ export default function BroadcastPage() {
                 <div className="space-y-4">
                   {/* Subject Line */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-900 mb-1">
+                    <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-1">
                       Subject Line
                     </label>
                     <input
@@ -346,7 +346,7 @@ export default function BroadcastPage() {
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                       placeholder="e.g. Action Required: Mandatory Midterm Exam Guidelines & System Check"
-                      className="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5"
+                      className="w-full border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5"
                       required
                     />
                   </div>
@@ -354,24 +354,24 @@ export default function BroadcastPage() {
                   {/* Body Field */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-sm font-semibold text-slate-900">
+                      <label className="block text-sm font-semibold text-slate-900 dark:text-white">
                         Message Content
                       </label>
                       
                       {/* Placeholders Toolbar */}
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                         <span className="hidden sm:inline">Dynamic tags:</span>
                         <button
                           type="button"
                           onClick={() => insertVariable("user_name")}
-                          className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-mono border border-slate-200 transition"
+                          className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded font-mono border border-slate-200 dark:border-slate-700 transition"
                         >
                           {"{{user_name}}"}
                         </button>
                         <button
                           type="button"
                           onClick={() => insertVariable("exam_title")}
-                          className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-mono border border-slate-200 transition"
+                          className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded font-mono border border-slate-200 dark:border-slate-700 transition"
                         >
                           {"{{exam_title}}"}
                         </button>
@@ -383,15 +383,15 @@ export default function BroadcastPage() {
                       onChange={(e) => setBody(e.target.value)}
                       placeholder="Dear Candidate,&#10;&#10;Please be reminded that your upcoming assessment will begin promptly..."
                       rows={10}
-                      className="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 font-sans text-sm leading-relaxed"
+                      className="w-full border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 font-sans text-sm leading-relaxed"
                       required
                     />
                   </div>
                 </div>
               ) : (
                 /* Email HTML Live Preview Tab */
-                <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 p-4">
-                  <div className="bg-white rounded-lg shadow border border-slate-200 max-w-xl mx-auto overflow-hidden">
+                <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900 p-4">
+                  <div className="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 max-w-xl mx-auto overflow-hidden">
                     {/* Mock Email Header */}
                     <div className="bg-slate-900 text-white p-6 text-center">
                       <div className="text-xl font-bold tracking-tight text-blue-400">ExamSentinel</div>
@@ -399,14 +399,14 @@ export default function BroadcastPage() {
                     </div>
 
                     {/* Email Meta Bar */}
-                    <div className="bg-slate-50 border-b border-slate-200 px-6 py-3 text-xs text-slate-600 space-y-1">
-                      <div><strong className="text-slate-900">From:</strong> {status?.sender || "noreply@exams.myuniversity.edu"}</div>
-                      <div><strong className="text-slate-900">To:</strong> [Recipient Name] &lt;{getTargetDescription()}&gt;</div>
-                      <div><strong className="text-slate-900">Subject:</strong> {subject || "(No subject entered)"}</div>
+                    <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                      <div><strong className="text-slate-900 dark:text-white">From:</strong> {status?.sender || "noreply@exams.myuniversity.edu"}</div>
+                      <div><strong className="text-slate-900 dark:text-white">To:</strong> [Recipient Name] &lt;{getTargetDescription()}&gt;</div>
+                      <div><strong className="text-slate-900 dark:text-white">Subject:</strong> {subject || "(No subject entered)"}</div>
                     </div>
 
                     {/* Email Body */}
-                    <div className="p-6 text-slate-800 text-sm space-y-4 leading-relaxed whitespace-pre-wrap font-sans">
+                    <div className="p-6 text-slate-800 dark:text-slate-100 text-sm space-y-4 leading-relaxed whitespace-pre-wrap font-sans">
                       {body ? (
                         body
                       ) : (
@@ -415,7 +415,7 @@ export default function BroadcastPage() {
                     </div>
 
                     {/* Mock Email Footer */}
-                    <div className="bg-slate-50 border-t border-slate-200 p-6 text-center text-xs text-slate-500 space-y-2">
+                    <div className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 p-6 text-center text-xs text-slate-500 dark:text-slate-400 space-y-2">
                       <p>This is an official automated notification from ExamSentinel Administrative System.</p>
                       <p className="text-slate-400">© {new Date().getFullYear()} ExamSentinel Inc. All rights reserved.</p>
                     </div>
@@ -424,10 +424,10 @@ export default function BroadcastPage() {
               )}
 
               {/* Submit Section */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                <div className="text-xs text-slate-500 flex items-center gap-1.5">
+              <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   <Info className="h-4 w-4 text-blue-500" />
-                  Sending to <strong className="text-slate-800">{getTargetDescription()}</strong>
+                  Sending to <strong className="text-slate-800 dark:text-slate-100">{getTargetDescription()}</strong>
                 </div>
 
                 <button
@@ -448,12 +448,12 @@ export default function BroadcastPage() {
         <div className="space-y-6">
           
           {/* Quick Preset Templates */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-amber-500" />
               Quick Templates
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Click any template to quickly pre-populate subject and formatted text.
             </p>
 
@@ -466,13 +466,13 @@ export default function BroadcastPage() {
                     "Dear Candidate,\n\nPlease review your upcoming scheduled exam details on your dashboard.\n\nKey Requirements:\n1. Ensure a working webcam and microphone.\n2. Use a stable high-speed internet connection.\n3. Keep your photo ID handy for verification.\n\nGood luck with your examination!\n\nBest regards,\nExamSentinel Team"
                   )
                 }
-                className="w-full p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition group"
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-500/10 text-left transition group"
               >
-                <div className="text-xs font-semibold text-slate-900 group-hover:text-blue-600 flex items-center justify-between">
+                <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 flex items-center justify-between">
                   Exam Schedule Notice
                   <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600" />
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                   Pre-fills exam instructions, webcam requirements, and timing guidelines.
                 </div>
               </button>
@@ -485,13 +485,13 @@ export default function BroadcastPage() {
                     "Dear Users,\n\nPlease be advised that ExamSentinel will undergo routine system maintenance during the following window:\n\nDate & Time: Saturday 02:00 AM - 04:00 AM UTC\nExpected Downtime: 2 Hours\n\nNo active exams will be scheduled during this window. Thank you for your patience.\n\nExamSentinel Technical Team"
                   )
                 }
-                className="w-full p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition group"
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-500/10 text-left transition group"
               >
-                <div className="text-xs font-semibold text-slate-900 group-hover:text-blue-600 flex items-center justify-between">
+                <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 flex items-center justify-between">
                   System Maintenance
                   <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600" />
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                   Informs candidates and proctors of upcoming platform maintenance.
                 </div>
               </button>
@@ -504,13 +504,13 @@ export default function BroadcastPage() {
                     "Attention Candidates,\n\nOur AI proctoring system enforces strict academic integrity guidelines. During your assessment, the following actions will trigger automatic flag reports:\n\n- Looking away from screen continuously\n- Multiple face detections or unauthorized background voices\n- Switching browser tabs or windows\n\nFailure to comply may result in immediate session termination.\n\nAcademic Integrity Committee"
                   )
                 }
-                className="w-full p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition group"
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-500/10 text-left transition group"
               >
-                <div className="text-xs font-semibold text-slate-900 group-hover:text-blue-600 flex items-center justify-between">
+                <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 flex items-center justify-between">
                   Proctoring Warning
                   <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600" />
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                   Reminds test takers of anti-cheating guidelines and AI monitoring.
                 </div>
               </button>
@@ -537,33 +537,33 @@ export default function BroadcastPage() {
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-5">
-            <div className="flex items-center gap-3 text-amber-600">
-              <div className="p-3 bg-amber-50 rounded-xl">
-                <Send className="h-6 w-6 text-amber-600" />
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-5">
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+              <div className="p-3 bg-amber-50 dark:bg-amber-500/10 rounded-xl">
+                <Send className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Confirm Broadcast Dispatch</h3>
-                <p className="text-xs text-slate-500">Please review before sending mass email</p>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Confirm Broadcast Dispatch</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Please review before sending mass email</p>
               </div>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-200 text-xs">
+            <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl space-y-2 border border-slate-200 dark:border-slate-700 text-xs">
               <div>
-                <span className="text-slate-500">Target Audience:</span>{" "}
-                <strong className="text-slate-900">{getTargetDescription()}</strong>
+                <span className="text-slate-500 dark:text-slate-400">Target Audience:</span>{" "}
+                <strong className="text-slate-900 dark:text-white">{getTargetDescription()}</strong>
               </div>
               <div>
-                <span className="text-slate-500">Subject:</span>{" "}
-                <strong className="text-slate-900">{subject}</strong>
+                <span className="text-slate-500 dark:text-slate-400">Subject:</span>{" "}
+                <strong className="text-slate-900 dark:text-white">{subject}</strong>
               </div>
               <div>
-                <span className="text-slate-500">Content Length:</span>{" "}
-                <strong className="text-slate-900">{wordCount} words (~{estimatedReadTime} min read)</strong>
+                <span className="text-slate-500 dark:text-slate-400">Content Length:</span>{" "}
+                <strong className="text-slate-900 dark:text-white">{wordCount} words (~{estimatedReadTime} min read)</strong>
               </div>
             </div>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               This action will queue emails for dispatch. Make sure all instructions and details are accurate.
             </p>
 
@@ -571,7 +571,7 @@ export default function BroadcastPage() {
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
               >
                 Cancel
               </button>

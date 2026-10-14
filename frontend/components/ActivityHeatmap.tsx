@@ -150,7 +150,7 @@ export const ActivityHeatmap: React.FC = () => {
         <div className="w-3 h-3 rounded-sm border bg-emerald-900/40 border-emerald-800" />
         <div className="w-3 h-3 rounded-sm border bg-emerald-600/60 border-emerald-500" />
         <div className="w-3 h-3 rounded-sm border bg-emerald-500 border-emerald-400" />
-        <div className="w-3 h-3 rounded-sm border bg-emerald-400 border-emerald-300" />
+        <div className="w-3 h-3 rounded-sm border bg-emerald-400 border-emerald-300 dark:border-emerald-500/30" />
         <span>More</span>
       </div>
     </div>

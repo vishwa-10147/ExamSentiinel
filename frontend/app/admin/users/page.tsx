@@ -30,10 +30,10 @@ import {
 import { toast, Toaster } from "react-hot-toast";
 
 const ROLE_OPTIONS = [
-  { value: "admin", label: "Admin", icon: ShieldAlert, bgClass: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100" },
-  { value: "proctor", label: "Proctor", icon: Eye, bgClass: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" },
-  { value: "reviewer", label: "Reviewer", icon: FileCheck, bgClass: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" },
-  { value: "candidate", label: "Candidate", icon: GraduationCap, bgClass: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" },
+  { value: "admin", label: "Admin", icon: ShieldAlert, bgClass: "bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/30 hover:bg-purple-100 dark:hover:bg-purple-500/20" },
+  { value: "proctor", label: "Proctor", icon: Eye, bgClass: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-500/20" },
+  { value: "reviewer", label: "Reviewer", icon: FileCheck, bgClass: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-500/20" },
+  { value: "candidate", label: "Candidate", icon: GraduationCap, bgClass: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/20" },
 ];
 
 export default function UsersPage() {
@@ -240,8 +240,8 @@ export default function UsersPage() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="text-center text-slate-500">Loading user management...</div>
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <div className="text-center text-slate-500 dark:text-slate-400">Loading user management...</div>
       </div>
     );
   }
@@ -263,13 +263,13 @@ export default function UsersPage() {
         <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full">
           
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-700 pb-5 mb-8">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                <Users className="h-6 w-6 text-blue-600" />
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 User Management
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Assign and update user roles, toggle account statuses, and manage administrative access.
               </p>
             </div>
@@ -283,8 +283,8 @@ export default function UsersPage() {
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl bg-amber-50 p-4 border border-amber-200 text-sm text-amber-800 flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-amber-600 shrink-0" />
+            <div className="mb-6 rounded-xl bg-amber-50 dark:bg-amber-500/10 p-4 border border-amber-200 dark:border-amber-500/30 text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -302,18 +302,18 @@ export default function UsersPage() {
                 placeholder="Search users by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-xl bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition"
+                className="block w-full pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition"
               />
             </div>
 
             {/* Role Filter Tabs */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 overflow-x-auto">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 overflow-x-auto">
               <button
                 onClick={() => setSelectedRoleFilter("all")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap ${
                   selectedRoleFilter === "all"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 All ({roleCounts.all})
@@ -324,8 +324,8 @@ export default function UsersPage() {
                   onClick={() => setSelectedRoleFilter(opt.value)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap ${
                     selectedRoleFilter === opt.value
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-600 hover:text-slate-900"
+                      ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   <opt.icon className="h-3.5 w-3.5" />
@@ -337,38 +337,38 @@ export default function UsersPage() {
           </div>
 
           {/* User Table Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+              <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                <thead className="bg-slate-50 dark:bg-slate-900">
                   <tr>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       User Profile
                     </th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Assigned Role (Instant Change)
                     </th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Account Status
                     </th>
-                    <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
                   {loading ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500">
+                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
                         <div className="flex items-center justify-center gap-2">
-                          <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                          <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
                           <span>Fetching users from system...</span>
                         </div>
                       </td>
                     </tr>
                   ) : filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500">
+                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
                         No users found matching your criteria.
                       </td>
                     </tr>
@@ -379,7 +379,7 @@ export default function UsersPage() {
                       const isUpdatingThisRole = updatingUserRoleId === u.id;
 
                       return (
-                        <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
+                        <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/50/60 transition-colors">
                           
                           {/* User Column */}
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -388,15 +388,15 @@ export default function UsersPage() {
                                 {u.full_name ? u.full_name.charAt(0) : "U"}
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                                <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                   <span>{u.full_name}</span>
                                   {u.roll_no && (
-                                    <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700">
+                                    <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-400">
                                       Roll: {u.roll_no}
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                                   <Mail className="h-3 w-3 text-slate-400" /> {u.email}
                                 </div>
                               </div>
@@ -407,7 +407,7 @@ export default function UsersPage() {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="relative inline-flex items-center">
                               {isUpdatingThisRole ? (
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold">
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-semibold">
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                   Updating Role...
                                 </div>
@@ -420,7 +420,7 @@ export default function UsersPage() {
                                     title="Click to change this user's role"
                                   >
                                     {ROLE_OPTIONS.map((opt) => (
-                                      <option key={opt.value} value={opt.value} className="bg-white text-slate-900 font-semibold py-1">
+                                      <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold py-1">
                                         {opt.label} Role
                                       </option>
                                     ))}
@@ -438,8 +438,8 @@ export default function UsersPage() {
                               title="Click to toggle Active / Inactive state"
                               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer hover:opacity-80 ${
                                 u.is_active 
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : "bg-slate-100 text-slate-600 border border-slate-200"
+                                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                               }`}
                             >
                               <span className={`h-1.5 w-1.5 rounded-full ${u.is_active ? "bg-emerald-500" : "bg-slate-400"}`}></span>
@@ -451,14 +451,14 @@ export default function UsersPage() {
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button 
                               onClick={() => handleOpenEditModal(u)}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors mr-1" 
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors mr-1" 
                               title="Edit User Details"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleOpenDeleteModal(u)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" 
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer" 
                               title="Delete User"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -480,9 +480,9 @@ export default function UsersPage() {
       {/* Edit / Add User Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200">
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-base font-bold text-slate-900">{isEditMode ? "Edit User Details" : "Add New User Account"}</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">{isEditMode ? "Edit User Details" : "Add New User Account"}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold leading-none">
                 &times;
               </button>
@@ -490,34 +490,34 @@ export default function UsersPage() {
             
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">Full Name</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Full Name</label>
                 <input 
                   type="text" 
                   value={formData.full_name}
                   onChange={(e) => setFormData(prev => ({...prev, full_name: e.target.value}))}
-                  className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition" 
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition" 
                   placeholder="John Doe" 
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">Email Address</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Email Address</label>
                 <input 
                   type="email" 
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
-                  className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition" 
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition" 
                   placeholder="john@institution.edu" 
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">Assign Role</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Assign Role</label>
                   <select 
                     value={formData.role}
                     onChange={(e) => setFormData(prev => ({...prev, role: e.target.value}))}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 bg-white transition"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 bg-white dark:bg-slate-800 transition"
                   >
                     {ROLE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -528,11 +528,11 @@ export default function UsersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">Status</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Status</label>
                   <select 
                     value={formData.is_active ? "active" : "inactive"}
                     onChange={(e) => setFormData(prev => ({...prev, is_active: e.target.value === "active"}))}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 bg-white transition"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 bg-white dark:bg-slate-800 transition"
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -541,24 +541,24 @@ export default function UsersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">
                   {isEditMode ? "New Password (leave blank to keep current)" : "Account Password"}
                 </label>
                 <input 
                   type="password" 
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))}
-                  className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition" 
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition" 
                   placeholder={isEditMode ? "Leave blank to keep unchanged" : "Set initial password"} 
                 />
               </div>
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
               <button 
                 onClick={() => setIsModalOpen(false)}
                 disabled={isSaving}
-                className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200/60 rounded-xl transition disabled:opacity-50"
+                className="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 rounded-xl transition disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -578,16 +578,16 @@ export default function UsersPage() {
       {/* Delete Confirmation Modal */}
       {deletingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-red-50/50">
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-red-50/50 dark:bg-red-500/10">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-red-100 text-red-600">
+                <div className="p-2 rounded-xl bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-base">Confirm Permanent Deletion</h3>
-                  <p className="text-xs text-red-600 font-medium">Irreversible database action</p>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Confirm Permanent Deletion</h3>
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">Irreversible database action</p>
                 </div>
               </div>
               <button
@@ -600,36 +600,36 @@ export default function UsersPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 Are you sure you want to permanently delete this user account from the system?
               </p>
 
-              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 text-xs">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-2 text-xs">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500 font-medium">Full Name:</span>
-                  <span className="font-bold text-slate-900">{deletingUser.full_name || "N/A"}</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Full Name:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{deletingUser.full_name || "N/A"}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500 font-medium">Email Address:</span>
-                  <span className="font-mono font-semibold text-slate-800">{deletingUser.email}</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Email Address:</span>
+                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-100">{deletingUser.email}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500 font-medium">Account Role:</span>
-                  <span className="font-bold uppercase tracking-wider text-blue-600">{deletingUser.role}</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Account Role:</span>
+                  <span className="font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">{deletingUser.role}</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <span>This will purge all exam sessions, test responses, roster enrollments, and audit logs linked to this user.</span>
               </div>
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
               <button
                 onClick={() => setDeletingUser(null)}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200/60 rounded-xl transition disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 rounded-xl transition disabled:opacity-50 cursor-pointer"
               >
                 Cancel
               </button>

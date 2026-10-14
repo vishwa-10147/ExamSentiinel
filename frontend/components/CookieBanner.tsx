@@ -26,18 +26,18 @@ export default function CookieBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 p-4 shadow-lg sm:p-6">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-4 shadow-lg sm:p-6">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="text-sm text-slate-600 max-w-3xl">
+        <div className="text-sm text-slate-600 dark:text-slate-300 max-w-3xl">
           <p>
             We use cookies to improve your experience on our platform, analyze traffic, and ensure the security of our application. 
-            By continuing to use our site, you agree to our use of cookies. For more information, please see our <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a>.
+            By continuing to use our site, you agree to our use of cookies. For more information, please see our <a href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</a>.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={declineCookies}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
           >
             Decline
           </button>

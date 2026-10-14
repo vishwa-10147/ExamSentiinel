@@ -40,7 +40,7 @@ export default function CandidateResultsPage() {
   if (isLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-center text-slate-500">Loading...</div>
+        <div className="text-center text-slate-500 dark:text-slate-400">Loading...</div>
       </div>
     );
   }
@@ -49,45 +49,45 @@ export default function CandidateResultsPage() {
       <main className="flex-1 flex flex-col overflow-y-auto">
         <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <FileCheck2 className="h-6 w-6 text-blue-600" />
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <FileCheck2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               My Results
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Review your past exam submissions and scores.
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+              <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                <thead className="bg-slate-50 dark:bg-slate-900">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">Exam Name</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">Date</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">Score</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase">Action</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Exam Name</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Score</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Status</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">Loading results...</td>
+                      <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">Loading results...</td>
                     </tr>
                   ) : results.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">No results found.</td>
+                      <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">No results found.</td>
                     </tr>
                   ) : (
                     results.map((res) => (
-                      <tr key={res.session_id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{res.exam_name || res.exam_title || "Examination"}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{res.submitted_at ? new Date(res.submitted_at).toLocaleDateString() : "—"}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">{res.results_published ? `${res.total_score ?? 0} / ${res.max_score ?? 0} (${Number(res.percentage ?? 0).toFixed(1)}%)` : "Pending publication"}</td>
+                      <tr key={res.session_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50/50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">{res.exam_name || res.exam_title || "Examination"}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{res.submitted_at ? new Date(res.submitted_at).toLocaleDateString() : "—"}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white font-medium">{res.results_published ? `${res.total_score ?? 0} / ${res.max_score ?? 0} (${Number(res.percentage ?? 0).toFixed(1)}%)` : "Pending publication"}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                            res.results_published ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                            res.results_published ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
                           }`}>
                             {res.results_published ? "PUBLISHED" : "PENDING"}
                           </span>
@@ -95,7 +95,7 @@ export default function CandidateResultsPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button 
                             onClick={() => router.push(`/candidate/results/${res.session_id}`)}
-                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 transition-colors"
                           >
                             View Details <ArrowRight className="h-4 w-4" />
                           </button>

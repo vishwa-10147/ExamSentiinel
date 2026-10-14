@@ -49,7 +49,7 @@ export default function ReviewQueuePage() {
     fetchReviews();
   }, [authLoading, isAuthenticated, user, router]);
 
-  if (authLoading || !user) return <main className="p-8 text-slate-500">Loading review queue...</main>;
+  if (authLoading || !user) return <main className="p-8 text-slate-500 dark:text-slate-400">Loading review queue...</main>;
   if (!isAuthenticated || !["admin", "proctor", "reviewer"].includes(user.role)) return null;
 
   const filteredReviews = reviews.filter(r => filter === 'ALL' || r.status === filter);
@@ -59,24 +59,24 @@ export default function ReviewQueuePage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Review Queue</h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Manage pending and escalated exam sessions.</p>
+          <p className="text-slate-500 dark:text-slate-500 mt-1">Manage pending and escalated exam sessions.</p>
         </div>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-700 border border-red-200">
+        <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/30">
           {error}
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
           <div className="flex items-center space-x-2">
             <Filter className="w-5 h-5 text-slate-400 dark:text-slate-500" />
             <select 
               value={filter} 
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-white dark:bg-slate-800 dark:border-slate-700 border border-slate-300 text-slate-700 dark:text-slate-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">All Statuses</option>
               <option value="PENDING">Pending</option>
@@ -96,7 +96,7 @@ export default function ReviewQueuePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white dark:bg-slate-800 dark:border-slate-700 text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm border-b border-slate-200 dark:border-slate-700">
+              <tr className="bg-white dark:bg-slate-800 dark:border-slate-700 text-slate-500 dark:text-slate-500 text-sm border-b border-slate-200">
                 <th className="p-4 font-medium">Candidate</th>
                 <th className="p-4 font-medium">Exam</th>
                 <th className="p-4 font-medium">Date</th>
@@ -105,21 +105,21 @@ export default function ReviewQueuePage() {
                 <th className="p-4 font-medium text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">Loading reviews...</td>
+                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-500">Loading reviews...</td>
                 </tr>
               ) : filteredReviews.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">No reviews found.</td>
+                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-500">No reviews found.</td>
                 </tr>
               ) : (
                 filteredReviews.map((review) => (
-                  <tr key={review.id} className="hover:bg-slate-50 dark:bg-slate-900 transition-colors">
+                  <tr key={review.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-900 transition-colors">
                     <td className="p-4 font-medium text-slate-900 dark:text-white">{review.candidateName}</td>
                     <td className="p-4 text-slate-600 dark:text-slate-300">{review.examName}</td>
-                    <td className="p-4 text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm">
+                    <td className="p-4 text-slate-500 dark:text-slate-500 text-sm">
                       {new Date(review.date).toLocaleDateString()} {new Date(review.date).toLocaleTimeString()}
                     </td>
                     <td className="p-4">
@@ -135,14 +135,14 @@ export default function ReviewQueuePage() {
                     </td>
                     <td className="p-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        review.status === 'ESCALATED' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
+                        review.status === 'ESCALATED' ? 'bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300 dark:text-red-300' : 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 dark:text-amber-300'
                       }`}>
                         {review.status === 'ESCALATED' ? <AlertTriangle className="w-3 h-3 mr-1" /> : <Clock className="w-3 h-3 mr-1" />}
                         {review.status}
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <Link href={`/admin/review/${review.id}`} className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                      <Link href={`/admin/review/${review.id}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium text-sm">
                         Review Case
                       </Link>
                     </td>

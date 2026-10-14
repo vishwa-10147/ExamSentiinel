@@ -59,7 +59,7 @@ const EMPTY: ProblemUpsert = {
 
 const input =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-white";
-const label = "mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500";
+const label = "mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400";
 const card = "space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800";
 
 function slugify(s: string) {
@@ -182,7 +182,7 @@ export default function ProblemEditorPage() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center text-slate-500">
+      <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
       </div>
     );
@@ -195,12 +195,12 @@ export default function ProblemEditorPage() {
     <div className="flex-1 overflow-auto p-6 pb-16 sm:p-8">
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/admin/problems" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white">
+          <Link href="/admin/problems" className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
             <ChevronLeft className="h-4 w-4" /> All problems
           </Link>
           <h1 className="flex-1 text-xl font-bold text-slate-900 dark:text-white">{isNew ? "New Problem" : form.title || "Edit Problem"}</h1>
           {!isNew && (
-            <button onClick={() => void remove()} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+            <button onClick={() => void remove()} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
               <Trash2 className="h-4 w-4" /> Delete
             </button>
           )}
@@ -208,7 +208,7 @@ export default function ProblemEditorPage() {
             onClick={() => void validate()}
             disabled={saving || validating || !form.reference_solution?.code.trim()}
             title={form.reference_solution?.code.trim() ? "Save, then run the reference solution against every test" : "Add a reference solution first"}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
           >
             {validating ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Save & Validate
           </button>
@@ -313,7 +313,7 @@ export default function ProblemEditorPage() {
         <section className={card}>
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-slate-900 dark:text-white">Statement</h2>
-            <button onClick={() => setPreview((p) => !p)} className="text-xs font-semibold text-blue-600 hover:underline">
+            <button onClick={() => setPreview((p) => !p)} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
               {preview ? "Edit" : "Preview"}
             </button>
           </div>
@@ -363,7 +363,7 @@ export default function ProblemEditorPage() {
                   </button>
                 </div>
               ))}
-              <button onClick={() => set("hints", [...form.hints, ""])} className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline">
+              <button onClick={() => set("hints", [...form.hints, ""])} className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
                 <Plus className="h-4 w-4" /> Add hint
               </button>
             </div>
@@ -446,13 +446,13 @@ export default function ProblemEditorPage() {
                   ))}
                   <button
                     onClick={() => setSpec({ ...spec, params: [...spec.params, { name: `arg${spec.params.length + 1}`, type: "int" }] })}
-                    className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     <Plus className="h-4 w-4" /> Add parameter
                   </button>
                 </div>
               </div>
-              <p className="text-xs text-slate-500">Starter code for Python, JavaScript, Java and C++ is generated from this signature.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Starter code for Python, JavaScript, Java and C++ is generated from this signature.</p>
             </div>
           )}
 
@@ -476,13 +476,13 @@ export default function ProblemEditorPage() {
                   <option value="exact">Must match the order (statement requires ORDER BY)</option>
                 </select>
               </div>
-              <p className="text-xs text-slate-500">Judged on SQLite 3.36. Avoid naming a table <code>argv</code> (reserved by the runner).</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Judged on SQLite 3.36. Avoid naming a table <code>argv</code> (reserved by the runner).</p>
             </div>
           )}
 
           {form.judge_mode === "STDIO" && (
             <div className="space-y-3">
-              <p className="text-xs text-slate-500">Optional starter code per language (stdin inputs are limited to 128 KB per test).</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Optional starter code per language (stdin inputs are limited to 128 KB per test).</p>
               {STDIO_LANGUAGES.map((l) => (
                 <div key={l}>
                   <label className={label}>{LANGUAGE_LABELS[l]} starter</label>
@@ -503,7 +503,7 @@ export default function ProblemEditorPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold text-slate-900 dark:text-white">Reference solution</h2>
-              <p className="text-xs text-slate-500">Never shown to students. Used by “Validate” and to compute expected output for students’ custom inputs.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Never shown to students. Used by “Validate” and to compute expected output for students’ custom inputs.</p>
             </div>
             <select
               aria-label="Reference language"
@@ -532,7 +532,7 @@ export default function ProblemEditorPage() {
         <section className={card}>
           <div>
             <h2 className="font-semibold text-slate-900 dark:text-white">Test cases ({form.test_cases.length})</h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {fnMode
                 ? `Input: one JSON value per line, in parameter order (${spec?.params.map((p) => p.name).join(", ")}). Expected output: one JSON value.`
                 : form.judge_mode === "SQL"
@@ -565,7 +565,7 @@ export default function ProblemEditorPage() {
           ))}
           <button
             onClick={() => set("test_cases", [...form.test_cases, { input_data: "", expected_output: "", is_sample: false, explanation: "" }])}
-            className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline"
+            className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
           >
             <Plus className="h-4 w-4" /> Add test case
           </button>

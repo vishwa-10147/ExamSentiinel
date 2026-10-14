@@ -93,7 +93,7 @@ export default function RegisterPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-slate-950/5 relative overflow-hidden">
       
       {/* Container Box */}
-      <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden grid grid-cols-1 lg:grid-cols-12 my-auto">
+      <div className="w-full max-w-4xl bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden grid grid-cols-1 lg:grid-cols-12 my-auto">
         
         {/* Left Side: Product Showcase Banner (5 Cols) */}
         <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 via-slate-850 to-blue-950 p-8 sm:p-10 text-white flex flex-col justify-between relative overflow-hidden">
@@ -143,14 +143,14 @@ export default function RegisterPage() {
         <div className="lg:col-span-7 p-8 sm:p-10 flex flex-col justify-between">
           <div>
             <div className="mb-6">
-              <h3 className="text-2xl font-bold text-slate-900">Create Candidate Account</h3>
-              <p className="text-slate-500 text-xs sm:text-sm mt-1">
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Create Candidate Account</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
                 Fill in your details below to register for institutional examinations.
               </p>
             </div>
 
             {error && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-xs sm:text-sm text-red-700">
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-4 text-xs sm:text-sm text-red-700 dark:text-red-400">
                 <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
                 <span className="leading-relaxed">{error}</span>
               </div>
@@ -158,11 +158,11 @@ export default function RegisterPage() {
 
             {success ? (
               <div className="py-8 text-center space-y-4">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 border border-emerald-200">
-                  <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <h4 className="text-xl font-bold text-slate-900">Registration Successful!</h4>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                <h4 className="text-xl font-bold text-slate-900 dark:text-white">Registration Successful!</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                   Your candidate account has been created. Redirecting to sign in screen...
                 </p>
               </div>
@@ -170,7 +170,7 @@ export default function RegisterPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">
                       First Name <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -183,13 +183,13 @@ export default function RegisterPage() {
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         placeholder="John"
-                        className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                        className="block w-full rounded-xl border border-slate-300 dark:border-slate-600 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">
                       Last Name <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -202,14 +202,14 @@ export default function RegisterPage() {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Doe"
-                        className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                        className="block w-full rounded-xl border border-slate-300 dark:border-slate-600 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">
                     Institutional Email Address <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -222,13 +222,13 @@ export default function RegisterPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="student@university.edu"
-                      className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                      className="block w-full rounded-xl border border-slate-300 dark:border-slate-600 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">
                     Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -241,7 +241,7 @@ export default function RegisterPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="At least 8 characters"
-                      className="block w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                      className="block w-full rounded-xl border border-slate-300 dark:border-slate-600 py-2.5 pl-10 pr-10 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
                     />
                     <button
                       type="button"
@@ -273,9 +273,9 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <div className="mt-6 text-center text-xs text-slate-500">
+          <div className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
             Already registered?{" "}
-            <Link href="/auth/login" className="font-bold text-blue-600 hover:underline">
+            <Link href="/auth/login" className="font-bold text-blue-600 dark:text-blue-400 hover:underline">
               Sign in to your account
             </Link>
           </div>

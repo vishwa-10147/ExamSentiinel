@@ -73,7 +73,7 @@ export default function CandidateProfilePage() {
   if (isLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-center text-slate-500">Loading profile...</div>
+        <div className="text-center text-slate-500 dark:text-slate-400">Loading profile...</div>
       </div>
     );
   }
@@ -128,82 +128,82 @@ export default function CandidateProfilePage() {
       <main className="flex-1 flex flex-col overflow-y-auto">
         <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <User className="h-6 w-6 text-blue-600" />
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               My Profile
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Manage your personal information and account security.
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3 mb-8">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col items-center justify-center text-center shadow-sm">
-              <div className="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-2xl font-bold uppercase mb-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col items-center justify-center text-center shadow-sm">
+              <div className="h-20 w-20 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-700 dark:text-blue-400 text-2xl font-bold uppercase mb-4">
                 {user.full_name?.charAt(0) || "U"}
               </div>
-              <h3 className="font-semibold text-lg text-slate-900">{user.full_name}</h3>
-              <p className="text-sm text-slate-500 capitalize">{user.role}</p>
+              <h3 className="font-semibold text-lg text-slate-900 dark:text-white">{user.full_name}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 capitalize">{user.role}</p>
               {user.roll_no && (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2.5 rounded-full bg-blue-50 text-blue-700 text-xs font-mono font-bold border border-blue-200">
-                  <Contact className="w-3.5 h-3.5 text-blue-600" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-mono font-bold border border-blue-200 dark:border-blue-500/30">
+                  <Contact className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   Roll: {user.roll_no}
                 </div>
               )}
             </div>
             
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-center shadow-sm md:col-span-2">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col justify-center shadow-sm md:col-span-2">
               <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Account Stats</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <div className="text-2xl font-bold text-slate-900 mb-1">
+                <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                     {statsLoading ? "..." : accountStats.total_exams_taken}
                   </div>
-                  <div className="text-sm text-slate-500">Total Exams Taken</div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">Total Exams Taken</div>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <div className="text-2xl font-bold text-slate-900 mb-1">
+                <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                     {statsLoading ? "..." : `${accountStats.average_score_percentage}%`}
                   </div>
-                  <div className="text-sm text-slate-500">Average Score</div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">Average Score</div>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
-                <h2 className="font-semibold text-slate-900">Personal Information</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                <h2 className="font-semibold text-slate-900 dark:text-white">Personal Information</h2>
               </div>
               <form onSubmit={handleProfileSave} className="p-6 flex-1 flex flex-col">
                 <div className="space-y-4 flex-1">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Full Name</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input 
                         type="text" 
                         value={profileData.full_name}
                         onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
-                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Email Address</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input 
                         type="email" 
                         disabled
                         value={profileData.email}
-                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm cursor-not-allowed" 
+                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-sm cursor-not-allowed" 
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Roll Number / Student ID</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Roll Number / Student ID</label>
                     <div className="relative">
                       <Contact className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input 
@@ -211,47 +211,47 @@ export default function CandidateProfilePage() {
                         placeholder="e.g. 21CS001, 2024-CSE-045"
                         value={profileData.roll_no}
                         onChange={(e) => setProfileData({...profileData, roll_no: e.target.value})}
-                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono" 
+                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono" 
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Phone Number</label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input 
                         type="text" 
                         value={profileData.phone}
                         onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
                       />
                     </div>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Branch / Department</label>
-                      <select value={profileData.department} onChange={(e) => setProfileData({...profileData, department: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Branch / Department</label>
+                      <select value={profileData.department} onChange={(e) => setProfileData({...profileData, department: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm">
                         <option value="">Select branch</option>
                         {DEPARTMENT_OPTIONS.map((department) => <option key={department} value={department}>{department}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Section</label>
-                      <select value={profileData.section} onChange={(e) => setProfileData({...profileData, section: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Section</label>
+                      <select value={profileData.section} onChange={(e) => setProfileData({...profileData, section: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm">
                         <option value="">Select section</option>
                         {SECTION_OPTIONS.map((section) => <option key={section} value={section}>{section}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Pass-out Year</label>
-                      <select value={profileData.batch_year} onChange={(e) => setProfileData({...profileData, batch_year: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Pass-out Year</label>
+                      <select value={profileData.batch_year} onChange={(e) => setProfileData({...profileData, batch_year: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm">
                         <option value="">Select year</option>
                         {PASS_OUT_YEAR_OPTIONS.map((year) => <option key={year} value={year}>{year}</option>)}
                       </select>
                     </div>
                   </div>
                 </div>
-                <div className="mt-6 pt-4 border-t border-slate-100">
+                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700">
                   <button 
                     type="submit" 
                     disabled={saving}
@@ -264,14 +264,14 @@ export default function CandidateProfilePage() {
               </form>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
-                <h2 className="font-semibold text-slate-900">Security</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                <h2 className="font-semibold text-slate-900 dark:text-white">Security</h2>
               </div>
               <form onSubmit={handlePasswordSave} className="p-6 flex-1 flex flex-col">
                 <div className="space-y-4 flex-1">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Current Password</label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input 
@@ -279,12 +279,12 @@ export default function CandidateProfilePage() {
                         required
                         value={passwordData.current_password}
                         onChange={(e) => setPasswordData({...passwordData, current_password: e.target.value})}
-                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">New Password</label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input 
@@ -292,12 +292,12 @@ export default function CandidateProfilePage() {
                         required
                         value={passwordData.new_password}
                         onChange={(e) => setPasswordData({...passwordData, new_password: e.target.value})}
-                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Confirm New Password</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Confirm New Password</label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input 
@@ -305,12 +305,12 @@ export default function CandidateProfilePage() {
                         required
                         value={passwordData.confirm_password}
                         onChange={(e) => setPasswordData({...passwordData, confirm_password: e.target.value})}
-                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                        className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
                       />
                     </div>
                   </div>
                 </div>
-                <div className="mt-6 pt-4 border-t border-slate-100">
+                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700">
                   <button 
                     type="submit" 
                     disabled={saving}

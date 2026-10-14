@@ -146,7 +146,7 @@ start-local.cmd
 
 `start-local.cmd` creates the virtual environment and configuration on first run, starts the
 code-execution engine, the API and the web app, seeds demo data, waits until everything is
-healthy and opens the browser. Stop everything with `stop-local.cmd`.
+healthy and opens the browser. Stop everything with `start-local.cmd stop`.
 
 ### Manual setup (any OS)
 

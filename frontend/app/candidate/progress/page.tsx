@@ -54,11 +54,11 @@ export default function PracticeProgressPage() {
       <div className="mx-auto w-full max-w-6xl space-y-6">
         <div className="border-b border-slate-200 pb-5 dark:border-slate-700">
           <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
-            <BarChart3 className="h-7 w-7 text-blue-600" /> Practice Progress
+            <BarChart3 className="h-7 w-7 text-blue-600 dark:text-blue-400" /> Practice Progress
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Solved problems by topic and difficulty, and every submission you have made.{" "}
-            <Link href="/candidate/problems" className="font-medium text-blue-600 hover:underline">Back to the problem set</Link>
+            <Link href="/candidate/problems" className="font-medium text-blue-600 dark:text-blue-400 hover:underline">Back to the problem set</Link>
           </p>
         </div>
 
@@ -76,7 +76,7 @@ export default function PracticeProgressPage() {
                   {stats.solved_total}
                   <span className="text-base font-medium text-slate-400"> / {stats.problems_total}</span>
                 </div>
-                <div className="text-xs uppercase tracking-wide text-slate-500">problems solved</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">problems solved</div>
               </div>
               {(["EASY", "MEDIUM", "HARD"] as const).map((d) => (
                 <div key={d} className="flex justify-between text-sm">
@@ -99,7 +99,7 @@ export default function PracticeProgressPage() {
                   <Link key={t.topic} href={`/candidate/problems?topic=${encodeURIComponent(t.topic)}`} className="group block">
                     <div className="flex justify-between gap-2 text-sm">
                       <span className="font-medium text-slate-700 group-hover:text-blue-600 dark:text-slate-200">{t.topic}</span>
-                      <span className="tabular-nums text-slate-500">
+                      <span className="tabular-nums text-slate-500 dark:text-slate-400">
                         {t.solved}/{t.total}
                         {t.attempted > 0 && <span className="text-amber-500"> · {t.attempted} tried</span>}
                       </span>
@@ -135,7 +135,7 @@ export default function PracticeProgressPage() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
+              <thead className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="px-5 py-2">When</th>
                   <th className="px-3 py-2">Problem</th>
@@ -148,12 +148,12 @@ export default function PracticeProgressPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {!loading && history.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-slate-500">No submissions yet.</td>
+                    <td colSpan={6} className="px-5 py-10 text-center text-slate-500 dark:text-slate-400">No submissions yet.</td>
                   </tr>
                 )}
                 {history.map((s) => (
                   <tr key={s.id}>
-                    <td className="whitespace-nowrap px-5 py-2 text-slate-500">{new Date(s.created_at).toLocaleString()}</td>
+                    <td className="whitespace-nowrap px-5 py-2 text-slate-500 dark:text-slate-400">{new Date(s.created_at).toLocaleString()}</td>
                     <td className="px-3 py-2">
                       <Link href={`/candidate/problems/${s.problem_slug}`} className="font-medium text-slate-800 hover:text-blue-600 dark:text-slate-100">
                         {s.problem_number != null ? `${s.problem_number}. ` : ""}{s.problem_title}
@@ -174,16 +174,16 @@ export default function PracticeProgressPage() {
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
                 aria-label="Previous page"
-                className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
+                className="rounded p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="tabular-nums text-slate-500">Page {page + 1} of {pages}</span>
+              <span className="tabular-nums text-slate-500 dark:text-slate-400">Page {page + 1} of {pages}</span>
               <button
                 onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
                 disabled={page >= pages - 1}
                 aria-label="Next page"
-                className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
+                className="rounded p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-700"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

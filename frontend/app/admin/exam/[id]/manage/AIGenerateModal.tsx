@@ -46,7 +46,7 @@ export default function AIGenerateModal({
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={!isSubmitting ? onClose : undefined} />
       
       <div className="relative bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 dark:bg-slate-900/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
           <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
             <Sparkles className="w-5 h-5 text-indigo-500" />
             <h2 className="text-lg font-bold">Generate with AI</h2>
@@ -98,12 +98,12 @@ export default function AIGenerateModal({
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white hover:bg-slate-50 dark:bg-slate-900 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 dark:hover:text-white dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-900 rounded-lg transition-colors"
             >
               Cancel
             </button>

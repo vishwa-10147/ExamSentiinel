@@ -38,13 +38,13 @@ export default function Sidebar() {
   const getRoleBadgeClass = (role?: string) => {
     switch (role) {
       case "admin":
-        return "bg-purple-100 text-purple-800 border-purple-200";
+        return "bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-500/30";
       case "proctor":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-500/30";
       case "reviewer":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-500/30";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-100 border-gray-200 dark:border-slate-700";
     }
   };
 
@@ -145,7 +145,7 @@ export default function Sidebar() {
             <button
               onClick={logout}
               title="Sign out"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition"
             >
               <LogOut className="h-4 w-4" />
             </button>

@@ -21,6 +21,7 @@ the code-execution sandbox, browser tests with Playwright, and a live end-to-end
 | Browser | `frontend/tests/*.spec.ts` | Running frontend and backend for the role journeys |
 | End to end | `scripts/e2e_roles_smoke.py` | Running backend with seeded data and Piston |
 | Static checks | `tsc`, `next lint`, `next build` | Node.js |
+| Theme check | `python frontend/scripts/add-dark-variants.py --check` (CI); `node frontend/scripts/theme-audit.mjs` for screenshots of every page in light and dark mode | Python; running stack for the screenshots |
 
 ## Running the tests
 

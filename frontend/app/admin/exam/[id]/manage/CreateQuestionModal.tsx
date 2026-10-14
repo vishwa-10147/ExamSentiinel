@@ -174,7 +174,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
-          {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">{error}</div>}
+          {error && <div className="p-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-sm border border-red-200 dark:border-red-500/30">{error}</div>}
           
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -221,7 +221,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
             <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">Options & Correct Answer</label>
-                <button type="button" onClick={handleAddOption} className="text-xs font-semibold text-blue-600 flex items-center gap-1 hover:text-blue-700">
+                <button type="button" onClick={handleAddOption} className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:text-blue-700">
                   <Plus className="w-3 h-3" /> Add Option
                 </button>
               </div>
@@ -235,7 +235,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
                         name="correctAnswer" 
                         checked={singleCorrect === idx} 
                         onChange={() => setSingleCorrect(idx)}
-                        className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        className="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 cursor-pointer"
                       />
                     ) : (
                       <input 
@@ -245,7 +245,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
                           if (e.target.checked) setMultiCorrect([...multiCorrect, idx]);
                           else setMultiCorrect(multiCorrect.filter(i => i !== idx));
                         }}
-                        className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer rounded"
+                        className="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 cursor-pointer rounded"
                       />
                     )}
                     <input
@@ -267,7 +267,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
                 ))}
               </div>
               {type === "MCQ_MULTI" && multiCorrect.length === 0 && (
-                <p className="text-xs text-amber-600 flex items-center gap-1">Select at least one correct option.</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">Select at least one correct option.</p>
               )}
             </div>
           )}
@@ -311,7 +311,7 @@ export default function CreateQuestionModal({ examId, onClose, onSuccess, nextOr
               type="button"
               onClick={(e) => handleSubmit(e, true)}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition cursor-pointer"
+              className="px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 disabled:opacity-50 transition cursor-pointer"
             >
               Save & Add Another
             </button>

@@ -96,32 +96,32 @@ export default function ResultsPage() {
 
   return (
     <div className="space-y-6 p-6 sm:p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <FileCheck2 className="h-6 w-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <FileCheck2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             Results & Score Publication
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Review candidate scores, integrity risk scores, and publish final examination grades.
           </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-6">
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 items-end justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div className="flex flex-col sm:flex-row gap-4 items-end justify-between bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex-1 w-full sm:max-w-md">
-                <label className="block text-sm font-semibold text-slate-900 mb-1">
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-1">
                   Select Target Exam
                 </label>
                 <select
-                  className="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  className="w-full border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   value={selectedExam}
                   onChange={(e) => setSelectedExam(e.target.value)}
                 >
@@ -147,21 +147,21 @@ export default function ResultsPage() {
             {selectedExam && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Award className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Award className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     Candidate Submissions & Integrity Summary
                   </h3>
-                  <span className="text-xs text-slate-500">{sessions.length} Session(s) Recorded</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{sessions.length} Session(s) Recorded</span>
                 </div>
 
                 {sessionsLoading ? (
                   <div className="py-12 flex justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
                   </div>
                 ) : (
-                  <div className="overflow-x-auto rounded-xl border border-slate-200">
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                      <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                      <thead className="bg-slate-50 dark:bg-slate-900 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         <tr>
                           <th className="px-6 py-3.5 text-left">Candidate Name</th>
                           <th className="px-6 py-3.5 text-left">Session Status</th>
@@ -170,7 +170,7 @@ export default function ResultsPage() {
                           <th className="px-6 py-3.5 text-left">Publication Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
                         {sessions.length === 0 ? (
                           <tr>
                             <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
@@ -179,28 +179,28 @@ export default function ResultsPage() {
                           </tr>
                         ) : (
                           sessions.map((session) => (
-                            <tr key={session.id} className="hover:bg-slate-50 transition-colors">
+                            <tr key={session.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div>
-                                  <p className="font-semibold text-slate-900">{session.candidate_name || "Candidate"}</p>
+                                  <p className="font-semibold text-slate-900 dark:text-white">{session.candidate_name || "Candidate"}</p>
                                   <p className="text-xs text-slate-400 font-mono">{session.candidate_id}</p>
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                                   session.status === "SUBMITTED" || session.status === "completed"
-                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                                    ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30"
+                                    : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30"
                                 }`}>
                                   {session.status}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap font-semibold text-slate-800">
+                              <td className="px-6 py-4 whitespace-nowrap font-semibold text-slate-800 dark:text-slate-100">
                                 {session.score !== null ? `${session.score} pts` : "Pending Grading"}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
-                                  <div className="h-1.5 w-16 bg-slate-100 rounded-full overflow-hidden">
+                                  <div className="h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                     <div
                                       className={`h-full ${
                                         session.integrity_score >= 60 ? "bg-red-500" : session.integrity_score >= 30 ? "bg-amber-400" : "bg-emerald-400"
@@ -209,7 +209,7 @@ export default function ResultsPage() {
                                     />
                                   </div>
                                   <span className={`text-xs font-mono font-semibold ${
-                                    session.integrity_score >= 60 ? "text-red-600" : session.integrity_score >= 30 ? "text-amber-600" : "text-emerald-600"
+                                    session.integrity_score >= 60 ? "text-red-600 dark:text-red-400" : session.integrity_score >= 30 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
                                   }`}>
                                     {session.integrity_score.toFixed(1)}%
                                   </span>
@@ -217,11 +217,11 @@ export default function ResultsPage() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {session.results_published ? (
-                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-2.5 py-0.5 rounded-full">
                                     <CheckCircle2 className="h-3.5 w-3.5" /> Published
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full">
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-full">
                                     Draft (Unpublished)
                                   </span>
                                 )}

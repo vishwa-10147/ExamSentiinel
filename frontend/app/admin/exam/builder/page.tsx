@@ -142,7 +142,7 @@ export default function ExamBuilderPage() {
   if (isLoading || !user) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="text-center text-slate-500">Loading Exam Builder...</div>
+        <div className="text-center text-slate-500 dark:text-slate-400">Loading Exam Builder...</div>
       </div>
     );
   }
@@ -150,20 +150,20 @@ export default function ExamBuilderPage() {
   return (
     <div className="flex-1 w-full p-6 sm:p-8 max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between pb-5 border-b border-slate-200">
+      <div className="flex items-center justify-between pb-5 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/exam"
-            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <Layers className="h-6 w-6 text-blue-600" />
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <Layers className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               New Exam Builder
             </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               Set up parameters, timing windows, and rules for a new examination.
             </p>
           </div>
@@ -171,28 +171,28 @@ export default function ExamBuilderPage() {
       </div>
 
       {/* Main Card Form */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
           {error && (
-            <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 text-red-700 text-xs sm:text-sm">
+            <div className="p-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 flex items-start gap-3 text-red-700 dark:text-red-400 text-xs sm:text-sm">
               <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <p>{error}</p>
             </div>
           )}
           
           {createdExamId && (
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 text-emerald-700 text-xs sm:text-sm">
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-start gap-3 text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm">
               <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">Exam created successfully!</p>
-                <p className="text-xs mt-0.5 text-emerald-600">Redirecting to Question & Candidate Management portal...</p>
+                <p className="text-xs mt-0.5 text-emerald-600 dark:text-emerald-400">Redirecting to Question & Candidate Management portal...</p>
               </div>
             </div>
           )}
 
           {/* Title */}
           <div>
-            <label htmlFor="title" className="block text-sm font-semibold text-slate-900 mb-1">
+            <label htmlFor="title" className="block text-sm font-semibold text-slate-900 dark:text-white mb-1">
               Exam Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -202,14 +202,14 @@ export default function ExamBuilderPage() {
               value={formData.title}
               onChange={handleChange}
               placeholder="e.g. Midterm Assessment - Data Structures & Algorithms"
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
               required
             />
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-semibold text-slate-900 mb-1">
+            <label htmlFor="description" className="block text-sm font-semibold text-slate-900 dark:text-white mb-1">
               Instructions & Syllabus Overview
             </label>
             <textarea
@@ -219,14 +219,14 @@ export default function ExamBuilderPage() {
               onChange={handleChange}
               rows={4}
               placeholder="Provide test instructions, prohibited items, or syllabus coverage for candidates..."
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm resize-y"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm resize-y"
             />
           </div>
 
           {/* Durations */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="duration_minutes" className="block text-sm font-semibold text-slate-900 mb-1">
+              <label htmlFor="duration_minutes" className="block text-sm font-semibold text-slate-900 dark:text-white mb-1">
                 Duration (Minutes) <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -238,15 +238,15 @@ export default function ExamBuilderPage() {
                   value={formData.duration_minutes}
                   onChange={handleChange}
                   min="1"
-                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
                   required
                 />
               </div>
-              <p className="text-xs text-slate-500 mt-1">Total time allotted to candidate once session begins.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Total time allotted to candidate once session begins.</p>
             </div>
 
             <div>
-              <label htmlFor="late_entry_minutes" className="block text-sm font-semibold text-slate-900 mb-1">
+              <label htmlFor="late_entry_minutes" className="block text-sm font-semibold text-slate-900 dark:text-white mb-1">
                 Late Entry Allowance (Minutes)
               </label>
               <input
@@ -256,16 +256,16 @@ export default function ExamBuilderPage() {
                 value={formData.late_entry_minutes}
                 onChange={handleChange}
                 min="0"
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
               />
-              <p className="text-xs text-slate-500 mt-1">Grace period after start window opens to enter exam.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Grace period after start window opens to enter exam.</p>
             </div>
           </div>
 
           {/* Windows */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
             <div>
-              <label htmlFor="start_window" className="block text-sm font-semibold text-slate-900 mb-1">
+              <label htmlFor="start_window" className="block text-sm font-semibold text-slate-900 dark:text-white mb-1">
                 Start Window <span className="text-red-500">*</span>
               </label>
               <input
@@ -274,15 +274,15 @@ export default function ExamBuilderPage() {
                 name="start_window"
                 value={formData.start_window}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
                 required
               />
-              <p className="text-xs text-slate-500 mt-1">When exam becomes available for candidates to start.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">When exam becomes available for candidates to start.</p>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label htmlFor="end_window" className="block text-sm font-semibold text-slate-900">
+                <label htmlFor="end_window" className="block text-sm font-semibold text-slate-900 dark:text-white">
                   End Window Deadline <span className="text-red-500">*</span>
                 </label>
                 {formData.start_window && (
@@ -292,7 +292,7 @@ export default function ExamBuilderPage() {
                       const autoEnd = calculateRecommendedEndWindow(formData.start_window, formData.duration_minutes, formData.late_entry_minutes);
                       if (autoEnd) setFormData(prev => ({ ...prev, end_window: autoEnd }));
                     }}
-                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 hover:underline cursor-pointer"
                   >
                     ⚡ Auto-Set (Start + Duration + Late Entry)
                   </button>
@@ -304,32 +304,32 @@ export default function ExamBuilderPage() {
                 name="end_window"
                 value={formData.end_window}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
                 required
               />
-              <p className="text-xs text-slate-500 mt-1">Final cutoff after which no submissions are accepted.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Final cutoff after which no submissions are accepted.</p>
             </div>
 
             {/* Live Schedule Breakdown Card */}
             {formData.start_window && (
-              <div className="sm:col-span-2 p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-xs text-blue-900 space-y-1.5">
+              <div className="sm:col-span-2 p-4 rounded-xl bg-blue-50/70 dark:bg-blue-500/10 border border-blue-200/80 dark:border-blue-500/30 text-xs text-blue-900 dark:text-blue-300 space-y-1.5">
                 <div className="font-bold flex items-center justify-between">
                   <span>🗓️ Calculated Timing Breakdown:</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[12px]">
                   <div>
-                    <span className="text-slate-500 font-medium">Exam Opens:</span>{" "}
-                    <strong className="text-blue-950">{new Date(formData.start_window).toLocaleString()}</strong>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Exam Opens:</span>{" "}
+                    <strong className="text-blue-950 dark:text-blue-300">{new Date(formData.start_window).toLocaleString()}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 font-medium">Late Entry Cutoff:</span>{" "}
-                    <strong className="text-amber-900">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Late Entry Cutoff:</span>{" "}
+                    <strong className="text-amber-900 dark:text-amber-300">
                       {new Date(new Date(formData.start_window).getTime() + (formData.late_entry_minutes || 0) * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 font-medium">Recommended End Window:</span>{" "}
-                    <strong className="text-emerald-950">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Recommended End Window:</span>{" "}
+                    <strong className="text-emerald-950 dark:text-emerald-300">
                       {new Date(new Date(formData.start_window).getTime() + ((formData.duration_minutes || 0) + (formData.late_entry_minutes || 0)) * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </strong>
                   </div>
@@ -339,10 +339,10 @@ export default function ExamBuilderPage() {
           </div>
 
           {/* Form Actions */}
-          <div className="mt-8 pt-6 border-t border-slate-200 flex items-center justify-between">
+          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <Link
               href="/admin/exam"
-              className="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition"
+              className="px-5 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
             >
               Cancel
             </Link>

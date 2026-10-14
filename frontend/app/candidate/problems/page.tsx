@@ -165,7 +165,7 @@ export default function ProblemsPage() {
         <div className="flex flex-col justify-between gap-3 border-b border-slate-200 pb-5 dark:border-slate-700 sm:flex-row sm:items-end">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
-              <Code2 className="h-7 w-7 text-blue-600" />
+              <Code2 className="h-7 w-7 text-blue-600 dark:text-blue-400" />
               Problem Set
             </h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -202,7 +202,7 @@ export default function ProblemsPage() {
                 <ProgressRing solved={stats.solved_total} total={stats.problems_total} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.solved_total}</span>
-                  <span className="text-[10px] uppercase tracking-wide text-slate-500">of {stats.problems_total}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">of {stats.problems_total}</span>
                 </div>
               </div>
               <div className="flex-1 space-y-2">
@@ -212,7 +212,7 @@ export default function ProblemsPage() {
                     <div key={d}>
                       <div className="flex justify-between gap-2 text-xs">
                         <span className={`font-semibold ${DIFFICULTY_TEXT[d]}`}>{d.charAt(0) + d.slice(1).toLowerCase()}</span>
-                        <span className="text-slate-500">{p.solved}/{p.total}</span>
+                        <span className="text-slate-500 dark:text-slate-400">{p.solved}/{p.total}</span>
                       </div>
                       <div className="mt-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-700">
                         <div
@@ -236,7 +236,7 @@ export default function ProblemsPage() {
                   <Target className="h-4 w-4 text-blue-500" />
                   <strong>{stats.acceptance_rate ?? "—"}{stats.acceptance_rate != null && "%"}</strong> acceptance
                 </span>
-                <span className="text-slate-500">{stats.submissions_total} submissions</span>
+                <span className="text-slate-500 dark:text-slate-400">{stats.submissions_total} submissions</span>
               </div>
               <ActivityStrip activity={stats.activity} />
             </div>
@@ -293,7 +293,7 @@ export default function ProblemsPage() {
                 <option value="solved">Solved</option>
               </select>
               {hasFilters && (
-                <button onClick={clearFilters} className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                <button onClick={clearFilters} className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">
                   <X className="h-4 w-4" /> Clear
                 </button>
               )}
@@ -309,7 +309,7 @@ export default function ProblemsPage() {
                   className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                     difficulty === d
                       ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
-                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
                   <span className={d ? DIFFICULTY_TEXT[d] : ""}>{d ? d.charAt(0) + d.slice(1).toLowerCase() : "All"}</span>
@@ -336,7 +336,7 @@ export default function ProblemsPage() {
                   </button>
                 ))}
                 {tags.length > 16 && (
-                  <button onClick={() => setShowAllTags((v) => !v)} className="px-2 py-1 text-xs font-medium text-blue-600 hover:underline">
+                  <button onClick={() => setShowAllTags((v) => !v)} className="px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
                     {showAllTags ? "Fewer tags" : `All ${tags.length} tags`}
                   </button>
                 )}
@@ -345,7 +345,7 @@ export default function ProblemsPage() {
 
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900/50">
+                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:bg-slate-900/50">
                   <tr>
                     <th className="w-12 px-4 py-3">Status</th>
                     <th className="w-14 px-2 py-3 text-right">#</th>
@@ -366,7 +366,7 @@ export default function ProblemsPage() {
                     ))}
                   {!loading && filtered.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                      <td colSpan={6} className="px-4 py-10 text-center text-slate-500 dark:text-slate-400">
                         No problems match these filters.
                       </td>
                     </tr>
@@ -380,14 +380,14 @@ export default function ProblemsPage() {
                           {p.title}
                         </Link>
                         <div className="mt-0.5 flex flex-wrap gap-1 md:hidden">
-                          {p.topic && <span className="text-[11px] text-slate-500">{p.topic}</span>}
+                          {p.topic && <span className="text-[11px] text-slate-500 dark:text-slate-400">{p.topic}</span>}
                         </div>
                       </td>
                       <td className="hidden px-4 py-3 md:table-cell">
                         {p.topic && (
                           <button
                             onClick={() => setTopic(topic === p.topic ? "" : p.topic!)}
-                            className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-blue-50 hover:text-blue-700 dark:bg-slate-700 dark:text-slate-300"
+                            className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-700 dark:bg-slate-700 dark:text-slate-300"
                           >
                             {p.topic}
                           </button>
@@ -421,7 +421,7 @@ export default function ProblemsPage() {
                       >
                         <div className="flex justify-between gap-2">
                           <span className="font-medium text-slate-700 dark:text-slate-200">{t.topic}</span>
-                          <span className="tabular-nums text-slate-500">{t.solved}/{t.total}</span>
+                          <span className="tabular-nums text-slate-500 dark:text-slate-400">{t.solved}/{t.total}</span>
                         </div>
                         <div className="mt-1 h-1 rounded-full bg-slate-100 dark:bg-slate-700">
                           <div className="h-1 rounded-full bg-emerald-500" style={{ width: `${t.total ? (100 * t.solved) / t.total : 0}%` }} />
@@ -438,7 +438,7 @@ export default function ProblemsPage() {
                 <Trophy className="h-4 w-4 text-amber-500" /> Top Solvers
               </h2>
               {leaders.length === 0 ? (
-                <p className="text-sm text-slate-500">Be the first to solve a problem!</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Be the first to solve a problem!</p>
               ) : (
                 <ol className="space-y-2">
                   {leaders.map((l) => (

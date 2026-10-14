@@ -68,6 +68,10 @@ Routes depend on `get_current_user` or `require_roles`; business logic lives in 
 **Frontend** — call the API only through `services/apiClient.ts` (practice calls through
 `services/practiceService.ts`). Pages under `app/<role>/` are protected by that role's layout.
 Use Tailwind utility classes consistent with neighbouring components.
+Every page must work in light and dark mode: give each light colour class a `dark:` counterpart
+(`bg-white dark:bg-slate-800`, `text-slate-900 dark:text-white`). `python frontend/scripts/add-dark-variants.py`
+lists any that are missing (CI runs it with `--check`), and `node frontend/scripts/theme-audit.mjs`
+screenshots every main page in both themes for a visual review.
 
 **Tests** — fake the engine with the `fake_sandbox` fixture for API and verdict logic; put
 anything that depends on real execution in `tests/test_sandbox_engine.py`. Report results as

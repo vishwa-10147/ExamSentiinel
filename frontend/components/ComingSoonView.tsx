@@ -81,19 +81,19 @@ export default function ComingSoonView({
         {/* Back link */}
         <Link
           href="/candidate/dashboard"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Return to Dashboard
         </Link>
 
         {/* Hero Card */}
-        <div className="bg-white border border-slate-200/80 rounded-3xl p-8 sm:p-12 shadow-xl shadow-slate-200/50 text-center relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 rounded-3xl p-8 sm:p-12 shadow-xl shadow-slate-200/50 text-center relative overflow-hidden">
           {/* Subtle top banner glow */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600" />
 
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 text-xs font-bold uppercase tracking-wider mb-6 shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200/60 dark:border-blue-500/30 text-xs font-bold uppercase tracking-wider mb-6 shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-pulse" />
             {badge}
           </div>
 
@@ -107,18 +107,18 @@ export default function ComingSoonView({
           </div>
 
           {/* Title & Description */}
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
             {title}
           </h1>
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 leading-relaxed mb-8">
+          <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
             {subtitle}
           </p>
 
           {/* Email Notification Form */}
           <div className="max-w-md mx-auto mb-10">
             {subscribed ? (
-              <div className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-sm">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              <div className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 font-semibold text-sm">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 You&apos;ll be notified as soon as this releases!
               </div>
             ) : (
@@ -128,7 +128,7 @@ export default function ComingSoonView({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email for early access..."
-                  className="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-slate-900 bg-slate-50/50"
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-900/50"
                   required
                 />
                 <button
@@ -142,7 +142,7 @@ export default function ComingSoonView({
           </div>
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4 border-t border-slate-100">
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
             <Link
               href="/candidate/exams"
               className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-all shadow-md cursor-pointer"
@@ -151,7 +151,7 @@ export default function ComingSoonView({
             </Link>
             <Link
               href="/candidate/results"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold transition-all cursor-pointer"
             >
               View My Test Results
             </Link>
@@ -172,14 +172,14 @@ export default function ComingSoonView({
               return (
                 <div
                   key={idx}
-                  className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow flex items-start gap-4"
+                  className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-shadow flex items-start gap-4"
                 >
-                  <div className="p-3 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex-shrink-0">
+                  <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/30 flex-shrink-0">
                     <IconComp className="w-5 h-5" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="font-bold text-slate-900 text-sm">{feat.title}</h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">{feat.desc}</p>
+                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">{feat.title}</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{feat.desc}</p>
                   </div>
                 </div>
               );
