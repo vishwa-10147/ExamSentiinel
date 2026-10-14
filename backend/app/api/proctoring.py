@@ -8,12 +8,14 @@ import uuid
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user, log_audit_event, require_roles
 from app.core.database import get_db
 from app.models.proctoring_event import EventCategory, EventSeverity, ProctoringEvent
+from app.models.review_case import ReviewAction, ReviewCase, ReviewStatus
 from app.models.risk_weight import RiskWeight
-from app.models.session import ExamSession
+from app.models.session import ExamSession, SessionStatus
 from app.models.user import User, UserRole
 from app.schemas.proctoring import (
     EventCountByCategory,
@@ -200,7 +202,6 @@ async def submit_proctoring_event(
 
     is_terminated = False
     if (session.violation_count or 0) >= 4 and session.status != SessionStatus.SUBMITTED:
-        from app.models.session import SessionStatus
         from app.services.grading_service import grading_service
         session.status = SessionStatus.SUBMITTED
         session.risk_level = "CRITICAL"
@@ -217,6 +218,8 @@ async def submit_proctoring_event(
     if (session.violation_count or 0) >= 4:
         session.risk_level = "CRITICAL"
         risk_level = "CRITICAL"
+        # An automatic submission must always reach a human reviewer.
+        await risk_engine.ensure_review_case(db, session, score, risk_level)
 
     # 5. Count events by category for the response
     count_result = await db.execute(
@@ -594,7 +597,6 @@ async def terminate_session_by_proctor(
     if not session:
         raise HTTPException(status_code=404, detail="Exam session not found")
 
-    from app.models.session import SessionStatus
     session.status = SessionStatus.EXPIRED
     session.risk_level = "CRITICAL"
     session.updated_at = datetime.now(timezone.utc)
@@ -629,3 +631,164 @@ async def terminate_session_by_proctor(
     )
 
     return {"status": "success", "message": "Exam session terminated successfully"}
+
+
+# ---------------------------------------------------------------------------
+# Reviewer queue (used by the /reviewer/dashboard page)
+# ---------------------------------------------------------------------------
+
+_REVIEWER_ROLES = [UserRole.ADMIN, UserRole.REVIEWER, UserRole.PROCTOR]
+_QUEUE_STATUS = {
+    ReviewStatus.PENDING: "PENDING_REVIEW",
+    ReviewStatus.IN_REVIEW: "PENDING_REVIEW",
+    ReviewStatus.ESCALATED: "PENDING_REVIEW",
+    ReviewStatus.DISMISSED: "APPROVED",
+    ReviewStatus.CONFIRMED: "FLAGGED_VIOLATION",
+}
+
+
+class ReviewDecisionRequest(BaseModel):
+    notes: Optional[str] = None
+    reason: Optional[str] = None
+
+
+@router.get("/review-queue")
+async def get_review_queue(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(_REVIEWER_ROLES)),
+):
+    """List review cases as flat rows for the reviewer dashboard."""
+    cases = (
+        await db.execute(
+            select(ReviewCase)
+            .options(
+                selectinload(ReviewCase.session),
+                selectinload(ReviewCase.candidate),
+                selectinload(ReviewCase.exam),
+            )
+            .order_by(ReviewCase.created_at.desc())
+            .limit(200)
+        )
+    ).scalars().all()
+
+    session_ids = [c.session_id for c in cases]
+    event_counts: dict = {}
+    if session_ids:
+        rows = await db.execute(
+            select(ProctoringEvent.session_id, func.count(ProctoringEvent.id))
+            .where(ProctoringEvent.session_id.in_(session_ids))
+            .group_by(ProctoringEvent.session_id)
+        )
+        event_counts = dict(rows.all())
+
+    items = []
+    for case in cases:
+        session = case.session
+        submitted = (session.submitted_at if session else None) or case.created_at
+        items.append(
+            {
+                "session_id": str(case.session_id),
+                "review_case_id": str(case.id),
+                "candidate_name": case.candidate.full_name if case.candidate else "Unknown",
+                "candidate_email": case.candidate.email if case.candidate else None,
+                "exam_title": case.exam.title if case.exam else "Unknown exam",
+                "exam_id": str(case.exam_id),
+                "risk_score": session.current_risk_score if session else case.risk_score_at_creation,
+                "risk_level": session.risk_level if session else case.risk_level_at_creation,
+                "submitted_at": submitted.isoformat() if submitted else None,
+                "flagged_events_count": event_counts.get(case.session_id, 0),
+                "status": _QUEUE_STATUS.get(case.status, case.status.value),
+            }
+        )
+    return items
+
+
+async def _resolve_session_review(
+    db: AsyncSession,
+    session_id: uuid.UUID,
+    reviewer: User,
+    new_status: ReviewStatus,
+    action: str,
+    notes: Optional[str],
+) -> dict:
+    session = (await db.execute(select(ExamSession).where(ExamSession.id == session_id))).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Exam session not found")
+
+    case = (
+        await db.execute(
+            select(ReviewCase)
+            .where(ReviewCase.session_id == session_id)
+            .order_by(ReviewCase.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if case is None:
+        # Reviewers may act on a session the risk engine never escalated.
+        case = ReviewCase(
+            session_id=session.id,
+            candidate_id=session.candidate_id,
+            exam_id=session.exam_id,
+            status=ReviewStatus.PENDING,
+            risk_score_at_creation=session.current_risk_score or 0.0,
+            risk_level_at_creation=session.risk_level or "LOW",
+        )
+        db.add(case)
+        await db.flush()
+    elif case.status in {ReviewStatus.DISMISSED, ReviewStatus.CONFIRMED}:
+        raise HTTPException(status_code=409, detail="Review case is already resolved")
+
+    previous_status = case.status
+    now = datetime.now(timezone.utc)
+    case.status = new_status
+    case.assigned_reviewer_id = reviewer.id
+    case.resolution_notes = notes
+    case.resolved_at = now
+    case.resolved_by = reviewer.id
+    db.add(
+        ReviewAction(
+            review_case_id=case.id,
+            reviewer_id=reviewer.id,
+            action=action,
+            notes=notes,
+            previous_status=previous_status,
+            new_status=new_status,
+        )
+    )
+    await log_audit_event(
+        db=db,
+        action=f"REVIEW_{action}",
+        resource_type="exam_session",
+        resource_id=str(session.id),
+        details={"review_case_id": str(case.id), "notes": notes},
+        user_id=reviewer.id,
+        institution_id=reviewer.institution_id,
+    )
+    await db.commit()
+    return {"status": "success", "session_id": str(session.id), "review_status": new_status.value}
+
+
+@router.post("/sessions/{session_id}/approve")
+async def approve_session_review(
+    session_id: uuid.UUID,
+    payload: ReviewDecisionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(_REVIEWER_ROLES)),
+):
+    """Mark a session's integrity review as cleared (case DISMISSED)."""
+    return await _resolve_session_review(
+        db, session_id, current_user, ReviewStatus.DISMISSED, "DISMISS", payload.notes
+    )
+
+
+@router.post("/sessions/{session_id}/flag-violation")
+async def flag_session_violation(
+    session_id: uuid.UUID,
+    payload: ReviewDecisionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(_REVIEWER_ROLES)),
+):
+    """Confirm an integrity violation for a session (case CONFIRMED)."""
+    return await _resolve_session_review(
+        db, session_id, current_user, ReviewStatus.CONFIRMED, "CONFIRM", payload.reason or payload.notes
+    )

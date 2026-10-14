@@ -254,6 +254,7 @@ async def get_my_candidate_stats(
 
 
 @router.get("/audit", response_model=List[dict])
+@router.get("/audit-logs", response_model=List[dict], include_in_schema=False)
 async def list_audit_logs(
     limit: int = 100,
     offset: int = 0,

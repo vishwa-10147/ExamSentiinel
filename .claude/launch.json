@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "D:\\vishwa47\\v47Studio\\ExamSentinel\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000", "--reload"],
+      "cwd": "D:\\vishwa47\\v47Studio\\ExamSentinel\\backend",
+      "port": 8000,
+      "url": "http://localhost:8000"
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "D:\\vishwa47\\v47Studio\\ExamSentinel\\frontend",
+      "port": 3000
+    }
+  ]
+}

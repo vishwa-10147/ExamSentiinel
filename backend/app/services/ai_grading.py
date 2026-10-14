@@ -47,8 +47,8 @@ FEEDBACK: <text>
             response = await self.model.generate_content_async(prompt)
             text = response.text
             
-            score_match = re.search(r"^\\s*SCORE\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)", text, re.MULTILINE | re.IGNORECASE)
-            feedback_match = re.search(r"^\\s*FEEDBACK\\s*:\\s*(.+)$", text, re.MULTILINE | re.IGNORECASE)
+            score_match = re.search(r"^\s*SCORE\s*:\s*([0-9]+(?:\.[0-9]+)?)", text, re.MULTILINE | re.IGNORECASE)
+            feedback_match = re.search(r"^\s*FEEDBACK\s*:\s*(.+)$", text, re.MULTILINE | re.IGNORECASE)
             
             score = float(score_match.group(1)) if score_match else 0.0
             feedback = feedback_match.group(1).strip() if feedback_match else "No feedback generated."

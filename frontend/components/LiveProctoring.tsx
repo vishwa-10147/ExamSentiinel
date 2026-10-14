@@ -139,7 +139,7 @@ export default function LiveProctoringDashboard() {
     if (token && typeof window !== "undefined") {
       const isHttps = window.location.protocol === "https:";
       const wsProtocol = isHttps ? "wss:" : "ws:";
-      const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://examsentinel-backend.onrender.com";
+      const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "https://examsentinel-backend.onrender.com" : "http://localhost:8000");
       const cleanHost = rawApiUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
       const wsUrl = `${wsProtocol}//${cleanHost}/api/ws/dashboard?token=${encodeURIComponent(token)}`;
 

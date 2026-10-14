@@ -25,6 +25,15 @@ async def lifespan(app: FastAPI):
         environment=settings.ENVIRONMENT,
         version="1.0.0",
     )
+    # Alembic migrations are Postgres-specific; for a local SQLite database
+    # create the schema directly from the models instead.
+    if settings.DATABASE_URL.startswith("sqlite"):
+        from app import models as _models  # noqa: F401  (registers every model on Base.metadata)
+        from app.core.database import Base, engine
+
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("sqlite_schema_ready", database_url=settings.DATABASE_URL)
     yield
     # Shutdown tasks
     logger.info("ExamSentinel backend service shutting down")
