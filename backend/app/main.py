@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 import time
 import uuid
@@ -34,7 +35,14 @@ async def lifespan(app: FastAPI):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("sqlite_schema_ready", database_url=settings.DATABASE_URL)
+
+    # Load the proctoring vision model in the background so the first
+    # candidate frame doesn't pay PyTorch's start-up cost.
+    from app.services.computer_vision import computer_vision_service
+
+    warm_up = asyncio.create_task(asyncio.to_thread(computer_vision_service.warm_up))
     yield
+    warm_up.cancel()
     # Shutdown tasks
     logger.info("ExamSentinel backend service shutting down")
 
@@ -111,16 +119,16 @@ async def correlation_id_and_logging_middleware(request: Request, call_next):
             duration_ms=process_time_ms,
             error=str(exc),
         )
-        origin = request.headers.get("origin") or "*"
-        return JSONResponse(
-            status_code=500,
-            content={"detail": str(exc), "correlation_id": corr_id},
-            headers={
-                "X-Correlation-ID": corr_id,
-                "Access-Control-Allow-Origin": origin,
-                "Access-Control-Allow-Credentials": "true",
-            },
-        )
+        # Exception text can contain SQL, paths or secrets: show it only in DEBUG.
+        detail = str(exc) if settings.DEBUG else "Internal server error. Quote the reference ID when reporting this."
+        headers = {"X-Correlation-ID": corr_id}
+        # This response bypasses CORSMiddleware, so apply the same allow-list here.
+        origin = request.headers.get("origin")
+        if origin and origin in settings.CORS_ORIGINS:
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Credentials"] = "true"
+            headers["Vary"] = "Origin"
+        return JSONResponse(status_code=500, content={"detail": detail, "correlation_id": corr_id}, headers=headers)
 
 
 # Mount the combined API router

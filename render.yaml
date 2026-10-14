@@ -5,7 +5,7 @@ services:
     dockerContext: backend
     dockerfilePath: backend/Dockerfile
     plan: free
-    healthCheckPath: /api/health
+    healthCheckPath: /api/health/live
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -26,6 +26,9 @@ services:
         value: 8000
       - key: SECRET_KEY
         generateValue: true
+      # Single instance: apply migrations on boot (see backend/docker-entrypoint.sh).
+      - key: RUN_MIGRATIONS_ON_START
+        value: "true"
 
   - type: web
     name: examsentinel-frontend

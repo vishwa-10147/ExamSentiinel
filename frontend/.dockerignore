@@ -1,8 +1,11 @@
 node_modules
-npm-debug.log
-README.md
 .next
-.git
-.vscode
-.env*
+.pytest_cache
+.env
+.env.*
 !.env.example
+npm-debug.log*
+e2e
+playwright-report
+test-results
+.vscode

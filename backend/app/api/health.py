@@ -12,6 +12,22 @@ from app.schemas.health import HealthResponse, ServiceComponentStatus
 router = APIRouter(tags=["Health"])
 
 
+def _public_error(exc: Exception) -> str:
+    # This endpoint is unauthenticated: don't leak hosts or credentials from driver errors.
+    return str(exc) if settings.DEBUG else type(exc).__name__
+
+
+@router.get("/health/live")
+async def liveness():
+    """Liveness probe for load balancers / ECS: the process is up and serving.
+
+    Deliberately independent of the database and Redis so a dependency blip
+    doesn't make the orchestrator kill healthy containers. Use /health for
+    readiness and dashboards.
+    """
+    return {"status": "alive", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
 @router.get("/health", response_model=HealthResponse)
 async def check_health(db: AsyncSession = Depends(get_db)):
     """Comprehensive health check endpoint verifying database and Redis connectivity."""
@@ -31,7 +47,7 @@ async def check_health(db: AsyncSession = Depends(get_db)):
         is_healthy = False
         components["database"] = ServiceComponentStatus(
             status="unhealthy",
-            error=str(exc),
+            error=_public_error(exc),
         )
 
     # 2. Check Redis connectivity
@@ -53,7 +69,7 @@ async def check_health(db: AsyncSession = Depends(get_db)):
         is_healthy = False
         components["redis"] = ServiceComponentStatus(
             status="unhealthy",
-            error=str(exc),
+            error=_public_error(exc),
         )
 
     overall_status = "healthy" if is_healthy else "degraded"

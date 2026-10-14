@@ -5,10 +5,32 @@ import sys
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from app.core.config import settings
 from app.core.database import async_session_maker
 from app.models.user import User, UserRole
 from app.core.security import get_password_hash
 from sqlalchemy import select
+
+
+async def bootstrap_production_admin():
+    """Production: create a single admin from ADMIN_EMAIL / ADMIN_PASSWORD, once.
+
+    Demo accounts with a published password are never created in production.
+    """
+    email = os.getenv("ADMIN_EMAIL", "").strip().lower()
+    password = os.getenv("ADMIN_PASSWORD", "")
+    async with async_session_maker() as db:
+        if (await db.execute(select(User.id).where(User.role == UserRole.ADMIN).limit(1))).scalar_one_or_none():
+            print("An admin already exists; nothing to do.")
+            return
+        if not email or len(password) < 12:
+            print("No admin exists. Set ADMIN_EMAIL and ADMIN_PASSWORD (12+ characters) and run again.")
+            sys.exit(1)
+        db.add(User(email=email, hashed_password=get_password_hash(password), full_name="Administrator",
+                    role=UserRole.ADMIN, is_active=True))
+        await db.commit()
+        print(f"Created initial admin: {email}")
+
 
 async def seed():
     default_users = [
@@ -41,4 +63,7 @@ async def seed():
         print("Done seeding accounts. (All passwords are 'DemoPass123!')")
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    if settings.ENVIRONMENT.lower() == "production":
+        asyncio.run(bootstrap_production_admin())
+    else:
+        asyncio.run(seed())

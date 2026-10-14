@@ -78,3 +78,8 @@ Thumbs.db
 # Local agent and workspace metadata
 .agents/
 .openscience/
+
+# Any real env file; only the *.example templates are tracked
+.env.*
+!.env.example
+!.env.production.example

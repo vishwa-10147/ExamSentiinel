@@ -11,6 +11,9 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
 - `/run-local` — start backend + frontend natively (SQLite), the Piston code runner (Docker), seed data, smoke test.
 - `/backend-tests` — run pytest, frontend `tsc`, and the live E2E script.
 - `/practice-problems` — author/validate LeetCode-style problems; how the judge harness works.
+- `/ai-proctoring` — cheating-detection signal flow, YOLO/BlazeFace, de-dup windows, auto-submit rules.
+- `/backend`, `/frontend` — conventions to follow before changing either side.
+- `/aws-deploy` — release checklist (manual only); full guide in `docs/AWS_DEPLOYMENT.md`.
 
 ## Layout
 
@@ -18,6 +21,7 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
 - `backend/app/services/` — business logic: `risk_engine.py` (weighted event score → LOW/MEDIUM/HIGH/CRITICAL; opens a ReviewCase at MEDIUM), `grading_service.py` (coding answers run on the sandbox), `sandbox_service.py` (self-hosted Piston via `PISTON_URL`), `practice_judge.py` (LeetCode-style judge), `irt_service.py`.
 - Code execution: `docker-compose.piston.yml` + `infra/piston/` (our Piston image). The public emkc.org API is whitelist-only — never point back at it. Large inputs go in files, not stdin (Piston truncates stdin past ~200 kB).
 - `backend/app/models/` — SQLAlchemy 2 models; `backend/alembic/versions/` — Postgres-only migrations.
+- `backend/requirements-ai.txt` — optional CPU PyTorch + ultralytics for webcam phone/person detection (`ai/models/yolo11n.pt`).
 - `frontend/services/apiClient.ts` — the single API client; tokens live in localStorage (no cookies). Only `app/admin/layout.tsx` guards routes by role.
 
 ## Rules

@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const currentEnv = process.env.NODE_ENV;
-  
-  // Force HTTPS in production
-  if (currentEnv === 'production' && request.headers.get('x-forwarded-proto') !== 'https' && !request.url.startsWith('https://')) {
+  // Force HTTPS in production — but only when a proxy (ALB / CloudFront)
+  // explicitly says the client used plain HTTP. Load-balancer health checks
+  // reach the container directly without that header and must get a 200,
+  // not a redirect loop.
+  if (process.env.NODE_ENV === 'production' && request.headers.get('x-forwarded-proto') === 'http') {
     const httpsUrl = request.url.replace(/^http:/, 'https:');
     return NextResponse.redirect(httpsUrl, 301);
   }
-  
+
   return NextResponse.next();
 }
 
