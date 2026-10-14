@@ -1,8 +1,18 @@
-# Code execution
+# Code Execution
 
 How ExamSentinel runs untrusted code: the playground ("Run" with custom input), the
 practice judge ("Run" against samples, "Submit" against every test), and coding
 questions inside exams. Security properties are in [SECURITY.md](SECURITY.md).
+
+## Contents
+
+- [The engine](#the-engine)
+- [Execution status values](#execution-status-values)
+- [Run vs Submit](#run-vs-submit)
+- [Judge modes](#judge-modes)
+- [Comparison modes](#comparison-modes)
+- [How expected outputs are produced](#how-expected-outputs-are-produced)
+- [Limitations](#limitations)
 
 ## The engine
 
@@ -35,7 +45,7 @@ run memory 256 MB, compile memory 512 MB, 64 processes, 8 MB output. Our image
 (`infra/piston/Dockerfile`) raises Piston's request-body limit from 100 kB to 8 MB because a
 submission sends every test case in one request.
 
-## Status values (`SandboxResult.status`)
+## Execution status values
 
 | status | meaning | judge verdict |
 |---|---|---|
@@ -60,9 +70,9 @@ submission sends every test case in one request.
 For custom input, the expected answer is computed by running the problem's reference
 solution on the same input (server-side); the reference code itself is never sent.
 
-## Judge modes (`app/services/practice_judge.py`)
+## Judge modes
 
-### FUNCTION (LeetCode style)
+### Function mode
 
 The student implements a method on `class Solution`. The judge generates a harness per
 language that:
@@ -81,13 +91,13 @@ Supported types: `int long double bool string`, their 1-D arrays, `int[][]`, `st
 `ListNode`, `TreeNode`. A case slower than the problem's `time_limit_ms` is TLE even if the
 whole run finished.
 
-### STDIO
+### Standard input/output mode
 
 The program reads stdin and writes stdout; each case is a separate run (inputs are capped at
 `MAX_STDIO_INPUT_BYTES` because of stdin truncation). Output is compared after trimming
 trailing whitespace on each line.
 
-### SQL
+### SQL mode
 
 `schema + case INSERTs + .mode json + .bail on + student query` runs in sqlite3; the
 resulting rows are compared with the expected rows. Exactly one result set is allowed.
@@ -106,7 +116,7 @@ so they may only come from the repository's question bank (`backend/practice_ban
 admin API ignores a `checker` field and refuses `compare_mode: "checker"` for problems that
 don't already have one. A checker that raises counts as a wrong answer.
 
-## Expected outputs
+## How expected outputs are produced
 
 Expected outputs are never written by hand. `backend/seed_practice.py` executes each
 problem's reference solution through the **same generated Python harness** the judge uses
@@ -122,3 +132,7 @@ problem's reference solution through the **same generated Python harness** the j
 - Memory usage per case is not reported (the engine reports a whole-run figure only).
 - One request carries all cases, so problems must keep their total test data under ~6 MB
   (8 MB body after base64). The largest problems (#109–#114) are sized for this.
+
+---
+
+[Back to README](../README.md) · [Documentation index](README.md)

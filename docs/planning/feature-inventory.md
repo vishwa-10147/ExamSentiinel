@@ -1,10 +1,9 @@
-# Project: ExamSentinel
+# Feature Inventory (Original Plan)
 
-ExamSentinel is a full-stack AI-assisted examination platform with a coding practice platform.
-
-> **Status:** this file is the original feature inventory and milestone plan. For what is
-> implemented today see [ARCHITECTURE.md](ARCHITECTURE.md), [CODE_EXECUTION.md](CODE_EXECUTION.md),
-> [DSA_QUESTION_BANK.md](DSA_QUESTION_BANK.md), [API.md](API.md) and [SECURITY.md](SECURITY.md).
+> **Planning document.** This is the feature inventory and milestone plan written at the start
+> of the project; milestone statuses below are from that time and are not maintained. For the
+> system as built, see [Architecture](../ARCHITECTURE.md), [Code execution](../CODE_EXECUTION.md),
+> [API reference](../API.md) and [Security](../SECURITY.md).
 
 ## Architecture
 - **Frontend**: Next.js 14+ (App Router), React, TypeScript, Tailwind CSS, Monaco Editor, Lucide Icons, WebRTC (LiveKit/Daily client), IndexedDB (Dexie/idb).
@@ -27,7 +26,7 @@ ExamSentinel is a full-stack AI-assisted examination platform with a coding prac
 ## Feature Inventory
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
-| 1 | Documentation Suite | `docs/readme.md`, `docs/plan.md`, `docs/explain.md`, `docs/prompt.md` verbatim specs | M1 | Survey 1 |
+| 1 | Documentation Suite | `docs/planning/readme.md`, `plan.md`, `explain.md`, `prompt.md` verbatim specs | M1 | Survey 1 |
 | 2 | Docker Compose Environment | Multi-service orchestration (Postgres, Redis, Backend, Frontend, Piston) | M1 | Survey 1 |
 | 3 | Core Database Schema & Migrations | Alembic migrations, SQLAlchemy models, UUID keys, audit timestamps | M1 | Survey 1 |
 | 4 | Authentication & JWT Service | Access/refresh tokens, password hashing (bcrypt), token revocation | M1 | Survey 1 |
@@ -133,7 +132,7 @@ ExamSentinel is a full-stack AI-assisted examination platform with a coding prac
   - Event Push: `{ session_id: UUID, candidate_name: string, risk_score: float, risk_level: "LOW"|"MEDIUM"|"HIGH"|"CRITICAL", latest_event: { type: string, description: string, timestamp: ISO8601 } }`
 
 ### 4. Code Execution ↔ Piston engine
-- `sandbox_service.execute_async(language, source_code, stdin, timeout_sec, memory_mb, extra_files)` → `SandboxResult(status, stdout, stderr, exit_code, wall_time_ms, compile_output)`; `status` ∈ `success | error | compile_error | timeout | memory_limit | output_limit | system_error`. See [CODE_EXECUTION.md](CODE_EXECUTION.md).
+- `sandbox_service.execute_async(language, source_code, stdin, timeout_sec, memory_mb, extra_files)` → `SandboxResult(status, stdout, stderr, exit_code, wall_time_ms, compile_output)`; `status` ∈ `success | error | compile_error | timeout | memory_limit | output_limit | system_error`. See [CODE_EXECUTION.md](../CODE_EXECUTION.md).
 
 ### 5. Review Center ↔ Appeals Module
 - Appeal creation links to `review_finding_id`, assigning a distinct reviewer (`appeal_reviewer_id != original_reviewer_id`).
@@ -144,11 +143,7 @@ ExamSentinel is a full-stack AI-assisted examination platform with a coding prac
 ## Code Layout
 ```
 ExamSentinel/
-├── docs/                                # Authoritative documentation
-│   ├── readme.md
-│   ├── plan.md
-│   ├── explain.md
-│   └── prompt.md
+├── docs/                                # Documentation (planning specs in docs/planning/)
 ├── backend/                             # FastAPI Backend Service
 │   ├── practice_bank/                   # DSA + SQL question bank (seeded by seed_practice.py)
 │   ├── app/

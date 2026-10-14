@@ -1,15 +1,35 @@
-# Security
+# Security Policy
 
-This document lists the security controls that are **implemented and verified by a test**,
-the test that verifies each one, and the known gaps. If a control is not in the "verified"
-tables, do not assume it exists.
+## Supported versions
 
-Report vulnerabilities privately to the maintainers rather than in a public issue.
+Security fixes are made on the `main` branch. Deployments should track the latest commit on
+`main`.
 
-## Code execution sandbox
+## Reporting a vulnerability
+
+Please **do not open a public issue** for security problems. Report them privately through
+GitHub's [private vulnerability reporting](https://github.com/vishwa-10147/ExamSentiinel/security/advisories/new)
+(*Security → Report a vulnerability*) or by contacting the maintainer directly. Include the
+affected component, steps to reproduce and the impact you observed. Please allow time for a fix
+before any public disclosure.
+
+## Security model
+
+This section lists the controls that are **implemented and verified by an automated test**,
+together with the test that verifies each one, and the known gaps. If a control is not listed
+here, do not assume it exists.
+
+### Contents
+
+- [Code execution sandbox](#code-execution-sandbox)
+- [API controls](#api-controls)
+- [Secrets](#secrets)
+- [Known gaps](#known-gaps)
+
+### Code execution sandbox
 
 User code runs only inside the self-hosted Piston engine, which isolates every run with its
-own sandbox (Piston uses `isolate`: Linux namespaces + cgroups). The API process sends
+own sandbox (Piston uses `isolate`: Linux namespaces and cgroups). The API process sends
 code over HTTP and never executes it.
 
 Verified on the real engine by `backend/tests/test_sandbox_engine.py` (skipped when Piston is
@@ -20,20 +40,20 @@ not running; last run 2026-10-14, all passing):
 | No network | `connect()` to 1.1.1.1 / 8.8.8.8 → "Network is unreachable"; DNS lookups fail | `test_no_network_access` |
 | Time limit | `while True: pass` → `timeout` | `test_infinite_loop_is_killed_by_the_time_limit` |
 | Memory limit | 1 GB allocation with a 128 MB limit → killed (`memory_limit`) | `test_memory_hog_is_killed` |
-| Process limit | fork loop stops at ~62 processes (`BlockingIOError`) | `test_fork_bomb_hits_the_process_limit` |
+| Process limit | a fork loop stops at about 62 processes (`BlockingIOError`) | `test_fork_bomb_hits_the_process_limit` |
 | Output limit | unbounded printing → `output_limit` | `test_output_flood_is_cut_off` |
 | File-size limit | writing 2 GB → `EFBIG` ("File too large") | `test_large_files_are_refused` |
 | Non-root | runs as an unprivileged UID (60 000+ range), not 0 | `test_runs_as_unprivileged_user_without_docker_socket_or_secrets` |
-| No Docker socket | `/var/run/docker.sock` absent inside the sandbox | same test |
-| No secrets | sandbox environment has only `HOME`, `PATH`, `PWD`, `LC_CTYPE`, `PISTON_LANGUAGE`, …; no app secrets | same test |
+| No Docker socket | `/var/run/docker.sock` is absent inside the sandbox | Same test |
+| No secrets | the environment holds only `HOME`, `PATH`, `PWD`, `LC_CTYPE`, `PISTON_LANGUAGE` and similar — no application secrets | Same test |
 | Filesystem isolation | cannot write `/etc`, `/piston/packages`; cannot read `/etc/shadow` or the Piston API source | `test_filesystem_is_isolated_and_not_persistent` |
-| No persistence | a file written in one run does not exist in the next | same test |
+| No persistence | a file written in one run does not exist in the next | Same test |
 
 Engine-side limits are configured in `docker-compose.piston.yml` (run timeout ≤ 10 s, 256 MB
 run memory, 64 processes, 8 MB output); per-request limits are set by
 `sandbox_service.execute_async` (playground: 5 s, 256 MB; judge: the problem's limits).
 
-### Deployment requirements and residual risk
+#### Deployment requirements and residual risk
 
 - **The Piston container itself is `privileged`** so it can create per-run sandboxes. Treat it
   as a high-trust component: run it on its own host/instance, bind its port to localhost or a
@@ -46,15 +66,15 @@ run memory, 64 processes, 8 MB output); per-request limits are set by
   outbound IP and DNS are unreachable from user code in our deployment; re-run it after
   changing the engine image or host.
 
-## API controls
+### API controls
 
 | Control | Where | Verified by |
 |---|---|---|
 | Source size ≤ 50 000 chars; custom stdin ≤ 64 000 (playground) / 20 000 (judge custom input) | Pydantic schemas (`app/api/sandbox.py`, `app/schemas/practice.py`) | `test_playground_runs_programs_with_limits` |
 | Rate limits on code execution: run/exam-run/playground 30/min, submit 10/min per IP and path. Enforced by Redis, **with an in-process fallback when Redis is down** | `RateLimiter(..., local_fallback=True)` in `app/api/deps.py` | `test_code_execution_is_rate_limited_without_redis` |
-| One judge job per user at a time (429 otherwise) | `_JudgeSlot` (practice), `_users_running` (playground) | code review; not load-tested |
+| One judge job per user at a time (429 otherwise) | `_JudgeSlot` (practice), `_users_running` (playground) | Code review; not load-tested |
 | Hidden tests never sent to students: list/detail return samples only; a failing hidden case reports only its number | `_case_out(reveal_hidden=False)` | `test_admin_creates_problem_and_students_never_see_hidden_tests`, `test_submit_records_submission_and_hides_hidden_failure`, `test_detail_exposes_formats_but_never_checker_or_unearned_editorial` |
-| Reference solutions and checkers never returned to students; checkers never returned at all | response schemas omit them | same tests |
+| Reference solutions and checkers never returned to students; checkers never returned at all | Response schemas omit them | Same tests |
 | Editorials hidden until the student has an accepted submission | `get_problem` | `test_detail_exposes_formats_but_never_checker_or_unearned_editorial` |
 | Checkers (Python run in the API process) only from the repository bank; admin API ignores/refuses them | `ProblemUpsert`, `_apply_upsert` | `test_admin_api_cannot_set_or_enable_a_checker` |
 | Engine errors are not leaked to students (generic message, logged server-side) | `app/api/sandbox.py` | `test_playground_hides_engine_internals_on_outage` |
@@ -66,14 +86,14 @@ Other platform controls (JWT auth, RBAC, password reset OTPs, SSO with PKCE/nonc
 DOMPurify for exam HTML, audit logging) are covered by `test_auth.py`, `test_rbac.py`,
 `test_password_reset.py`, `test_sso.py`, `test_security.py` and `test_adversarial*.py`.
 
-## Secrets
+### Secrets
 
 - Secrets live in environment variables (`backend/.env` locally — git-ignored; a secret
   manager in production). `.env.example` and `.env.production.example` contain placeholders only.
 - Only `NEXT_PUBLIC_*` variables reach the browser; none of them is a secret.
 - The sandbox environment contains no application variables (verified above).
 
-## Known gaps
+### Known gaps
 
 - Login/registration rate limits require Redis (they are skipped without it, on purpose, so
   local test suites can log in repeatedly).
@@ -82,3 +102,7 @@ DOMPurify for exam HTML, audit logging) are covered by `test_auth.py`, `test_rba
 - Access tokens are stored in `localStorage` (no httpOnly cookies), so an XSS bug would expose
   them; exam HTML is sanitised with DOMPurify to reduce that risk.
 - AI proctoring signals are advisory only; they never penalise a candidate automatically.
+
+---
+
+[Back to README](../README.md) · [Documentation index](README.md)

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/vishwa-10147/ExamSentiinel/security/advisories/new
+    about: Please report security issues privately, not as a public issue.
+  - name: Documentation
+    url: https://github.com/vishwa-10147/ExamSentiinel/tree/main/docs
+    about: Installation, architecture, API and staff guides.

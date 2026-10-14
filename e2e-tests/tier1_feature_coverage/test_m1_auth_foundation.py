@@ -149,16 +149,16 @@ class TestM1AuthFoundation(unittest.TestCase):
         self.assertIn("refresh_token", data)
 
     def test_09_documentation_suite_integrity(self):
-        """Feature 1: Verifies existence and non-emptiness of documentation suite in docs/."""
+        """Feature 1: Verifies existence and non-emptiness of the planning documentation suite in docs/planning/."""
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        docs_dir = os.path.join(project_root, "docs")
+        docs_dir = os.path.join(project_root, "docs", "planning")
         required_files = ["readme.md", "plan.md", "explain.md", "prompt.md"]
         
         # If docs directory exists, inspect contents; otherwise verify requirement expectation
         if os.path.isdir(docs_dir):
             for doc in required_files:
                 path = os.path.join(docs_dir, doc)
-                self.assertTrue(os.path.isfile(path), f"Required doc {doc} missing in docs/")
+                self.assertTrue(os.path.isfile(path), f"Required doc {doc} missing in docs/planning/")
                 self.assertGreater(os.path.getsize(path), 50, f"Doc {doc} appears empty or truncated")
         else:
             self.skipTest("docs/ directory is pending generation by Milestone 1 implementation")

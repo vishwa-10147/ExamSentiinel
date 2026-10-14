@@ -1,49 +1,19 @@
-# ExamSentinel — Test Infrastructure
+# E2E Test Specification (Tiers 1–4)
 
-## Current suites and latest results
-
-Recorded 2026-10-14 on Windows 11 with the Piston engine running (so no real-engine test was
-skipped). Re-run them yourself; do not rely on these numbers after code changes.
-
-| Suite | Command | Result |
-|---|---|---|
-| Backend (unit, API, bank, real engine) | `cd backend && ../.venv/Scripts/python -m pytest -q -p no:cacheprovider` | **564 passed**, 0 failed, 0 skipped (9 min) |
-| Frontend type check | `cd frontend && npx tsc --noEmit` | 0 errors |
-| Frontend lint | `cd frontend && npx next lint` | no warnings or errors |
-| Production build | `cd frontend && npm run build` | compiled; 45 static pages; 0 warnings |
-| Browser (Playwright) | `cd frontend && PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test` | **25 passed** |
-| Live end-to-end | `python scripts/e2e_roles_smoke.py` | **73/73 steps passed** |
-
-Backend test files:
-
-| File | Tests | Needs |
-|---|---|---|
-| `test_practice_bank.py` | 247 | nothing — ≥ 100 DSA problems, topic minimums, unique/stable IDs, required fields per problem, harness generation in every language, checker behaviour, idempotent seeding |
-| `test_sandbox_engine.py` | 159 | **Piston** (skipped otherwise): programs in C/C++/Java/Python/JS with stdin/stdout/stderr, compile and runtime errors, isolation and limits (network, time, memory, processes, output, file size, non-root, no Docker socket, no secrets, no persistence), Java/C++/JS solutions for list/tree/checker problems, and **every reference solution** in the bank |
-| `test_practice.py` | 34 | faked engine (2 real-engine cases need Piston): verdict logic, harness, admin authoring, hidden-data redaction, SQL mode, practice-in-exam grading |
-| `test_practice_dsa_api.py` | 8 | faked engine: IDs/topics/sort/search, editorial gating, checker never exposed or settable, number uniqueness, history and topic progress, playground limits, rate limiting without Redis |
-| other `test_*.py` | 116 | auth, RBAC, SSO, password reset, exams, proctoring/AI, interviews, IRT, adversarial and security checks |
-
-Browser tests (`frontend/tests/*.spec.ts`): unauthenticated route protection, login/registration
-rendering, and role journeys against the running stack — solving a problem (Run + Submit),
-browsing the DSA bank by topic/ID, solving a linked-list problem in C++ and unlocking its
-editorial, the progress page, a C program with stdin in the playground, staff-area protection,
-admin user creation and problem authoring, reviewer/proctor dashboards.
-
----
-
-The rest of this document is the original E2E test specification (Tiers 1–4).
+> **Planning document.** This is the original opaque-box test specification written at the
+> start of the project. For the test suites that exist today, how to run them and their latest
+> results, see [Testing](../TESTING.md).
 
 ## 1. Test Philosophy
 
 ExamSentinel's testing strategy relies on **authentic, opaque-box, requirement-driven verification**. The test harness exercises the platform exclusively through its external boundaries—REST API endpoints, WebSocket streams, WebRTC signal boundaries, and worker protocols—without importing backend internals or coupling to private database models.
 
-### Key Principles:
+### Key principles
 1. **Opaque-Box Boundary Testing**: All assertions validate HTTP response codes, response payloads, WebSocket message schemas, and observable external artifacts. No direct queries against database internals bypassing the API.
 2. **Zero Facade Testing**: No vacuous assertions (`assert True`, empty try/except). Every test asserts strict invariant properties, schema adherence, and stateful side-effects.
 3. **Progressive Testability**: The test suite can run against live milestone deployments or simulated local environments. When an endpoint is unmounted or in-development, tests surface clear skip/pending statuses without masking defects.
 4. **Adversarial & Fault Injection**: Tests actively supply malformed tokens, boundary inputs, SQL/XSS payloads, concurrent conflicting payloads, and timing race conditions.
-5. **Authoritative Specification Tracing**: Every test maps directly to numbered requirements in `ORIGINAL_REQUEST.md` and feature entries in `PROJECT.md`.
+5. **Authoritative Specification Tracing**: Every test maps directly to numbered requirements in [`ORIGINAL_REQUEST.md`](ORIGINAL_REQUEST.md) and feature entries in the [feature inventory](feature-inventory.md).
 
 ---
 
@@ -101,7 +71,7 @@ ExamSentinel's testing strategy relies on **authentic, opaque-box, requirement-d
 | 48 | Offline Resilience via IndexedDB | M5 | Offline state sync endpoint, conflict resolution (last-write-wins) | Replay of 100 offline actions in batch, conflicting timestamps | Prolonged 15-minute outage then burst reconnection | Remote candidate with unstable rural Wi-Fi |
 | 49 | LMS Connector / LTI 1.3 | M5 | LTI 1.3 OIDC launch handshake, NRPS roster sync, AGS grade push | Expired state parameter, tampered LTI launch signature | Bulk grade push with 500 grades | Canvas / Blackboard integrated exam launch |
 | 50 | Enterprise SSO Integration | M5 | SAML2 / OAuth2 / OIDC auth flow, JIT user provisioning | Expired SAML assertion, missing required claims (email/name) | SSO user logging in via local password form | Corporate Okta/AzureAD SSO login |
-| 51 | Mobile Exam Mode | Honest capability disclosure, responsive profile tag, signal restrictions | User-agent spoofing, orientation change event handling | Mobile session telemetry vs desktop session telemetry | Candidate taking exam on iPad or Android tablet |
+| 51 | Mobile Exam Mode | M5 | Honest capability disclosure, responsive profile tag, signal restrictions | User-agent spoofing, orientation change event handling | Mobile session telemetry vs desktop session telemetry | Candidate taking exam on iPad or Android tablet |
 | 52 | Versioned Consent Capture | M6 | Multi-point consent (webcam, mic, screen, retention), version audit | Declining mandatory consent point, tampered consent version ID | Consent revocation post-exam | GDPR/FERPA compliant pre-exam onboarding |
 | 53 | Data Retention & Deletion Engine | M6 | Scheduled deletion job, retention policy rules, anonymization | Retention period 0 days, retention period 10 years | Deletion job running while session is actively being reviewed | Automated privacy compliance purge |
 | 54 | Student Appeals Flow | M6 | Appeal contestation submission, reviewer role separation enforcement | Submitting appeal after deadline, assigning same reviewer | Appeal approval overturning review finding & score | Contested autograder decision appeal |

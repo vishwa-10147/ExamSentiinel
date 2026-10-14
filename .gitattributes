@@ -1,2 +1,6 @@
 # Shell scripts run inside Linux containers: always LF.
 *.sh text eol=lf
+
+# Windows launchers must keep CRLF line endings.
+*.cmd text eol=crlf
+*.bat text eol=crlf

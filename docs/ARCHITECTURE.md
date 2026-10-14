@@ -1,80 +1,182 @@
 # Architecture
 
+How ExamSentinel is structured, how data flows through it and the design rules that hold it
+together.
+
+## Contents
+
+- [System overview](#system-overview)
+- [Components](#components)
+- [Proctoring signal flow](#proctoring-signal-flow)
+- [Judging a submission](#judging-a-submission)
+- [Practice data model](#practice-data-model)
+- [Deployment topologies](#deployment-topologies)
+- [Design principles](#design-principles)
+
+## System overview
+
+```mermaid
+flowchart LR
+    subgraph Browser
+        UI["Next.js 14 app"]
+        BF["BlazeFace<br/>(face presence)"]
+        ED["Monaco editor"]
+    end
+
+    subgraph API["FastAPI backend"]
+        R["Routers /api/*"]
+        WS["WebSockets /ws/*"]
+        J["Judge and grading"]
+        RE["Risk engine"]
+        Y["YOLO11n<br/>(phone / person)"]
+        W["faster-whisper<br/>(transcripts)"]
+    end
+
+    DB[("PostgreSQL / SQLite")]
+    RD[("Redis (optional)")]
+    PI["Piston sandbox"]
+
+    UI -- REST --> R
+    UI <-- live updates --> WS
+    BF --> UI
+    ED --> UI
+    R --> J --> PI
+    R --> RE
+    R --> Y
+    R --> W
+    R --> DB
+    RE --> DB
+    R -.-> RD
 ```
- Browser (Next.js 14, React, Monaco)
-   │  REST + WebSocket, JWT in Authorization header
-   ▼
- FastAPI backend (backend/app)  ──────────────►  PostgreSQL (prod) / SQLite (dev)
-   │   │                                          Redis (optional: rate limits, OTPs, pub/sub)
-   │   └── HTTP ──► Piston engine (privileged container, per-run isolate sandbox)
-   │                 python · node · java · gcc · sqlite3
-   └── in-process AI: YOLO (phone/person), BlazeFace (browser), faster-whisper (interviews)
-```
+
+The browser talks to the API over HTTPS with a JWT in the `Authorization` header and receives
+live updates over WebSockets. The API persists to PostgreSQL (SQLite in local development),
+uses Redis when available, and sends all user code to the Piston sandbox over HTTP.
 
 ## Components
 
-| Component | Code | Notes |
+| Component | Location | Responsibility |
 |---|---|---|
-| Frontend | `frontend/` (Next.js 14 App Router, TypeScript, Tailwind) | one API client (`services/apiClient.ts`); tokens in localStorage; role areas guarded by `RoleAreaLayout` |
-| API | `backend/app/api/` | all routers mounted under `/api` in `router.py` |
-| Services | `backend/app/services/` | `practice_judge.py` (judge), `sandbox_service.py` (engine client), `grading_service.py`, `risk_engine.py`, `irt_service.py`, … |
-| Models | `backend/app/models/` | SQLAlchemy 2 async; Alembic migrations in `backend/alembic/versions/` (Postgres) |
-| Question bank | `backend/practice_bank/` + `backend/seed_practice.py` | see [DSA_QUESTION_BANK.md](DSA_QUESTION_BANK.md) |
-| Code execution | `infra/piston/`, `docker-compose.piston.yml` | see [CODE_EXECUTION.md](CODE_EXECUTION.md) |
-| AI modules | `ai/` (standalone), backend uses `app/services/*` | YOLO weights in `ai/models/yolo11n.pt` |
+| Web app | `frontend/` | Next.js 14 App Router, TypeScript, Tailwind. One API client (`services/apiClient.ts`); each role area is wrapped by `RoleAreaLayout` |
+| API | `backend/app/api/` | Routers mounted under `/api` (`router.py`); WebSockets under `/ws` |
+| Services | `backend/app/services/` | `practice_judge` (judge), `sandbox_service` (engine client), `grading_service`, `risk_engine`, `irt_service`, `transcription_service`, `sso_service` |
+| Models | `backend/app/models/` | SQLAlchemy 2 (async). Migrations in `backend/alembic/versions/` |
+| Question bank | `backend/practice_bank/`, `backend/seed_practice.py` | Problem definitions and the seeder — see [Question bank](DSA_QUESTION_BANK.md) |
+| Code execution | `infra/piston/`, `docker-compose.piston.yml` | Self-hosted Piston image — see [Code execution](CODE_EXECUTION.md) |
+| AI modules | `ai/` | Standalone research modules and model weights (`ai/models/yolo11n.pt`); the API uses `app/services/*` |
 
-## Practice platform data model
+## Proctoring signal flow
 
+```mermaid
+sequenceDiagram
+    participant C as Candidate browser
+    participant A as API
+    participant R as Risk engine
+    participant D as Database
+    participant P as Proctor console
+    participant V as Reviewer
+
+    C->>A: POST /api/telemetry/events (tab switch, fullscreen exit, …)
+    C->>A: POST /api/proctoring/sessions/{id}/webcam/analyze (frame)
+    A->>A: YOLO11n detects phone / extra person
+    A->>R: record event with configured weight
+    R->>D: update session risk score (Low → Critical)
+    R-->>D: open a review case once the score reaches Medium
+    A-->>P: live update over /ws/dashboard
+    V->>A: decide the review case (the only point an outcome is set)
 ```
-practice_problems
-  id (uuid) · number (unique, public ID) · slug (unique) · title · topic · difficulty · tags[]
-  statement · input_format · output_format · constraints · complexity · editorial · hints[]
-  judge_mode (FUNCTION | STDIO | SQL) · function_spec (json) · sql_schema · compare_mode
-  checker (bank-only Python) · starter_code (json) · reference_solution (json)
-  time_limit_ms · memory_limit_mb · is_published · created_by · timestamps
-practice_test_cases
-  id · problem_id → practice_problems · input_data · expected_output · is_sample · explanation · order_index
-practice_submissions
-  id · problem_id · user_id · language · source_code · verdict · passed_count · total_count
-  runtime_ms · failure (json, hidden-case details redacted) · created_at
+
+Signals are de-duplicated over short windows so one incident is not counted repeatedly.
+Proctors can warn a candidate or end a session; neither the risk score nor any AI detection
+changes a candidate's result on its own.
+
+## Judging a submission
+
+```mermaid
+sequenceDiagram
+    participant S as Student
+    participant A as API
+    participant J as Judge
+    participant P as Piston
+    participant D as Database
+
+    S->>A: POST /api/practice/problems/{slug}/submit
+    A->>A: authenticate, rate limit, one job per user
+    A->>J: problem + all test cases (samples first)
+    J->>J: generate language harness, write cases to es_input.txt
+    J->>P: one execution request (code + input file)
+    P-->>J: one @@ES@@ record per case
+    J->>J: compare (exact / unordered / float / checker), per-case time limit
+    J-->>A: verdict, passed/total, first failure
+    A->>D: store submission (hidden-case details removed)
+    A-->>S: verdict
 ```
 
-Migrations: `012_practice_problems` (tables), `013_practice_sql_problems` (SQL mode), `014_practice_dsa_metadata`
-(number, topic, formats, complexity, editorial, checker). On SQLite (dev) the seeder creates
-tables with `create_all`.
+Exam questions created from practice problems store a `practice_problem_id`; the grading
+service judges a candidate's final answer in the same way.
 
-Progress (solved / attempted per topic and difficulty, streaks) is computed from
-`practice_submissions`; nothing is denormalised.
+## Practice data model
 
-## Request flow: Submit
+```mermaid
+erDiagram
+    PRACTICE_PROBLEM ||--o{ PRACTICE_TEST_CASE : has
+    PRACTICE_PROBLEM ||--o{ PRACTICE_SUBMISSION : receives
+    USER ||--o{ PRACTICE_SUBMISSION : makes
 
-1. `POST /api/practice/problems/{slug}/submit` — auth, rate limit (Redis or in-process
-   fallback), one-job-per-user guard.
-2. Load the problem and **all** its test cases (samples first).
-3. `practice_judge.judge()` builds the language harness, writes every case to
-   `es_input.txt`, and makes **one** engine request.
-4. Piston compiles/runs inside a fresh sandbox; the harness prints one `@@ES@@` record per
-   case.
-5. The judge compares each result (`exact` / `unordered` / `float` / `checker`), applies the
-   per-case time limit, stops at the first failure and maps engine status to a verdict.
-6. The submission is stored (unless the engine was unavailable) with hidden-case details
-   removed; the response mirrors it.
+    PRACTICE_PROBLEM {
+        uuid id
+        int number "unique public ID"
+        string slug "unique"
+        string topic
+        enum difficulty
+        enum judge_mode "FUNCTION | STDIO | SQL"
+        json function_spec
+        string compare_mode
+        text checker "bank-only, never exposed"
+        json reference_solution "never exposed"
+        text editorial "shown after solving"
+    }
+    PRACTICE_TEST_CASE {
+        uuid id
+        text input_data
+        text expected_output
+        bool is_sample
+        int order_index
+    }
+    PRACTICE_SUBMISSION {
+        uuid id
+        string language
+        enum verdict
+        int passed_count
+        int total_count
+        int runtime_ms
+        json failure "hidden details redacted"
+    }
+```
 
-Exam questions created from practice problems (`/admin/problems/{id}/to-exam`) store
-`practice_problem_id`; `grading_service` judges the candidate's final answer the same way.
+Relevant migrations: `012_practice_problems`, `013_practice_sql_problems` and
+`014_practice_dsa_metadata`. Progress (solved and attempted per topic and difficulty, streaks)
+is computed from submissions rather than stored.
 
-## Deployment shapes
+## Deployment topologies
 
-- **Local**: backend + frontend natively (SQLite, no Redis), Piston in Docker —
-  [INSTALLATION.md](INSTALLATION.md).
-- **docker-compose.yml**: postgres, redis, backend, frontend, piston.
-- **docker-compose.prod.yml** / AWS: [AWS_DEPLOYMENT.md](AWS_DEPLOYMENT.md). Piston needs
-  `privileged`, so it runs on EC2 (not Fargate) in a private subnet.
+| Topology | Components | Guide |
+|---|---|---|
+| Local development | API and web app run natively (SQLite, no Redis); Piston in Docker | [Installation](INSTALLATION.md) |
+| Docker Compose | PostgreSQL, Redis, API, web app and Piston containers | [Installation](INSTALLATION.md#2-docker-compose-full-stack) |
+| AWS | ECS for the app, EC2 for Piston (it must run privileged), RDS, ElastiCache, S3 | [AWS deployment](AWS_DEPLOYMENT.md) |
 
-## Design rules
+## Design principles
 
-- AI risk scores are advisory; humans decide via the reviewer workflow.
-- Every Redis caller has a fallback (`redis_breaker`), so a Redis outage degrades features
-  instead of failing requests.
-- User code never runs in the API process; checkers (trusted bank code) are the only
-  problem-specific code that does.
+- **AI is advisory.** Risk scores and detections inform people; they never decide outcomes.
+- **Untrusted code never runs in the API process.** Only bank-provided checkers, which are
+  repository code, run there.
+- **Hidden data stays on the server.** Hidden tests, reference solutions and checkers never
+  reach the browser.
+- **Redis is optional.** Every Redis call has a fallback behind a circuit breaker, so an outage
+  degrades features instead of failing requests.
+- **Schema changes ship with migrations.** Postgres-only SQL is guarded by a dialect check.
+
+---
+
+[Back to README](../README.md) · [Documentation index](README.md)

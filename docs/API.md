@@ -1,8 +1,16 @@
-# API reference — practice & code execution
+# API Reference
 
 Base URL `http://localhost:8000` (all routes are under `/api`). Interactive docs for every
 route: `http://localhost:8000/docs` (Swagger) and `/redoc`. This page covers the practice
 platform and the code runner; the examples are real responses from a local instance.
+
+## Contents
+
+- [Authentication](#authentication)
+- [Student endpoints](#student-endpoints)
+- [Admin endpoints](#admin-endpoints)
+- [Exam integration](#exam-integration)
+- [Errors](#errors)
 
 ## Authentication
 
@@ -134,7 +142,7 @@ unavailable — not stored as an attempt).
 `problems_total`, `by_difficulty`, `submissions_total`, `acceptance_rate`,
 `current_streak_days`, `activity` (date → count) and `recent`.
 
-### Playground (custom programs)
+### Playground
 
 ```http
 POST /api/sandbox/execute
@@ -160,7 +168,7 @@ A compile error (`return 0` without `;`):
 `status` is one of `success`, `error`, `compile_error`, `timeout`, `memory_limit`,
 `output_limit`, `system_error`.
 
-## Admin endpoints (role `admin`)
+## Admin endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -195,3 +203,7 @@ exam question against its samples. Final grading happens on submit via
 | 409 | duplicate slug/number, problem without tests |
 | 422 | invalid body (size limits, bad custom input, unsupported language for the problem) |
 | 429 | rate limit, or a run already in progress for this user |
+
+---
+
+[Back to README](../README.md) · [Documentation index](README.md)

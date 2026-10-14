@@ -1,6 +1,6 @@
-# Deploying ExamSentinel on AWS
+# AWS Deployment
 
-Two supported shapes:
+ExamSentinel supports two production topologies on AWS:
 
 | | **A. Managed (recommended)** | **B. Single EC2 host** |
 |---|---|---|
@@ -12,7 +12,19 @@ Two supported shapes:
 | TLS / routing | ALB + ACM | ALB + ACM, or Caddy on the host |
 | Good for | real exams, autoscaling, HA | pilots, a single course |
 
-## Architecture (A)
+## Contents
+
+- [Option A architecture](#option-a-architecture)
+- [1. Build and push images (ECR)](#1-build-and-push-images-ecr)
+- [2. Data stores](#2-data-stores)
+- [3. Secrets and configuration](#3-secrets-and-configuration)
+- [4. Code runner (Piston on EC2)](#4-code-runner-piston-on-ec2)
+- [5. Single sign-on, interviews and speech-to-text](#5-single-sign-on-interviews-and-speech-to-text)
+- [6. ECS services](#6-ecs-services)
+- [Option B: single EC2 host](#option-b-single-ec2-host)
+- [Post-deployment checks](#post-deployment-checks)
+
+## Option A architecture
 
 ```
                  Route 53 ─► ALB :443 (ACM cert, idle timeout 300 s for WebSockets)
@@ -125,7 +137,7 @@ Security notes for the code runner (details and the tests behind them: [SECURITY
   (`PISTON_URL=http://PISTON_PRIVATE_IP:2000/api/v2/execute`) to confirm network isolation
   and limits on that host.
 
-## 4b. Single sign-on, interviews and speech-to-text
+## 5. Single sign-on, interviews and speech-to-text
 
 - **SSO (OpenID Connect)**: set the `SSO_*` variables (see `.env.production.example`), `PUBLIC_API_URL` and
   `FRONTEND_URL`, and register `https://api.<domain>/api/auth/sso/<google|microsoft|oidc>/callback` as the redirect
@@ -139,7 +151,7 @@ Security notes for the code runner (details and the tests behind them: [SECURITY
   `base`, ~140 MB) on first use into `~/.cache/huggingface`. Mount an EFS volume there (or bake the model into the
   image) so new tasks don't re-download it. A 12-second clip takes about 1 s of CPU.
 
-## 5. ECS services
+## 6. ECS services
 
 | Service | Image | Size (start) | Port | Health check |
 |---|---|---|---|---|
@@ -172,7 +184,7 @@ python scripts/install_piston_runtimes.py
 Ports are bound to `127.0.0.1`; put an ALB (or Caddy/nginx with TLS) in front and expose only 443.
 Use an instance with ≥ 4 vCPU / 8 GB (e.g. `t3.xlarge`) when `WITH_AI=true`.
 
-## Post-deploy checks
+## Post-deployment checks
 
 - `curl https://api.exam.example.edu/api/health` → `"status": "healthy"`.
 - Sign in as the bootstrap admin, open **Practice Problems** and run the shield (validate) action on a
@@ -180,3 +192,7 @@ Use an instance with ≥ 4 vCPU / 8 GB (e.g. `t3.xlarge`) when `WITH_AI=true`.
 - Open **AI Test** (`/admin/ai-test`) with a webcam and hold up a phone: proves the vision model loaded.
 - On a **staging** stack seeded with demo users (non-production), run
   `E2E_BASE_URL=https://api.staging… python scripts/e2e_roles_smoke.py`.
+
+---
+
+[Back to README](../README.md) · [Documentation index](README.md)

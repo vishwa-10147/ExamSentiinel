@@ -35,63 +35,63 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # ============================================================================
 
 def get_original_request_lines() -> list[str]:
-    orig_path = REPO_ROOT / "ORIGINAL_REQUEST.md"
+    orig_path = REPO_ROOT / "docs" / "planning" / "ORIGINAL_REQUEST.md"
     assert orig_path.exists(), f"ORIGINAL_REQUEST.md not found at {orig_path}"
     with open(orig_path, "r", encoding="utf-8") as f:
         return f.readlines()
 
 
 def test_docs_readme_verbatim_match():
-    """Verify docs/readme.md matches ORIGINAL_REQUEST.md lines 17-72 verbatim."""
+    """Verify docs/planning/readme.md matches ORIGINAL_REQUEST.md lines 17-72 verbatim."""
     orig_lines = get_original_request_lines()
     # Lines 17-72 are 1-indexed (index 16 to 72)
     expected = "".join(orig_lines[16:72]).strip()
 
-    readme_path = REPO_ROOT / "docs" / "readme.md"
-    assert readme_path.exists(), "docs/readme.md does not exist"
+    readme_path = REPO_ROOT / "docs" / "planning" / "readme.md"
+    assert readme_path.exists(), "docs/planning/readme.md does not exist"
     with open(readme_path, "r", encoding="utf-8") as f:
         actual = f.read().strip()
 
-    assert actual == expected, "docs/readme.md does not match ORIGINAL_REQUEST.md specification"
+    assert actual == expected, "docs/planning/readme.md does not match ORIGINAL_REQUEST.md specification"
 
 
 def test_docs_plan_verbatim_match():
-    """Verify docs/plan.md matches ORIGINAL_REQUEST.md lines 78-404 verbatim."""
+    """Verify docs/planning/plan.md matches ORIGINAL_REQUEST.md lines 78-404 verbatim."""
     orig_lines = get_original_request_lines()
     expected = "".join(orig_lines[77:404]).strip()
 
-    plan_path = REPO_ROOT / "docs" / "plan.md"
-    assert plan_path.exists(), "docs/plan.md does not exist"
+    plan_path = REPO_ROOT / "docs" / "planning" / "plan.md"
+    assert plan_path.exists(), "docs/planning/plan.md does not exist"
     with open(plan_path, "r", encoding="utf-8") as f:
         actual = f.read().strip()
 
-    assert actual == expected, "docs/plan.md does not match ORIGINAL_REQUEST.md specification"
+    assert actual == expected, "docs/planning/plan.md does not match ORIGINAL_REQUEST.md specification"
 
 
 def test_docs_explain_verbatim_match():
-    """Verify docs/explain.md matches ORIGINAL_REQUEST.md lines 410-462 verbatim."""
+    """Verify docs/planning/explain.md matches ORIGINAL_REQUEST.md lines 410-462 verbatim."""
     orig_lines = get_original_request_lines()
     expected = "".join(orig_lines[409:462]).strip()
 
-    explain_path = REPO_ROOT / "docs" / "explain.md"
-    assert explain_path.exists(), "docs/explain.md does not exist"
+    explain_path = REPO_ROOT / "docs" / "planning" / "explain.md"
+    assert explain_path.exists(), "docs/planning/explain.md does not exist"
     with open(explain_path, "r", encoding="utf-8") as f:
         actual = f.read().strip()
 
-    assert actual == expected, "docs/explain.md does not match ORIGINAL_REQUEST.md specification"
+    assert actual == expected, "docs/planning/explain.md does not match ORIGINAL_REQUEST.md specification"
 
 
 def test_docs_prompt_verbatim_match():
-    """Verify docs/prompt.md matches ORIGINAL_REQUEST.md lines 468-496 verbatim."""
+    """Verify docs/planning/prompt.md matches ORIGINAL_REQUEST.md lines 468-496 verbatim."""
     orig_lines = get_original_request_lines()
     expected = "".join(orig_lines[467:496]).strip()
 
-    prompt_path = REPO_ROOT / "docs" / "prompt.md"
-    assert prompt_path.exists(), "docs/prompt.md does not exist"
+    prompt_path = REPO_ROOT / "docs" / "planning" / "prompt.md"
+    assert prompt_path.exists(), "docs/planning/prompt.md does not exist"
     with open(prompt_path, "r", encoding="utf-8") as f:
         actual = f.read().strip()
 
-    assert actual == expected, "docs/prompt.md does not match ORIGINAL_REQUEST.md specification"
+    assert actual == expected, "docs/planning/prompt.md does not match ORIGINAL_REQUEST.md specification"
 
 
 # ============================================================================

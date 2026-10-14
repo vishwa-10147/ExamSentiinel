@@ -1,0 +1,96 @@
+# Testing
+
+ExamSentinel is tested at four levels: backend unit and API tests, real-engine tests against
+the code-execution sandbox, browser tests with Playwright, and a live end-to-end script.
+
+## Contents
+
+- [Test suites](#test-suites)
+- [Running the tests](#running-the-tests)
+- [Backend test files](#backend-test-files)
+- [Browser tests](#browser-tests)
+- [Latest results](#latest-results)
+- [Writing tests](#writing-tests)
+
+## Test suites
+
+| Suite | Location | Needs |
+|---|---|---|
+| Backend unit and API | `backend/tests/` | Nothing — uses a temporary SQLite database and a faked engine |
+| Real engine | `backend/tests/test_sandbox_engine.py` | Piston on `localhost:2000` (or `PISTON_URL`); skipped otherwise |
+| Browser | `frontend/tests/*.spec.ts` | Running frontend and backend for the role journeys |
+| End to end | `scripts/e2e_roles_smoke.py` | Running backend with seeded data and Piston |
+| Static checks | `tsc`, `next lint`, `next build` | Node.js |
+
+## Running the tests
+
+```bash
+# Backend (about 9 minutes with the engine running; much faster without it)
+cd backend
+../.venv/Scripts/python -m pytest -q -p no:cacheprovider
+
+# A subset
+../.venv/Scripts/python -m pytest -q -p no:cacheprovider tests/test_practice_bank.py
+../.venv/Scripts/python -m pytest -q -p no:cacheprovider tests/test_sandbox_engine.py -k reverse-linked-list
+
+# Frontend static checks
+cd frontend
+npx tsc --noEmit
+npx next lint
+
+# Browser tests against a running dev server
+PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test
+
+# End-to-end against running servers
+python scripts/e2e_roles_smoke.py
+```
+
+`-p no:cacheprovider` avoids a permission error on `.pytest_cache` in some Windows checkouts.
+Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110.
+
+## Backend test files
+
+| File | Tests | Covers |
+|---|---:|---|
+| `test_practice_bank.py` | 247 | At least 100 DSA problems, topic minimums, unique and stable IDs, required fields, harness generation in every language, checkers, idempotent seeding |
+| `test_sandbox_engine.py` | 159 | Programs in five languages with stdin, stdout and stderr; compile and runtime errors; isolation and limits; multi-language solutions; every reference solution |
+| `test_practice.py` | 34 | Verdict logic, harness generation, authoring, hidden-data redaction, SQL judging, practice problems in exams |
+| `test_practice_dsa_api.py` | 8 | IDs, topics, sorting and search; editorial gating; checker protection; history and progress; playground limits; rate limiting |
+| Other `test_*.py` | 116 | Authentication, RBAC, SSO, password reset, exams, proctoring and AI, interviews, IRT, adversarial and security checks |
+
+## Browser tests
+
+| Spec | Covers |
+|---|---|
+| `dashboard.spec.ts` | Login and registration pages render; dashboard requires authentication |
+| `protected-routes.spec.ts` | Every protected route redirects anonymous users; login works on a mobile viewport |
+| `roles.spec.ts` | Solving a problem (Run and Submit), browsing by topic and ID, a C++ linked-list solution unlocking the editorial, the progress page, a C program in the playground, staff areas closed to candidates, user creation, problem authoring, reviewer and proctor dashboards |
+
+## Latest results
+
+Recorded on 2026-10-14 on Windows 11 with the execution engine running, so no real-engine test
+was skipped. Re-run the suites after any change rather than relying on these figures.
+
+| Suite | Result |
+|---|---|
+| Backend | **564 passed**, 0 failed, 0 skipped |
+| Browser | **25 passed** |
+| End to end | **73 / 73** steps passed |
+| Type check, lint, production build | No errors or warnings |
+
+Continuous integration (`.github/workflows/ci.yml`) runs the backend suite and a production
+frontend build on every pull request and on pushes to `main`. The engine is not available in
+CI, so real-engine tests are skipped there.
+
+## Writing tests
+
+- Fake the engine with the `fake_sandbox` fixture (`tests/test_practice.py`) for API and verdict
+  logic; use `test_sandbox_engine.py` for anything that depends on real execution.
+- Never assert on random identifiers (UUIDs) containing a substring — compare structured fields.
+- Tests that touch student-facing responses should assert that hidden tests, reference
+  solutions and checkers are absent.
+- Report results as they are; a skipped test is not a passing test.
+
+---
+
+[Back to README](../README.md)

@@ -1,10 +1,21 @@
-# DSA question bank
+# DSA Question Bank
 
 ExamSentinel ships **116 data-structures-and-algorithms problems** (#1–#116) across 16
 topics, plus **11 SQL problems** (#201–#211). Every statement is original to ExamSentinel.
 Every problem has a reference solution that is executed to produce its test data, and every
 reference passes its own tests on the real execution engine
 (`backend/tests/test_sandbox_engine.py::test_reference_solution_passes_on_the_engine`).
+
+## Contents
+
+- [Where the bank lives](#where-the-bank-lives)
+- [What every problem has](#what-every-problem-has)
+- [Seeding](#seeding)
+- [Problem formats](#problem-formats)
+- [Adding a problem](#adding-a-problem)
+- [Difficulty](#difficulty)
+- [Coverage](#coverage)
+- [Problem index](#problem-index)
 
 ## Where the bank lives
 
@@ -90,7 +101,7 @@ repository; the admin API cannot create or modify them.
 Problems can also be authored in the UI (**Admin → Practice Problems**), with a
 **Validate** button that runs the reference against every test on the engine.
 
-### Can problems be imported from websites or other repositories?
+### Importing problems from other sources
 
 Only with a compatible license. LeetCode/HackerRank/Codeforces statements and tests are
 copyrighted and their terms forbid copying them. Openly licensed sources exist
@@ -258,3 +269,7 @@ sort by ID, difficulty, acceptance or title.
 | 209 | Shared Email Addresses (SQL) | `sql-shared-emails` | SQL | Medium | SQL · unordered |
 | 210 | Top Three Salaries per Department (SQL) | `sql-top-three-salaries` | SQL | Hard | SQL |
 | 211 | Three-Day Login Streaks (SQL) | `sql-login-streaks` | SQL | Hard | SQL · unordered |
+
+---
+
+[Back to README](../README.md) · [Documentation index](README.md)
