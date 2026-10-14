@@ -40,7 +40,7 @@ async def check_health(db: AsyncSession = Depends(get_db)):
         r = aioredis.from_url(
             settings.REDIS_URL,
             socket_timeout=2.0,
-            socket_connect_timeout=2.0,
+            socket_connect_timeout=0.5,
         )
         await r.ping()
         await r.aclose()

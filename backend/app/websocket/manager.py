@@ -8,7 +8,7 @@ import redis.asyncio as redis
 
 from app.core.logging import logger
 from app.core.config import settings
-from app.core.redis_client import redis_client
+from app.core.redis_client import redis_breaker, redis_client
 
 class ConnectionManager:
     """Manages WebSocket connections and broadcasts events globally via Redis Pub/Sub."""
@@ -99,10 +99,14 @@ class ConnectionManager:
     # ------------------------------------------------------------------
 
     async def _publish(self, session_id: str, exam_id: str, message: dict):
+        if redis_breaker.is_open:
+            await self._broadcast_to_all_tiers_local(session_id, exam_id, message)
+            return
         try:
             await redis_client.publish(self.channel_name, json.dumps(message))
-        except Exception as e:
+        except Exception:
             # Fallback to local if Redis is down
+            redis_breaker.trip()
             await self._broadcast_to_all_tiers_local(session_id, exam_id, message)
 
     async def broadcast_risk_update(self, session_id: str, exam_id: str, data: dict) -> None:

@@ -2,6 +2,8 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
+from app.api.deps import RateLimiter, get_current_user
+from app.models.user import User
 from app.services.sandbox_service import sandbox_service
 
 router = APIRouter(prefix="/sandbox", tags=["Sandbox"])
@@ -19,8 +21,8 @@ class CodeExecutionResponse(BaseModel):
     test_results: Optional[List[Dict[str, Any]]] = None
     wall_time_ms: Optional[int] = 0
 
-@router.post("/execute", response_model=CodeExecutionResponse)
-async def execute_code(req: CodeExecutionRequest):
+@router.post("/execute", response_model=CodeExecutionResponse, dependencies=[Depends(RateLimiter(30, 60))])
+async def execute_code(req: CodeExecutionRequest, current_user: User = Depends(get_current_user)):
     """
     Submits code to the isolated execution engine (Piston sandbox) and returns execution results.
     Enforces a strict 5.0 second timeout and 128MB memory limit per run.
@@ -28,11 +30,13 @@ async def execute_code(req: CodeExecutionRequest):
     if not req.code.strip():
         raise HTTPException(status_code=400, detail="Source code cannot be empty.")
 
-    if len(req.code) > 10000:
-        raise HTTPException(status_code=400, detail="Source code exceeds maximum allowed size (10,000 characters).")
+    if len(req.code) > 50000:
+        raise HTTPException(status_code=400, detail="Source code exceeds maximum allowed size (50,000 characters).")
 
     lang = req.language.lower()
-    if lang not in ["python", "javascript", "java", "c", "cpp", "c++", "go", "rust", "sql"]:
+    if lang == "c++":
+        lang = "cpp"
+    if lang not in ["python", "javascript", "java", "c", "cpp", "sql"]:
         raise HTTPException(status_code=400, detail=f"Unsupported language: {req.language}")
 
     try:

@@ -129,7 +129,7 @@ async def grade_code(
             submission.result = {"reason": str(exc)}
             await db.commit()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-        passed = result.status == "SUCCESS" and result.stdout.strip() == case.expected_output.strip()
+        passed = result.status == "success" and result.stdout.strip() == case.expected_output.strip()
         if passed:
             earned_weight += case.weight
         case_results.append({"name": case.name, "passed": passed, "hidden": case.is_hidden, "status": result.status, "stdout": "" if case.is_hidden else result.stdout, "stderr": "" if case.is_hidden else result.stderr})

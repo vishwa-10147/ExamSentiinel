@@ -154,6 +154,52 @@ def main() -> int:
         check("admin analytics overview", c.get("/api/analytics/overview", headers=admin))
         check("admin audit log", c.get("/api/users/audit", headers=admin))
 
+        # ---- Coding exam question graded on the code runner -------------
+        coding_q = check("admin creates CODING question", c.post("/api/questions", headers=admin, json={
+            "type": "CODING", "title": "Double it", "content_rich_text": "Read n and print 2n.", "points": 4,
+            "difficulty": "easy", "options": {"allowed_languages": ["python"]},
+            "correct_answer": {"test_cases": [{"input": "3\n", "output": "6"}, {"input": "-5\n", "output": "-10"}]},
+        }))
+        coding_exam = check("admin creates coding exam", c.post("/api/exams", headers=admin, json={
+            "title": f"E2E Coding {uuid.uuid4().hex[:6]}", "duration_minutes": 30,
+            "start_window": (now - timedelta(minutes=5)).isoformat(), "end_window": (now + timedelta(hours=2)).isoformat(),
+        }))
+        cx = coding_exam["id"]
+        check("assign coding question", c.post(f"/api/exams/{cx}/questions", headers=admin, json={"question_id": coding_q["id"], "order_index": 0}))
+        check("enroll for coding exam", c.post(f"/api/exams/{cx}/enroll", headers=admin, json={"candidate_ids": [candidate_id]}))
+        check("publish coding exam", c.put(f"/api/exams/{cx}", headers=admin, json={"status": "PUBLISHED"}))
+        csess = check("start coding exam", c.post("/api/exam/sessions/start", headers=candidate, json={"exam_id": cx}))
+        csid = csess["session_id"]
+        check("save code answer", c.post(f"/api/exam/sessions/{csid}/answers", headers=candidate, json={
+            "question_id": coding_q["id"], "response_data": {"text": "print(2 * int(input()))", "language": "python"}, "sequence_id": 1}))
+        check("submit coding exam", c.post(f"/api/exam/sessions/{csid}/submit", headers=candidate, json={"confirm": True}))
+        crows = check("admin views coding exam sessions", c.get(f"/api/results/admin/exam/{cx}/sessions", headers=admin))
+        crow = next((r for r in (crows or []) if str(r.get("id")) == csid), {})
+        step("coding answer auto-graded on the code runner (4/4)", float(crow.get("score") or 0) == 4.0, str(crow.get("score")))
+
+        # ---- Practice platform -------------------------------------------
+        problems = check("student lists practice problems", c.get("/api/practice/problems", headers=candidate))
+        step("practice problem bank is seeded", (problems or {}).get("total", 0) >= 20, str((problems or {}).get("total")))
+        good = ("class Solution:\n    def isBalanced(self, s):\n        pairs = {')': '(', ']': '[', '}': '{'}\n        st = []\n"
+                "        for ch in s:\n            if ch in pairs:\n                if not st or st.pop() != pairs[ch]:\n                    return False\n"
+                "            else:\n                st.append(ch)\n        return not st\n")
+        run = check("student runs sample tests", c.post("/api/practice/problems/balanced-brackets/run", headers=candidate,
+                                                      json={"language": "python", "code": good, "custom_input": '"(("'}))
+        step("run passes samples + custom input", (run or {}).get("verdict") == "ACCEPTED", str((run or {}).get("verdict")))
+        sub = check("student submits correct solution", c.post("/api/practice/problems/balanced-brackets/submit", headers=candidate,
+                                                             json={"language": "python", "code": good}))
+        step("submission accepted on all tests", (sub or {}).get("verdict") == "ACCEPTED",
+             f"{(sub or {}).get('passed_count')}/{(sub or {}).get('total_count')}")
+        bad = check("student submits wrong solution", c.post("/api/practice/problems/balanced-brackets/submit", headers=candidate,
+                                                           json={"language": "python", "code": "class Solution:\n    def isBalanced(self, s):\n        return True\n"}))
+        step("wrong solution rejected", (bad or {}).get("verdict") == "WRONG_ANSWER", str((bad or {}).get("verdict")))
+        check("student practice stats", c.get("/api/practice/stats/me", headers=candidate))
+        check("RBAC: student blocked from problem authoring", c.get("/api/practice/admin/problems", headers=candidate), (401, 403))
+        admin_list = check("admin lists practice problems", c.get("/api/practice/admin/problems", headers=admin))
+        pid = next(p["id"] for p in admin_list if p["slug"] == "balanced-brackets")
+        report = check("admin validates reference solution", c.post(f"/api/practice/admin/problems/{pid}/validate", headers=admin))
+        step("reference solution passes every test", (report or {}).get("ok") is True, (report or {}).get("message", ""))
+
     failed = [r for r in RESULTS if not r[1]]
     print(f"\n{len(RESULTS) - len(failed)}/{len(RESULTS)} steps passed")
     return 1 if failed else 0

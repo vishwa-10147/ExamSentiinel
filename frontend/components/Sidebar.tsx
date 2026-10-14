@@ -47,7 +47,7 @@ export default function Sidebar() {
     }
   };
 
-  const navItems = [
+  const navItems: { label: string; href: string; icon: React.ElementType; roles: string[]; badge?: string }[] = [
     // Shared / Role-specific Dashboards
     { label: "Dashboard", href: `/${user?.role || 'candidate'}/dashboard`, icon: LayoutDashboard, roles: ["admin", "proctor", "reviewer", "candidate"] },
     
@@ -57,6 +57,7 @@ export default function Sidebar() {
     // Admin routes
     { label: "Exam Center", href: "/admin/exam", icon: ClipboardList, roles: ["admin"] },
     { label: "Question Bank", href: "/admin/questions", icon: Library, roles: ["admin"] },
+    { label: "Practice Problems", href: "/admin/problems", icon: Code2, roles: ["admin"] },
     { label: "Results", href: "/admin/results", icon: FileCheck2, roles: ["admin"] },
     { label: "Review Queue", href: "/admin/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
     { label: "Broadcast", href: "/admin/broadcast", icon: Mail, roles: ["admin"] },
@@ -66,8 +67,8 @@ export default function Sidebar() {
     
     // Candidate routes
     { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
-    { label: "Practice Lab", href: "/candidate/practice", icon: Code2, roles: ["candidate"], badge: "Soon" },
-    { label: "Problem Set", href: "/candidate/problems", icon: Library, roles: ["candidate"], badge: "Soon" },
+    { label: "Problem Set", href: "/candidate/problems", icon: Library, roles: ["candidate"] },
+    { label: "Code Playground", href: "/candidate/practice", icon: Code2, roles: ["candidate"] },
     { label: "My Results", href: "/candidate/results", icon: FileCheck2, roles: ["candidate"] },
     { label: "Leaderboard", href: "/candidate/leaderboard", icon: Trophy, roles: ["candidate"] },
     { label: "My Profile", href: "/candidate/profile", icon: User, roles: ["candidate"] },
