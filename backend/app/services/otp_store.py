@@ -85,3 +85,45 @@ class OTPStore:
 
 
 otp_store = OTPStore()
+
+
+class TicketStore:
+    """Single-use, short-lived tickets (e.g. SSO hand-off from the API to the SPA).
+
+    A ticket is a 256-bit random string mapped to a small payload; redeeming it
+    deletes it, so a leaked or replayed ticket is useless.
+    """
+
+    def __init__(self, ttl_seconds: int = 60) -> None:
+        self.ttl = ttl_seconds
+        self._memory: dict[str, tuple[float, str]] = {}
+
+    async def issue(self, value: str) -> str:
+        ticket = secrets.token_urlsafe(32)
+        key = f"ticket:{ticket}"
+        if not redis_breaker.is_open:
+            try:
+                await redis_client.set(key, value, ex=self.ttl)
+                return ticket
+            except Exception:
+                redis_breaker.trip()
+        self._memory[key] = (time.monotonic() + self.ttl, value)
+        return ticket
+
+    async def redeem(self, ticket: str) -> str | None:
+        key = f"ticket:{ticket}"
+        if not redis_breaker.is_open:
+            try:
+                value = await redis_client.getdel(key)
+                if value is not None:
+                    return value
+            except Exception:
+                redis_breaker.trip()
+        entry = self._memory.pop(key, None)
+        if entry is None or entry[0] < time.monotonic():
+            return None
+        return entry[1]
+
+
+sso_tickets = TicketStore(ttl_seconds=60)
+

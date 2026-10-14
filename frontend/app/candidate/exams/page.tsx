@@ -352,6 +352,14 @@ export default function CandidateExamsPage() {
                       <ChevronRight className="h-4 w-4" />
                     </button>
                   )}
+                  {exam.canStart && (
+                    <button
+                      onClick={() => router.push(`/exam/${exam.id}/interview`)}
+                      className="mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50"
+                    >
+                      Join live interview
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

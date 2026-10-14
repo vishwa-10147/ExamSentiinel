@@ -22,7 +22,12 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
 - Code execution: `docker-compose.piston.yml` + `infra/piston/` (our Piston image). The public emkc.org API is whitelist-only — never point back at it. Large inputs go in files, not stdin (Piston truncates stdin past ~200 kB).
 - `backend/app/models/` — SQLAlchemy 2 models; `backend/alembic/versions/` — Postgres-only migrations.
 - `backend/requirements-ai.txt` — optional CPU PyTorch + ultralytics for webcam phone/person detection (`ai/models/yolo11n.pt`).
-- `frontend/services/apiClient.ts` — the single API client; tokens live in localStorage (no cookies). Only `app/admin/layout.tsx` guards routes by role.
+- Auth: password login and OpenID Connect SSO (`app/api/sso.py`, `services/sso_service.py`; providers via `SSO_*`
+  env vars) share `issue_login_session` in `app/api/auth.py`. Password reset codes live in `services/otp_store.py`.
+- Live interviews: `app/api/interviews.py` (consent, transcript, scores), `app/api/interview_ws.py` (WebRTC
+  signalling relay, in-memory rooms), `services/transcription_service.py` (faster-whisper). UI: `/interview/[id]`,
+  `/admin/interviews`.
+- `frontend/services/apiClient.ts` — the single API client; tokens live in localStorage (no cookies). `components/RoleAreaLayout.tsx` guards each role area in the UI; the API enforces roles regardless.
 
 ## Rules
 

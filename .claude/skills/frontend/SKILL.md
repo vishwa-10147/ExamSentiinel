@@ -39,3 +39,16 @@ cd frontend && npm run build             # all pages must build (stop `npm run d
 ```
 Then open the page in the browser pane as the right role (demo users: `seed_admin.py`) and check
 the network panel for non-2xx calls.
+
+## Browser tests (Playwright)
+
+```bash
+cd frontend && npx playwright install chromium          # once
+PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test --workers=1
+```
+- `tests/roles.spec.ts` needs the backend on :8000 with demo users + practice problems (and Piston); it skips
+  when the API is down. Logins revoke each other's sessions, so it runs serially.
+- **Never run two `next dev` servers on one `.next` folder.** With `PLAYWRIGHT_BASE_URL` set the config starts no
+  server of its own; without it, it starts one on :3110 — stop the :3000 dev server first. Symptom of a clash:
+  pages stuck on "Checking access…" and 404s for `/_next/static/chunks/*.js`. Fix: stop servers, `rm -rf .next`.
+- Monaco: set code with `window.monaco.editor.getModels()[0].setValue(...)` — typing triggers auto-indent.

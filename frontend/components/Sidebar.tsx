@@ -60,6 +60,7 @@ export default function Sidebar() {
     { label: "Practice Problems", href: "/admin/problems", icon: Code2, roles: ["admin"] },
     { label: "Results", href: "/admin/results", icon: FileCheck2, roles: ["admin"] },
     { label: "Review Queue", href: "/admin/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
+    { label: "Interviews", href: "/admin/interviews", icon: Video, roles: ["admin", "proctor", "reviewer"] },
     { label: "Broadcast", href: "/admin/broadcast", icon: Mail, roles: ["admin"] },
     { label: "Audit Logs", href: "/admin/audit", icon: History, roles: ["admin"] },
     { label: "User Management", href: "/admin/users", icon: Users, roles: ["admin"] },

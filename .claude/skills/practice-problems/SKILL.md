@@ -10,7 +10,7 @@ allowed-tools: Bash, Read, Edit
 Code: `backend/app/services/practice_judge.py` (judge + harness), `backend/app/api/practice.py` (API),
 `backend/practice_bank/` (problem definitions: `core`, `algorithms`, `sql`) + `backend/seed_practice.py` (seeder), `frontend/app/candidate/problems/` (student UI), `frontend/app/admin/problems/` (authoring UI).
 
-## Two answer styles
+## Answer styles
 
 | `judge_mode` | Student writes | Test input | Expected |
 |---|---|---|---|
@@ -24,7 +24,8 @@ Code: `backend/app/services/practice_judge.py` (judge + harness), `backend/app/a
 ## Adding problems
 
 Prefer adding a `problem(...)` (or `sql_problem(...)`) call in `backend/practice_bank/`. Append to the
-**end** of a module — every module draws from one seeded RNG, so inserting earlier changes others' hidden data. write the statement **in your own words**
+**end** of a module — every module draws from one seeded RNG, so inserting earlier changes others' hidden data.
+Write the statement **in your own words**
 (never copy LeetCode text), a Python reference solution, sample args (with explanations) and hidden args.
 Expected outputs are computed by running the reference — never hand-write them.
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.api import admin_settings, auth, calendar, code_execution, compliance, dashboard, exams, health, imports, analytics, interviews, monitoring, practice, proctoring, questions, reports, reviews, sessions, results, broadcast, usage, users
+from app.api import admin_settings, auth, calendar, code_execution, compliance, dashboard, exams, health, imports, analytics, interviews, monitoring, practice, proctoring, sso, questions, reports, reviews, sessions, results, broadcast, usage, users
 from app.api.deps import get_current_user, require_roles
 from app.models.user import User, UserRole
 
@@ -7,6 +7,7 @@ api_router = APIRouter(prefix="/api")
 
 # Mount auth routes (/api/auth/register, /login, /refresh, /me, /logout)
 api_router.include_router(auth.router)
+api_router.include_router(sso.router)
 
 # Mount user management routes (/api/users)
 api_router.include_router(users.router)
@@ -46,6 +47,9 @@ api_router.include_router(dashboard.router)
 
 # Mount WebSocket monitoring routes (/api/ws)
 api_router.include_router(monitoring.router)
+
+from app.api import interview_ws  # noqa: E402
+api_router.include_router(interview_ws.router)
 
 # RBAC verification endpoints for integration tests and role validation
 rbac_test_router = APIRouter(prefix="/rbac-test", tags=["RBAC Test"])

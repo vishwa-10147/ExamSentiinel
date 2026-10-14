@@ -259,7 +259,7 @@ export default function ExamTakingPage() {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
     };
-  }, [session, isSubmitted, submitTelemetry]);
+  }, [session, isSubmitted, isAutoTerminated, submitTelemetry]);
 
   useEffect(() => {
     if (!session || isSubmitted || document.fullscreenElement) return;

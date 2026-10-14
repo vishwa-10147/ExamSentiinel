@@ -18,11 +18,32 @@ import {
   ArrowRight
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { apiClient } from "@/services/apiClient";
+
+// Error codes the SSO callback can send back (see backend/app/api/sso.py).
+const SSO_ERRORS: Record<string, string> = {
+  sso_failed: "Single sign-on failed. Please try again or sign in with your email and password.",
+  sso_cancelled: "Sign-in with your institution was cancelled.",
+  sso_unavailable: "Single sign-on isn't available right now. Please sign in with your email and password.",
+  sso_no_account: "No ExamSentinel account exists for that email yet. Ask your administrator to add you.",
+  sso_account_inactive: "Your account is inactive. Please contact your administrator.",
+  sso_domain_not_allowed: "That email domain isn't allowed to sign in here.",
+  sso_email_unverified: "Your identity provider hasn't verified that email address.",
+  sso_no_email: "Your identity provider didn't share an email address.",
+  sso_state_missing: "The sign-in took too long or cookies are blocked. Please try again.",
+  sso_state_invalid: "The sign-in request could not be verified. Please try again.",
+  sso_token_invalid: "The identity provider's response could not be verified. Please try again.",
+  sso_exchange_failed: "The identity provider rejected the sign-in. Please try again.",
+};
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, verifyOTP } = useAuth();
 
+  const [ssoProviders, setSsoProviders] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    apiClient.getSsoProviders().then(setSsoProviders).catch(() => setSsoProviders([]));
+  }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -40,8 +61,8 @@ export default function LoginPage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get("reason") === "session_terminated") {
         setError("Your session was ended because another active login was initiated for this account.");
-      } else if (params.get("error") === "sso_failed") {
-        setError("Single Sign-On authentication failed. Please sign in with your email and password.");
+      } else if (params.get("error")?.startsWith("sso_")) {
+        setError(SSO_ERRORS[params.get("error") as string] ?? SSO_ERRORS.sso_failed);
       }
     }
   }, []);
@@ -248,6 +269,23 @@ export default function LoginPage() {
                     </>
                   )}
                 </button>
+
+                {ssoProviders.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center gap-3 text-xs text-slate-400">
+                      <span className="h-px flex-1 bg-slate-200" /> or continue with <span className="h-px flex-1 bg-slate-200" />
+                    </div>
+                    {ssoProviders.map((p) => (
+                      <a
+                        key={p.id}
+                        href={apiClient.ssoLoginUrl(p.id)}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                      >
+                        <ShieldCheck className="h-4 w-4 text-indigo-600" /> {p.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </form>
             ) : (
               /* 2FA OTP Form */

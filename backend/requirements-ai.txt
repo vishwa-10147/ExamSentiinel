@@ -5,3 +5,4 @@
 torch>=2.4,<3
 torchvision>=0.19,<1
 ultralytics>=8.3,<9
+faster-whisper>=1.1,<2  # interview speech-to-text (CPU int8); decodes webm/opus via bundled PyAV

@@ -116,6 +116,67 @@ async def register_user(
     return user
 
 
+async def issue_login_session(db: AsyncSession, user: User, request: Request, method: str) -> TokenResponse:
+    """Start a new browser session for *user* (password or SSO login).
+
+    Enforces one active browser per user, rotates refresh tokens and audits
+    the login with the method used.
+    """
+    # Generate a fresh session ID for single-browser login enforcement
+    session_id = str(uuid.uuid4())
+    user.current_session_id = session_id
+    db.add(user)
+
+    # Revoke all previous refresh tokens for this user so old browser sessions cannot refresh
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
+
+    token_data = {
+        "user_id": str(user.id),
+        "email": user.email,
+        "role": user.role.value,
+        "institution_id": str(user.institution_id) if user.institution_id else None,
+        "sid": session_id,
+    }
+
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data=token_data)
+
+    # Persist refresh token in database for single-use rotation and revocation tracking
+    refresh_payload = decode_token(refresh_token)
+    refresh_entry = RefreshToken(
+        user_id=user.id,
+        jti=refresh_payload["jti"],
+        revoked=False,
+        expires_at=datetime.fromtimestamp(refresh_payload["exp"], tz=timezone.utc),
+    )
+    db.add(refresh_entry)
+
+    # Log audit event
+    await log_audit_event(
+        db=db,
+        action="USER_LOGIN",
+        resource_type="auth",
+        resource_id=str(user.id),
+        details={"email": user.email, "role": user.role.value, "sid": session_id, "method": method},
+        user_id=user.id,
+        institution_id=user.institution_id,
+        request=request,
+    )
+    await db.commit()
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserResponse.model_validate(user),
+    )
+
+
 @router.post("/login", dependencies=[Depends(RateLimiter(calls=5, period=60))])
 async def login(
     credentials: UserLogin,
@@ -163,59 +224,7 @@ async def login(
             detail="User account is inactive. Please contact your administrator.",
         )
 
-    # Generate a fresh session ID for single-browser login enforcement
-    session_id = str(uuid.uuid4())
-    user.current_session_id = session_id
-    db.add(user)
-
-    # Revoke all previous refresh tokens for this user so old browser sessions cannot refresh
-    await db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False))
-        .values(revoked=True)
-    )
-
-    token_data = {
-        "user_id": str(user.id),
-        "email": user.email,
-        "role": user.role.value,
-        "institution_id": str(user.institution_id) if user.institution_id else None,
-        "sid": session_id,
-    }
-
-    access_token = create_access_token(data=token_data)
-    refresh_token = create_refresh_token(data=token_data)
-
-    # Persist refresh token in database for single-use rotation and revocation tracking
-    refresh_payload = decode_token(refresh_token)
-    refresh_entry = RefreshToken(
-        user_id=user.id,
-        jti=refresh_payload["jti"],
-        revoked=False,
-        expires_at=datetime.fromtimestamp(refresh_payload["exp"], tz=timezone.utc),
-    )
-    db.add(refresh_entry)
-
-    # Log audit event
-    await log_audit_event(
-        db=db,
-        action="USER_LOGIN",
-        resource_type="auth",
-        resource_id=str(user.id),
-        details={"email": user.email, "role": user.role.value, "sid": session_id},
-        user_id=user.id,
-        institution_id=user.institution_id,
-        request=request,
-    )
-    await db.commit()
-
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse.model_validate(user),
-    )
+    return await issue_login_session(db, user, request, method="password")
 
 
 @router.post("/refresh", response_model=TokenResponse)

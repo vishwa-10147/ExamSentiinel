@@ -1,57 +1,50 @@
 "use client";
 
-import React, { useEffect, Suspense } from "react";
+import React, { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
+import { apiClient } from "@/services/apiClient";
 
 function SSOCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const started = useRef(false); // the ticket is single-use: never redeem it twice (e.g. StrictMode)
 
   useEffect(() => {
-    const token = searchParams.get("token");
-    
-    if (token) {
-      // Typically we'd exchange a code or validate the token
-      localStorage.setItem("access_token", token);
-      
-      // Artificial delay to show the secure handoff
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 2000);
-    } else {
-      setTimeout(() => {
-        router.push("/auth/login?error=sso_failed");
-      }, 2000);
+    if (started.current) return;
+    started.current = true;
+    const ticket = searchParams.get("ticket");
+    if (!ticket) {
+      router.replace("/auth/login?error=sso_failed");
+      return;
     }
+    apiClient
+      .completeSsoLogin(ticket)
+      // Full navigation so the auth context loads the new session.
+      .then(() => window.location.replace("/dashboard"))
+      .catch(() => router.replace("/auth/login?error=sso_failed"));
   }, [router, searchParams]);
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
-      <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-indigo-500/20 animate-pulse">
-        <ShieldCheck className="w-8 h-8 text-white" />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-900 p-4">
+      <div className="mb-6 flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-500/20">
+        <ShieldCheck className="h-8 w-8 text-white" />
       </div>
-      <h1 className="text-2xl font-bold text-white mb-2">Authenticating</h1>
-      <p className="text-slate-400 text-center max-w-md">
-        Completing Single Sign-On (SSO) handshake with your institution. Please wait while we establish a secure session...
-      </p>
-      
-      <div className="mt-8 flex gap-2">
-        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
-        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
-      </div>
+      <h1 className="mb-2 text-2xl font-bold text-white">Signing you in</h1>
+      <p className="max-w-md text-center text-slate-400">Completing sign-in with your institution…</p>
     </div>
   );
 }
 
 export default function SSOCallbackPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-slate-400">Loading secure environment...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-slate-900">
+          <div className="text-slate-400">Loading…</div>
+        </div>
+      }
+    >
       <SSOCallbackContent />
     </Suspense>
   );

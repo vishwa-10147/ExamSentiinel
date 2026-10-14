@@ -114,6 +114,20 @@ No AWS access keys: the **task role** grants S3 access.
 
 Scale out by running several Piston instances behind an internal NLB.
 
+## 4b. Single sign-on, interviews and speech-to-text
+
+- **SSO (OpenID Connect)**: set the `SSO_*` variables (see `.env.production.example`), `PUBLIC_API_URL` and
+  `FRONTEND_URL`, and register `https://api.<domain>/api/auth/sso/<google|microsoft|oidc>/callback` as the redirect
+  URI with the provider. Put client secrets in Secrets Manager.
+- **Live interviews**: video is peer-to-peer WebRTC. Add a **TURN server** for candidates behind strict NATs or
+  firewalls (e.g. coturn on a small EC2 instance, or a managed TURN service) and pass it to the frontend build as
+  `NEXT_PUBLIC_ICE_SERVERS='[{"urls":"turn:turn.<domain>:3478","username":"…","credential":"…"},{"urls":"stun:stun.l.google.com:19302"}]'`.
+  Signalling rooms live in backend memory: with more than one backend task, enable **ALB stickiness** on the
+  backend target group (or route `/api/ws/interview/*` to a single task).
+- **Speech-to-text** (`WITH_AI=true` image): faster-whisper downloads its model (`WHISPER_MODEL_SIZE`, default
+  `base`, ~140 MB) on first use into `~/.cache/huggingface`. Mount an EFS volume there (or bake the model into the
+  image) so new tasks don't re-download it. A 12-second clip takes about 1 s of CPU.
+
 ## 5. ECS services
 
 | Service | Image | Size (start) | Port | Health check |

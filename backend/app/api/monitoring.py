@@ -25,7 +25,7 @@ router = APIRouter(prefix="/ws", tags=["WebSocket Monitoring"])
 _MONITORING_ROLES = {UserRole.ADMIN, UserRole.PROCTOR}
 
 
-async def _authenticate_ws(websocket: WebSocket) -> User | None:
+async def _authenticate_ws(websocket: WebSocket, roles: set[UserRole] = _MONITORING_ROLES) -> User | None:
     """Validate the JWT token passed as a query parameter.
 
     Returns the authenticated User or ``None`` (after closing the socket with
@@ -73,7 +73,7 @@ async def _authenticate_ws(websocket: WebSocket) -> User | None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="User not found or inactive")
         return None
 
-    if user.role not in _MONITORING_ROLES:
+    if user.role not in roles:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Insufficient permissions")
         return None
 
