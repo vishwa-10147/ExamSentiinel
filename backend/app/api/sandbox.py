@@ -25,7 +25,7 @@ async def execute_code(req: CodeExecutionRequest):
     Submits code to the isolated execution engine (Piston sandbox) and returns execution results.
     Enforces a strict 5.0 second timeout and 128MB memory limit per run.
     """
-    if not req.code.trim():
+    if not req.code.strip():
         raise HTTPException(status_code=400, detail="Source code cannot be empty.")
 
     if len(req.code) > 10000:

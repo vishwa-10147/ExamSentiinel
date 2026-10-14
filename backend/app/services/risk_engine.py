@@ -192,12 +192,10 @@ class RiskEngine:
             )
             await db.flush()
 
-            # Auto-create a review case when crossing the threshold for the
-            # first time (the previous risk level was below MEDIUM).
-            if (
-                score >= _REVIEW_CASE_THRESHOLD
-                and previous_level == "LOW"
-            ):
+            # Auto-create a review case once the score reaches MEDIUM.
+            # _ensure_review_case is idempotent, so this does not depend on
+            # previous_level (callers may already have escalated it).
+            if score >= _REVIEW_CASE_THRESHOLD:
                 await self._ensure_review_case(db, session, score, risk_level)
 
         return score, risk_level
@@ -234,6 +232,12 @@ class RiskEngine:
             select(Exam.institution_id).where(Exam.id == session.exam_id)
         )
         return result.scalar_one_or_none()
+
+    async def ensure_review_case(
+        self, db: AsyncSession, session: ExamSession, score: float, risk_level: str
+    ) -> None:
+        """Public entry point: guarantee a human review case exists for *session*."""
+        await self._ensure_review_case(db, session, score, risk_level)
 
     async def _ensure_review_case(
         self,

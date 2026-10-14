@@ -73,4 +73,4 @@ async def candidate_only_endpoint(current_user: User = Depends(require_roles([Us
 api_router.include_router(rbac_test_router)
 
 from app.api import sandbox
-api_router.include_router(sandbox.router, prefix="/sandbox", tags=["Sandbox Execution"])
+api_router.include_router(sandbox.router, tags=["Sandbox Execution"])
