@@ -103,6 +103,34 @@ test("candidate solves a linked-list problem in C++ and unlocks the editorial", 
   await expect(page.getByText(/Solve this problem to unlock/)).toHaveCount(0);
 });
 
+test("candidate solves an array problem in C with LeetCode-style signatures", async ({ page }) => {
+  await login(page, "candidate@sentinel.edu");
+  await page.goto("/candidate/problems/sorted-squares");
+  await expect(page.getByRole("heading", { name: /59\. / })).toBeVisible({ timeout: 20000 });
+  await page.getByLabel("Language").selectOption("c");
+  await page.waitForFunction(() => (window as any).monaco?.editor?.getModels()[0]?.getValue().includes("returnSize"), null, {
+    timeout: 30000,
+  });
+  await setEditorCode(
+    page,
+    [
+      "int* sortedSquares(int* nums, int numsSize, int* returnSize) {",
+      "    int *res = malloc(sizeof(int) * (numsSize ? numsSize : 1));",
+      "    int l = 0, r = numsSize - 1;",
+      "    for (int k = numsSize - 1; k >= 0; k--) {",
+      "        int a = nums[l] * nums[l], b = nums[r] * nums[r];",
+      "        if (a > b) { res[k] = a; l++; } else { res[k] = b; r--; }",
+      "    }",
+      "    *returnSize = numsSize;",
+      "    return res;",
+      "}",
+      "",
+    ].join("\n")
+  );
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText("Solution recorded in your submissions.")).toBeVisible({ timeout: 60000 });
+});
+
 test("candidate sees progress by topic and submission history", async ({ page }) => {
   await login(page, "candidate@sentinel.edu");
   await page.goto("/candidate/progress");

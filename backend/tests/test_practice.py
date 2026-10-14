@@ -88,7 +88,7 @@ def test_outputs_match_modes():
     assert not outputs_match(True, 1, "exact"), "JSON true must not equal 1"
 
 
-@pytest.mark.parametrize("language", ["python", "javascript", "java", "cpp"])
+@pytest.mark.parametrize("language", ["python", "javascript", "java", "cpp", "c"])
 def test_harness_reads_input_file_and_wraps_student_code(language):
     code = starter_code(SPEC, language)
     harness = build_harness(code, SPEC, language)
@@ -241,7 +241,7 @@ async def test_admin_creates_problem_and_students_never_see_hidden_tests(async_c
     assert detail["has_reference_solution"] is True
     body = json.dumps(detail)
     assert "[100]" not in body and "sum(nums)" not in body  # hidden input / reference code never sent
-    assert set(detail["starter_code"]) == {"python", "javascript", "java", "cpp"}
+    assert set(detail["starter_code"]) == {"python", "javascript", "java", "cpp", "c"}
 
 
 async def test_admin_rejects_malformed_tests(async_client: AsyncClient, seed_users):

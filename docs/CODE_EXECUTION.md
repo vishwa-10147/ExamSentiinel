@@ -1,8 +1,18 @@
-# Code execution
+# Code Execution
 
 How ExamSentinel runs untrusted code: the playground ("Run" with custom input), the
 practice judge ("Run" against samples, "Submit" against every test), and coding
 questions inside exams. Security properties are in [SECURITY.md](SECURITY.md).
+
+## Contents
+
+- [The engine](#the-engine)
+- [Execution status values](#execution-status-values)
+- [Run vs Submit](#run-vs-submit)
+- [Judge modes](#judge-modes)
+- [Comparison modes](#comparison-modes)
+- [How expected outputs are produced](#how-expected-outputs-are-produced)
+- [Limitations](#limitations)
 
 ## The engine
 
@@ -17,7 +27,7 @@ reads back stdout, stderr, exit code and status.
 | JavaScript | node 20 | yes | yes | yes | — |
 | Java | java 15 | yes | yes | yes | — |
 | C++ | gcc 10.2 (C++17) | yes | yes | yes | — |
-| C | gcc 10.2 | yes | yes | **no** (see limitations) | — |
+| C | gcc 10.2 | yes | yes | yes (LeetCode C conventions) | — |
 | SQL | sqlite3 3.36 | yes | — | — | yes |
 
 Runtimes are installed into the `piston_packages` volume once:
@@ -35,7 +45,7 @@ run memory 256 MB, compile memory 512 MB, 64 processes, 8 MB output. Our image
 (`infra/piston/Dockerfile`) raises Piston's request-body limit from 100 kB to 8 MB because a
 submission sends every test case in one request.
 
-## Status values (`SandboxResult.status`)
+## Execution status values
 
 | status | meaning | judge verdict |
 |---|---|---|
@@ -60,12 +70,12 @@ submission sends every test case in one request.
 For custom input, the expected answer is computed by running the problem's reference
 solution on the same input (server-side); the reference code itself is never sent.
 
-## Judge modes (`app/services/practice_judge.py`)
+## Judge modes
 
-### FUNCTION (LeetCode style)
+### Function mode
 
-The student implements a method on `class Solution`. The judge generates a harness per
-language that:
+The student implements a method on `class Solution` — or, in C, a free function (see
+[C conventions](#c-conventions)). The judge generates a harness per language that:
 
 1. reads `es_input.txt` — line 1 is the case count, then one JSON line per parameter per
    case. The file is sent **base64-encoded as an extra file**, not as stdin, because Piston
@@ -81,13 +91,33 @@ Supported types: `int long double bool string`, their 1-D arrays, `int[][]`, `st
 `ListNode`, `TreeNode`. A case slower than the problem's `time_limit_ms` is TLE even if the
 whole run finished.
 
-### STDIO
+#### C conventions
+
+C solutions follow LeetCode's C signatures, so they look familiar:
+
+| Spec type | C parameters | As a return value |
+|---|---|---|
+| `int`, `long`, `double`, `bool` | `int`, `long long`, `double`, `bool` | same |
+| `string` | `char* s` | `char*` |
+| `int[]` (likewise `long[]`, `double[]`, `bool[]`, `string[]`) | `int* nums, int numsSize` | `int*`, plus a trailing `int* returnSize` parameter |
+| `int[][]`, `string[][]` | `int** grid, int gridSize, int* gridColSize` | `int**`, plus `int* returnSize, int** returnColumnSizes` |
+| `ListNode`, `TreeNode` | `struct ListNode*`, `struct TreeNode*` | same |
+
+Returned arrays must be allocated with `malloc` and their lengths written through
+`returnSize` / `returnColumnSizes`. `struct ListNode` and `struct TreeNode` are predefined, and
+the common headers (`stdio.h`, `stdlib.h`, `string.h`, `stdbool.h`, `limits.h`, `math.h`) are
+included. `printf` output is captured per test case. Because C has no exceptions, a crash
+(for example a segmentation fault) ends the run with a Runtime Error on the case that was
+executing; returning `NULL` with a non-zero `returnSize` is reported as a Runtime Error rather
+than crashing the harness.
+
+### Standard input/output mode
 
 The program reads stdin and writes stdout; each case is a separate run (inputs are capped at
 `MAX_STDIO_INPUT_BYTES` because of stdin truncation). Output is compared after trimming
 trailing whitespace on each line.
 
-### SQL
+### SQL mode
 
 `schema + case INSERTs + .mode json + .bail on + student query` runs in sqlite3; the
 resulting rows are compared with the expected rows. Exactly one result set is allowed.
@@ -106,7 +136,7 @@ so they may only come from the repository's question bank (`backend/practice_ban
 admin API ignores a `checker` field and refuses `compare_mode: "checker"` for problems that
 don't already have one. A checker that raises counts as a wrong answer.
 
-## Expected outputs
+## How expected outputs are produced
 
 Expected outputs are never written by hand. `backend/seed_practice.py` executes each
 problem's reference solution through the **same generated Python harness** the judge uses
@@ -115,10 +145,12 @@ problem's reference solution through the **same generated Python harness** the j
 
 ## Limitations
 
-- **C is not available for FUNCTION-mode problems** (it is for STDIO problems and the
-  playground). A C harness would need hand-written JSON parsing for every type.
 - Runtime is wall-clock time measured inside the harness, so it varies with engine load; it
   is shown for information and only used for TLE against the per-case limit.
 - Memory usage per case is not reported (the engine reports a whole-run figure only).
 - One request carries all cases, so problems must keep their total test data under ~6 MB
   (8 MB body after base64). The largest problems (#109–#114) are sized for this.
+
+---
+
+[Back to README](../README.md) · [Documentation index](README.md)
