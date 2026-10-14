@@ -48,6 +48,18 @@ class PracticeProblem(TimeStampedUUIDModel):
     __tablename__ = "practice_problems"
 
     slug: Mapped[str] = mapped_column(String(120), unique=True, index=True, nullable=False)
+    # Stable public question number ("#12"); never reused or renumbered.
+    number: Mapped[Optional[int]] = mapped_column(Integer, unique=True, index=True, nullable=True)
+    # Primary DSA topic (see practice_bank.TOPICS); finer-grained labels live in ``tags``.
+    topic: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    input_format: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    output_format: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    complexity: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # expected time/space
+    # Algorithm explanation; shown to a student after they solve the problem.
+    editorial: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Python ``check(args, output, expected) -> bool`` for problems with several valid
+    # answers (compare_mode "checker"). Server-only, set from the question bank only.
+    checker: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     difficulty: Mapped[ProblemDifficulty] = mapped_column(
         _enum(ProblemDifficulty, "practice_difficulty_enum"), nullable=False, index=True

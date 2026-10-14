@@ -22,12 +22,23 @@ import Markdown from "@/components/practice/Markdown";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
-const TYPES = ["int", "long", "double", "bool", "string", "int[]", "long[]", "double[]", "bool[]", "string[]", "int[][]", "string[][]"];
+const TYPES = ["int", "long", "double", "bool", "string", "int[]", "long[]", "double[]", "bool[]", "string[]", "int[][]", "string[][]", "ListNode", "TreeNode"];
+const TOPICS = [
+  "Arrays", "Strings", "Hashing", "Two Pointers", "Sliding Window", "Binary Search", "Sorting & Searching", "Linked Lists",
+  "Stacks & Queues", "Recursion & Backtracking", "Trees & BST", "Heaps", "Greedy", "Dynamic Programming", "Graphs",
+  "Bit Manipulation", "SQL",
+];
 const REF_LANGUAGES: PracticeLanguage[] = ["python", "javascript", "java", "cpp"];
 const STDIO_LANGUAGES: PracticeLanguage[] = ["python", "javascript", "java", "cpp", "c"];
 
 const EMPTY: ProblemUpsert = {
   slug: "",
+  number: null,
+  topic: null,
+  input_format: "",
+  output_format: "",
+  complexity: "",
+  editorial: "",
   title: "",
   difficulty: "EASY",
   tags: [],
@@ -77,6 +88,12 @@ export default function ProblemEditorPage() {
       .then((p) => {
         setForm({
           slug: p.slug,
+          number: p.number ?? null,
+          topic: p.topic ?? null,
+          input_format: p.input_format ?? "",
+          output_format: p.output_format ?? "",
+          complexity: p.complexity ?? "",
+          editorial: p.editorial ?? "",
           title: p.title,
           difficulty: p.difficulty,
           tags: p.tags,
@@ -115,6 +132,10 @@ export default function ProblemEditorPage() {
       const payload: ProblemUpsert = {
         ...form,
         constraints: form.constraints?.trim() ? form.constraints : null,
+        input_format: form.input_format?.trim() ? form.input_format : null,
+        output_format: form.output_format?.trim() ? form.output_format : null,
+        complexity: form.complexity?.trim() ? form.complexity : null,
+        editorial: form.editorial?.trim() ? form.editorial : null,
         function_spec: form.judge_mode === "FUNCTION" ? form.function_spec : null,
         sql_schema: form.judge_mode === "SQL" ? form.sql_schema : null,
         hints: form.hints.filter((h) => h.trim()),
@@ -245,6 +266,25 @@ export default function ProblemEditorPage() {
               />
             </div>
             <div>
+              <label className={label} htmlFor="number">Problem ID (permanent)</label>
+              <input
+                id="number"
+                type="number"
+                min={1}
+                className={input}
+                value={form.number ?? ""}
+                onChange={(e) => set("number", e.target.value ? Number(e.target.value) : null)}
+                placeholder="e.g. 301"
+              />
+            </div>
+            <div>
+              <label className={label} htmlFor="topic">Topic</label>
+              <select id="topic" className={input} value={form.topic ?? ""} onChange={(e) => set("topic", e.target.value || null)}>
+                <option value="">(none)</option>
+                {TOPICS.map((t) => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
               <label className={label} htmlFor="difficulty">Difficulty</label>
               <select id="difficulty" className={input} value={form.difficulty} onChange={(e) => set("difficulty", e.target.value as Difficulty)}>
                 <option value="EASY">Easy</option>
@@ -288,9 +328,27 @@ export default function ProblemEditorPage() {
                 <label className={label} htmlFor="statement">Description (Markdown: **bold**, `code`, - lists)</label>
                 <textarea id="statement" rows={8} className={`${input} font-mono`} value={form.statement} onChange={(e) => set("statement", e.target.value)} />
               </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={label} htmlFor="input_format">Input format (optional; generated for FUNCTION mode)</label>
+                  <textarea id="input_format" rows={3} className={`${input} font-mono`} value={form.input_format ?? ""} onChange={(e) => set("input_format", e.target.value)} />
+                </div>
+                <div>
+                  <label className={label} htmlFor="output_format">Output format (optional)</label>
+                  <textarea id="output_format" rows={3} className={`${input} font-mono`} value={form.output_format ?? ""} onChange={(e) => set("output_format", e.target.value)} />
+                </div>
+              </div>
               <div>
                 <label className={label} htmlFor="constraints">Constraints</label>
                 <textarea id="constraints" rows={3} className={`${input} font-mono`} value={form.constraints ?? ""} onChange={(e) => set("constraints", e.target.value)} />
+              </div>
+              <div>
+                <label className={label} htmlFor="complexity">Expected complexity</label>
+                <input id="complexity" className={input} value={form.complexity ?? ""} onChange={(e) => set("complexity", e.target.value)} placeholder="O(n) time, O(1) space" />
+              </div>
+              <div>
+                <label className={label} htmlFor="editorial">Editorial (shown to students after they solve it)</label>
+                <textarea id="editorial" rows={4} className={`${input} font-mono`} value={form.editorial ?? ""} onChange={(e) => set("editorial", e.target.value)} />
               </div>
             </>
           )}
@@ -353,6 +411,7 @@ export default function ProblemEditorPage() {
                     <option value="exact">Exactly</option>
                     <option value="unordered">List in any order</option>
                     <option value="float">Numbers within 1e-5</option>
+                    {form.compare_mode === "checker" && <option value="checker">Problem checker (from the question bank)</option>}
                   </select>
                 </div>
               </div>

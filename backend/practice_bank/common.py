@@ -10,6 +10,14 @@ from typing import Any
 
 from app.models.practice import JudgeMode, ProblemDifficulty  # noqa: F401  (re-exported)
 
+# Primary topics, in learning order. Every DSA problem belongs to exactly one.
+TOPICS = [
+    "Arrays", "Strings", "Hashing", "Two Pointers", "Sliding Window", "Binary Search",
+    "Sorting & Searching", "Linked Lists", "Stacks & Queues", "Recursion & Backtracking",
+    "Trees & BST", "Heaps", "Greedy", "Dynamic Programming", "Graphs", "Bit Manipulation",
+]
+EXTRA_TOPICS = ["SQL"]  # practice beyond the DSA syllabus
+
 E, M, H = ProblemDifficulty.EASY, ProblemDifficulty.MEDIUM, ProblemDifficulty.HARD
 rng = random.Random(20261014)
 

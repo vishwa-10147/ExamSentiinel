@@ -114,6 +114,17 @@ No AWS access keys: the **task role** grants S3 access.
 
 Scale out by running several Piston instances behind an internal NLB.
 
+Security notes for the code runner (details and the tests behind them: [SECURITY.md](SECURITY.md)):
+
+- Give the Piston instance **no IAM role** (or one with no permissions) and no application
+  secrets; it only needs the runtimes volume.
+- Allow inbound 2000/tcp **only** from the backend security group; it needs no inbound
+  internet and no outbound access at all after runtimes are installed.
+- Do not mount the Docker socket into any container.
+- After deploying, run `backend/tests/test_sandbox_engine.py` against it
+  (`PISTON_URL=http://PISTON_PRIVATE_IP:2000/api/v2/execute`) to confirm network isolation
+  and limits on that host.
+
 ## 4b. Single sign-on, interviews and speech-to-text
 
 - **SSO (OpenID Connect)**: set the `SSO_*` variables (see `.env.production.example`), `PUBLIC_API_URL` and

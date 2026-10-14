@@ -10,11 +10,14 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronUp,
+  BookOpen,
   Clock,
   FileText,
+  Gauge,
   History,
   Lightbulb,
   Loader2,
+  Lock,
   Play,
   RotateCcw,
   Send,
@@ -39,7 +42,7 @@ const Editor = dynamic(() => import("@monaco-editor/react"), {
   loading: () => <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading editor…</div>,
 });
 
-type LeftTab = "description" | "submissions";
+type LeftTab = "description" | "editorial" | "submissions";
 type ConsoleTab = "testcase" | "result";
 
 interface ConsoleResult {
@@ -225,6 +228,8 @@ export default function ProblemWorkspacePage() {
       if (s.verdict === "ACCEPTED") {
         toast.success(`Accepted! ${s.passed_count}/${s.total_count} tests passed.`);
         setProblem((p) => (p ? { ...p, status: "solved" } : p));
+        // Solving unlocks the editorial; refetch to receive it.
+        practiceService.getProblem(problem.slug).then((fresh) => setProblem((p) => (p ? { ...p, editorial: fresh.editorial } : p))).catch(() => undefined);
       } else if (s.verdict !== "SYSTEM_ERROR") {
         setProblem((p) => (p && p.status === "todo" ? { ...p, status: "attempted" } : p));
       }
@@ -301,7 +306,7 @@ export default function ProblemWorkspacePage() {
         </Link>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <StatusIcon status={problem.status} />
-          <h1 className="truncate text-sm font-semibold text-slate-900 dark:text-white">{problem.title}</h1>
+          <h1 className="truncate text-sm font-semibold text-slate-900 dark:text-white">{problem.number != null ? `${problem.number}. ` : ""}{problem.title}</h1>
           <DifficultyBadge difficulty={problem.difficulty} />
         </div>
         <div className="flex items-center gap-2">
@@ -330,6 +335,7 @@ export default function ProblemWorkspacePage() {
           <div className="flex gap-1 border-b border-slate-200 px-3 pt-2 dark:border-slate-700" role="tablist">
             {([
               ["description", "Description", FileText],
+              ["editorial", "Editorial", BookOpen],
               ["submissions", `Submissions${submissions.length ? ` (${submissions.length})` : ""}`, History],
             ] as const).map(([key, label, Icon]) => (
               <button
@@ -352,6 +358,11 @@ export default function ProblemWorkspacePage() {
             {leftTab === "description" ? (
               <div className="space-y-6">
                 <div className="flex flex-wrap gap-1.5">
+                  {problem.topic && (
+                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                      {problem.topic}
+                    </span>
+                  )}
                   {problem.tags.map((t) => (
                     <span key={t} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                       {t}
@@ -360,6 +371,19 @@ export default function ProblemWorkspacePage() {
                 </div>
 
                 <Markdown source={problem.statement} />
+
+                {problem.input_format && (
+                  <div>
+                    <h3 className="mb-2 font-semibold text-slate-900 dark:text-white">Input format</h3>
+                    <Markdown source={problem.input_format} />
+                  </div>
+                )}
+                {problem.output_format && (
+                  <div>
+                    <h3 className="mb-2 font-semibold text-slate-900 dark:text-white">Output format</h3>
+                    <Markdown source={problem.output_format} />
+                  </div>
+                )}
 
                 {problem.sql_schema && (
                   <div>
@@ -409,9 +433,12 @@ export default function ProblemWorkspacePage() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-4 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                   <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {problem.time_limit_ms} ms per test</span>
                   <span>{problem.memory_limit_mb} MB memory</span>
+                  {problem.complexity && (
+                    <span className="inline-flex items-center gap-1"><Gauge className="h-3.5 w-3.5" /> Target: {problem.complexity}</span>
+                  )}
                 </div>
 
                 {problem.hints.length > 0 && (
@@ -433,6 +460,19 @@ export default function ProblemWorkspacePage() {
                   </div>
                 )}
               </div>
+            ) : leftTab === "editorial" ? (
+              problem.editorial ? (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Approach</h3>
+                  <Markdown source={problem.editorial} />
+                  {problem.complexity && <p className="text-xs text-slate-500">Complexity: {problem.complexity}</p>}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-10 text-center text-slate-500">
+                  <Lock className="h-6 w-6" />
+                  <p>{problem.has_editorial ? "Solve this problem to unlock the editorial." : "No editorial has been written for this problem yet."}</p>
+                </div>
+              )
             ) : submissions.length === 0 ? (
               <p className="py-10 text-center text-slate-500">No submissions yet. Submit your solution to see it here.</p>
             ) : (

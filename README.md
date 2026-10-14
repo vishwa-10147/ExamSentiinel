@@ -1,196 +1,179 @@
-# 🛡️ ExamSentinel — AI-Powered Proctored Examination & Assessment Platform
+# ExamSentinel
 
-![Build Status](https://img.shields.io/badge/Build-Passing-emerald?style=for-the-badge&logo=github)
-![Frontend](https://img.shields.io/badge/Next.js-14_App_Router-000000?style=for-the-badge&logo=nextdotjs)
-![Backend](https://img.shields.io/badge/FastAPI-Python_3.11+-009688?style=for-the-badge&logo=fastapi)
-![Tests](https://img.shields.io/badge/Pytest-81%2F81_Passed-brightgreen?style=for-the-badge&logo=pytest)
-![TypeScript](https://img.shields.io/badge/TypeScript-Clean_0_Errors-blue?style=for-the-badge&logo=typescript)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)
+Online examination platform with AI-assisted proctoring and a LeetCode-style coding
+practice platform: **116 data-structures-and-algorithms problems** (plus 11 SQL problems)
+judged by real compilers and interpreters in an isolated sandbox.
 
-> **ExamSentinel** is a state-of-the-art, enterprise-grade online examination and coding assessment platform featuring real-time AI computer vision proctoring, isolated multi-language code sandboxes, MOSS code plagiarism detection, Whisper AI speech-to-text interview transcription, and human-in-the-loop evaluator workflows.
+- **Exams** — MCQ, short/long answer, coding and SQL questions, timed sessions, auto-save,
+  proctoring signals (tab switches, fullscreen exits, webcam phone/person detection),
+  a risk score that is *advisory only*, and a human reviewer workflow.
+- **Practice** — problem list with topic/difficulty/status filters, search by title or `#ID`,
+  sorting by ID or difficulty; Monaco editor; Run (samples + custom input) and Submit (all
+  hidden tests); verdicts; editorials unlocked after solving; submission history and per-topic
+  progress.
+- **Playground** — compile and run any C, C++, Java, Python or JavaScript program with custom
+  stdin, seeing stdout, stderr, compile errors and the exit code.
+- **Interviews** — WebRTC interview rooms with Whisper transcription.
 
----
+## Contents
 
-## 🌟 Key Features
+[Stack](#stack) · [Quick start](#quick-start) · [Question bank](#question-bank) ·
+[Languages](#languages) · [Editor, Run and Submit](#editor-run-and-submit) ·
+[API](#api) · [Testing](#testing) · [Deployment](#deployment) ·
+[Security](#security-and-limitations) · [Troubleshooting](#troubleshooting) ·
+[Contributing](#contributing)
 
-### 1. 🛡️ Real-Time Automated & Live Proctoring
-* **YOLOv11 Computer Vision**: Real-time webcam frame analysis detecting secondary persons, cell phones, books, and gaze deviations (`yolo11n.pt`).
-* **Integrity Telemetry**: Tracks window focus loss (`TAB_BLUR`), window resizes, fullscreen exits, right-clicks, and clipboard activity (`COPY_ATTEMPT`, `PASTE_ATTEMPT`).
-* **Automated Enforcement**: Enforces 2-warning fullscreen exit limits with automatic emergency session submission upon violation.
-* **Proctor Operations Console** (`/proctor/dashboard` & `/proctor/live`): Live video grid stream, risk level spectrum (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), one-click live candidate warning popups, and session termination controls.
+## Stack
 
-### 2. 💻 Multi-Language Code Execution Sandbox
-* **LeetCode-Style Split IDE**: Dual-pane workspace with Monaco code editor, theme customization, and test case execution console.
-* **Supported Languages**: Python 3, JavaScript (Node.js), Java, C++, C, Go, Rust, and SQL.
-* **Isolated Execution Cluster**: Powered by Piston execution engine enforcing strict 5.0-second timeout limits and 128MB memory caps per run.
-* **Practice Sandbox** (`/candidate/practice`): Daily run quota counter (25 runs/day), 3-second rate-limit cooldown, and custom STDIN input support.
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 14 (App Router), React, TypeScript, Tailwind CSS, Monaco Editor |
+| Backend | FastAPI, Pydantic v2, SQLAlchemy 2 (async), Alembic |
+| Database | PostgreSQL (Docker/production) or SQLite (local development) |
+| Cache | Redis (optional; every caller has a fallback) |
+| Code execution | self-hosted [Piston](https://github.com/engineer-man/piston) (`infra/piston/`) |
+| AI | YOLO11n (phone/person), BlazeFace (in browser), faster-whisper (interviews) |
 
-### 3. 🔍 MOSS Winnowing Code Plagiarism Detector
-* Implements the **Winnowing Algorithm** (*Schleimer, Wilkerson, Aiken*) to generate k-gram document fingerprints.
-* Computes Jaccard similarity indices across student code submissions to detect structural plagiarism and copied solutions.
+Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-### 4. 🎙️ WebRTC Technical Interview Transcriber
-* Live AI interview assessment module (`/exam/[id]/interview`).
-* Integrates **OpenAI Whisper AI** to transcribe WebRTC audio buffers in real-time.
-* Performs semantic keyword extraction to verify technical topic coverage (`concurrency`, `database`, `kubernetes`, `api`).
+## Quick start
 
-### 5. 👑 Admin Command Center & User Portals
-* **Admin Center** (`/admin/*`): Exam builder, question bank management, CSV bulk uploads, role-based access control (RBAC), AI risk calibrator, and CSV analytics export.
-* **Reviewer Marking Center** (`/reviewer/*`): Human-in-the-loop evaluation queue for inspecting AI-flagged video snapshots and subjective grading.
-* **Candidate Command Portal** (`/candidate/*`): Dashboard, hardware readiness system check (`/exam/readiness`), problem sets, historical exam results, global leaderboard, and profile activity heatmap.
-
----
-
-## 🏗️ System Architecture
-
-```
-                               ┌────────────────────────┐
-                               │   Next.js 14 Frontend   │
-                               │   (TypeScript / Tailwind)│
-                               └───────────┬────────────┘
-                                           │
-                                  REST API / WebSockets
-                                           │
-                               ┌───────────▼────────────┐
-                               │   FastAPI Backend      │
-                               │  (Python 3.11 / Async) │
-                               └─────┬──────────────┬───┘
-                                     │              │
-             ┌───────────────────────┴─┐          ┌─┴───────────────────────┐
-             │ Machine Learning Models │          │ Sandbox Execution Engine│
-             │  • YOLOv11 (Vision)     │          │  • Piston Sandbox API   │
-             │  • Whisper (Audio)      │          │  • Time/Mem Isolation   │
-             │  • MOSS (Plagiarism)    │          └─────────────────────────┘
-             └─────────────────────────┘
-```
-
----
-
-## 📂 Project Structure
-
-```
-ExamSentinel/
-├── ai/                      # AI & Machine Learning Pipeline
-│   ├── code_integrity/      # MOSS Winnowing Plagiarism Engine
-│   ├── interview_analysis/  # Whisper AI Speech Transcriber & Keyword Extraction
-│   ├── models/              # Neural Network Weights (yolo11n.pt)
-│   └── proctoring/          # YOLOv11 Computer Vision Frame Analyzer
-├── backend/                 # FastAPI Async Backend Application
-│   ├── app/
-│   │   ├── api/             # API Route Handlers (exams, questions, proctoring, sandbox)
-│   │   ├── core/            # Database Config, Security & Auth Tokens
-│   │   ├── models/          # SQLAlchemy ORM Models (User, Exam, Session, Question)
-│   │   ├── schemas/         # Pydantic Schemas & Request Validation
-│   │   └── services/        # Business Logic (Grading, Sandbox, IRT, AI)
-│   └── tests/               # Pytest Automated Test Suite (81 Test Cases)
-├── frontend/                # Next.js 14 App Router Frontend
-│   ├── app/                 # App Router Pages & Layouts
-│   │   ├── admin/           # Admin Command Center Routes (13 Sub-routes)
-│   │   ├── auth/            # Authentication Routes (Login, Register, Callback)
-│   │   ├── candidate/       # Candidate Portal Routes (Dashboard, Practice, Problems)
-│   │   ├── exam/            # Live Exam Engine (Readiness, Runner, Interview, Lab)
-│   │   ├── proctor/         # Proctor Operations Dashboard & Live Video Grid
-│   │   ├── reviewer/        # Reviewer Evaluation & Marking Queue
-│   │   ├── privacy/         # Privacy Policy
-│   │   └── terms/           # Terms & Conditions
-│   ├── components/          # Reusable UI Components & Monaco Editor Integration
-│   └── services/            # Axios API Client & Exam Services
-├── docs/                    # Technical Documentation & Manuals
-│   ├── PROJECT.md           # Project Architecture Specifications
-│   ├── PROFESSOR_MANUAL.md  # Administrator & Evaluator User Manual
-│   ├── TEST_INFRA.md        # Test Infrastructure Documentation
-│   └── ORIGINAL_REQUEST.md  # Original Project Requirements
-├── docker-compose.yml       # Production & Development Orchestration
-└── README.md                # Project Overview & Setup Instructions
-```
-
----
-
-## 🚀 Quickstart & Setup Guide
-
-### Option 1: Launch via Docker Compose (Recommended)
-
-To spin up the full stack (Frontend, Backend FastAPI, PostgreSQL, Redis, Sandbox) in one command:
+Requires Python 3.12, Node.js 20+, Docker. Full guide: [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
 ```bash
-docker-compose up --build
-```
-
-- **Frontend Application**: `http://localhost:3000`
-- **Backend API & Swagger Docs**: `http://localhost:8000/docs`
-
----
-
-### Option 2: Local Development Setup
-
-#### 1. Backend Setup (FastAPI)
-```bash
-# Navigate to backend directory
-cd backend
-
-# Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+.venv/Scripts/python -m pip install -r backend/requirements.txt     # macOS/Linux: .venv/bin/python
+cd frontend && npm install && cd ..
 
-# Install dependencies
-pip install -r requirements.txt
+cp .env.example backend/.env                                        # placeholders; set SECRET_KEY
+printf "NEXT_PUBLIC_API_URL=http://localhost:8000\n" > frontend/.env.local
 
-# Run database migrations / initialization & start server
-uvicorn app.main:app --reload --port 8000
-```
+docker compose -f docker-compose.piston.yml up -d --build           # code runner
+.venv/Scripts/python scripts/install_piston_runtimes.py             # once
 
-#### 2. Frontend Setup (Next.js 14)
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install Node dependencies
-npm install
-
-# Run TypeScript compilation check
-npx tsc --noEmit
-
-# Start development server
-npm run dev
-```
-
----
-
-## 🧪 Testing & Quality Assurance
-
-### Run Backend Pytest Suite
-```bash
 cd backend
-pytest
+../.venv/Scripts/python seed_admin.py                               # demo accounts (development only)
+../.venv/Scripts/python seed_practice.py                            # question bank (idempotent)
+../.venv/Scripts/python -m uvicorn app.main:app --port 8000         # API → http://localhost:8000/docs
+cd ../frontend && npm run dev                                       # UI  → http://localhost:3000
 ```
-* **Status**: `81 passed` in automated test suite covering authentication, RBAC, exam grading, sandbox execution, IRT scoring, and proctoring telemetry.
 
-### Run Frontend Type Check
+Sign in as `candidate@sentinel.edu` (development password printed by `seed_admin.py`) and
+open **Problem Set**. Full stack in containers: `docker compose up -d --build`
+(see INSTALLATION.md).
+
+## Question bank
+
+| Topic | # | Topic | # |
+|---|---|---|---|
+| Arrays | 12 | Stacks & Queues | 8 |
+| Strings | 10 | Recursion & Backtracking | 8 |
+| Hashing | 8 | Trees & BST | 8 |
+| Two Pointers | 6 | Heaps | 4 |
+| Sliding Window | 6 | Greedy | 4 |
+| Binary Search | 7 | Dynamic Programming | 8 |
+| Sorting & Searching | 7 | Graphs | 8 |
+| Linked Lists | 8 | Bit Manipulation | 4 |
+| **DSA total** | **116** (43 Easy · 57 Medium · 16 Hard) | SQL | 11 |
+
+Every problem has a permanent number, statement, input/output format, constraints, 2–3
+samples, hidden tests, starter code, a reference solution, complexity, hints and an
+editorial. Expected outputs are produced by **executing** the reference solutions, and every
+reference passes its tests on the real engine. Seeding is idempotent and never changes IDs.
+Details, the full problem index and how to add problems:
+[docs/DSA_QUESTION_BANK.md](docs/DSA_QUESTION_BANK.md).
+
+## Languages
+
+| | Python 3.12 | JavaScript (Node 20) | Java 15 | C++17 (gcc 10.2) | C (gcc 10.2) | SQLite 3.36 |
+|---|---|---|---|---|---|---|
+| Playground | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Function-style problems | ✓ | ✓ | ✓ | ✓ | — | — |
+| Stdin/stdout problems | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| SQL problems | — | — | — | — | — | ✓ |
+
+## Editor, Run and Submit
+
+- **Editor**: Monaco with per-language starter code, auto-saved drafts, Ctrl+Enter to run,
+  Ctrl+Shift+Enter to submit.
+- **Run** executes the visible samples, plus your own input if you add one (its expected
+  answer comes from the reference solution). Nothing is stored.
+- **Submit** judges every test, samples first, stopping at the first failure. The submission
+  is stored; for a failing hidden test only its number is shown.
+- **Verdicts**: Accepted, Wrong Answer, Time Limit Exceeded, Memory Limit Exceeded,
+  Output Limit Exceeded, Runtime Error, Compile Error (System Error when the engine is down;
+  not counted as an attempt).
+- Problems with several valid answers use a problem-specific checker (e.g. #111 accepts any
+  valid topological order).
+
+How judging works: [docs/CODE_EXECUTION.md](docs/CODE_EXECUTION.md).
+
+## API
+
 ```bash
-cd frontend
-npx tsc --noEmit
+TOKEN=$(curl -s -X POST localhost:8000/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"candidate@sentinel.edu","password":"<dev password>"}' | jq -r .access_token)
+
+curl -s "localhost:8000/api/practice/problems?topic=Graphs&sort=difficulty" -H "Authorization: Bearer $TOKEN"
+
+curl -s -X POST localhost:8000/api/practice/problems/lone-value/submit -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"language":"python","code":"class Solution:\n    def loneValue(self, nums):\n        r = 0\n        for x in nums:\n            r ^= x\n        return r\n"}'
+
+curl -s -X POST localhost:8000/api/sandbox/execute -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"language":"python","code":"print(input()[::-1])","stdin":"hello"}'
 ```
-* **Status**: `0 errors` clean TypeScript compilation.
 
----
+Reference with real responses: [docs/API.md](docs/API.md). Every route: `/docs` (Swagger).
 
-## 📄 Documentation
+## Testing
 
-Detailed documentation and guides are available in the [`docs/`](./docs) folder:
-- 📖 [Project Architecture (`docs/PROJECT.md`)](./docs/PROJECT.md)
-- 👨‍🏫 [Professor & Administrator Manual (`docs/PROFESSOR_MANUAL.md`)](./docs/PROFESSOR_MANUAL.md)
-- 🧪 [Test Infrastructure (`docs/TEST_INFRA.md`)](./docs/TEST_INFRA.md)
+```bash
+cd backend && ../.venv/Scripts/python -m pytest -q -p no:cacheprovider   # unit, API, bank and real-engine tests
+cd frontend && npx tsc --noEmit                                          # type check
+cd frontend && npx playwright test                                       # browser tests
+python scripts/e2e_roles_smoke.py                                        # live end-to-end (servers running)
+```
 
----
+Real-engine tests (`backend/tests/test_sandbox_engine.py`) run only when Piston is reachable
+on `localhost:2000`; otherwise they are reported as skipped. See
+[docs/TEST_INFRA.md](docs/TEST_INFRA.md) for the latest recorded results.
 
-## 🔒 Security & Privacy
+## Deployment
 
-* **Zero Automated Penalty**: AI algorithms produce advisory risk telemetry. Human evaluators (`/reviewer/*`) retain final authority.
-* **Encrypted Telemetry**: All proctoring events, frame snapshots, and auto-saved answers are transmitted over SSL/TLS and signed with security hashes.
-* **Data Compliance**: Privacy Policy (`/privacy`) and Terms of Service (`/terms`) adhere to strict educational data governance.
+- `docker-compose.yml` — postgres, redis, backend, frontend, piston (development/staging).
+- `docker-compose.prod.yml` and [docs/AWS_DEPLOYMENT.md](docs/AWS_DEPLOYMENT.md) — production
+  on AWS (ECS for the app, EC2 for Piston, RDS, ElastiCache, S3).
 
----
+## Security and limitations
 
-## 📜 License
+Verified controls, with the tests behind them: [docs/SECURITY.md](docs/SECURITY.md). In short,
+submissions run only in the Piston sandbox — no network, non-root, time/memory/process/output/
+file-size limits, no Docker socket, no application secrets, nothing persisted between runs —
+and hidden tests, reference solutions and checkers never reach the browser.
 
-Distributed under the MIT License. See `LICENSE` for details.
+Limitations:
+
+- C is not offered for function-style problems (only for stdin problems and the playground).
+- The Piston container must run `privileged`; isolate it on its own host or subnet.
+- Login rate limits need Redis; code-execution limits fall back to per-process windows.
+- Runtimes are wall-clock measurements and vary with engine load; per-case memory is not reported.
+- Access tokens live in `localStorage`.
+- AI proctoring signals are advisory; a human reviews every case.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| "Execution engine unavailable" | start Piston (`docker compose -f docker-compose.piston.yml up -d`) and install runtimes |
+| `PayloadTooLargeError` | rebuild our Piston image (`--build`); the stock image has a 100 kB body limit |
+| Backend tries to reach Postgres | `backend/.env` missing — copy `.env.example`, which uses SQLite |
+| Health is `degraded` | Redis isn't running — fine for local development |
+
+More: [docs/INSTALLATION.md#troubleshooting](docs/INSTALLATION.md#troubleshooting).
+
+## Contributing
+
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md). Other docs:
+[PROFESSOR_MANUAL.md](docs/PROFESSOR_MANUAL.md) (staff guide),
+[PROJECT.md](docs/PROJECT.md) (original feature inventory).

@@ -16,12 +16,15 @@ export type Verdict =
 
 export interface FunctionSpec {
   name: string;
-  params: { name: string; type: string }[];
+  params: { name: string; type: string; internal?: boolean }[];
   return_type: string;
+  cycle?: { list: string; pos: string } | null;
 }
 
 export interface ProblemListItem {
   id: string;
+  number: number | null;
+  topic: string | null;
   slug: string;
   title: string;
   difficulty: Difficulty;
@@ -38,12 +41,20 @@ export interface ExampleCase {
 
 export interface ProblemDetail {
   id: string;
+  number: number | null;
+  topic: string | null;
   slug: string;
   title: string;
   difficulty: Difficulty;
   tags: string[];
   statement: string;
+  input_format: string | null;
+  output_format: string | null;
   constraints: string | null;
+  complexity: string | null;
+  /** Only present once the problem is solved (or for admins). */
+  editorial: string | null;
+  has_editorial: boolean;
   hints: string[];
   judge_mode: JudgeMode;
   function_spec: FunctionSpec | null;
@@ -104,6 +115,27 @@ export interface PracticeStats {
   current_streak_days: number;
   activity: Record<string, number>;
   recent: { title: string; slug: string; verdict: Verdict; language: string; created_at: string }[];
+  by_topic: TopicProgress[];
+}
+
+export interface TopicProgress {
+  topic: string;
+  solved: number;
+  attempted: number;
+  total: number;
+}
+
+export interface SubmissionHistoryItem {
+  id: string;
+  problem_number: number | null;
+  problem_slug: string;
+  problem_title: string;
+  language: string;
+  verdict: Verdict;
+  passed_count: number;
+  total_count: number;
+  runtime_ms: number | null;
+  created_at: string;
 }
 
 export interface LeaderboardEntry {
@@ -127,16 +159,22 @@ export interface TestCaseInput {
 
 export interface ProblemUpsert {
   slug: string;
+  number?: number | null;
+  topic?: string | null;
   title: string;
   difficulty: Difficulty;
   tags: string[];
   statement: string;
+  input_format?: string | null;
+  output_format?: string | null;
   constraints: string | null;
+  complexity?: string | null;
+  editorial?: string | null;
   hints: string[];
   judge_mode: JudgeMode;
   function_spec: FunctionSpec | null;
   sql_schema: string | null;
-  compare_mode: "exact" | "unordered" | "float";
+  compare_mode: "exact" | "unordered" | "float" | "checker";
   starter_code: Record<string, string>;
   reference_solution: { language: string; code: string } | null;
   time_limit_ms: number;
@@ -154,6 +192,8 @@ export interface ProblemAdmin extends ProblemUpsert {
 
 export interface ProblemAdminListItem {
   id: string;
+  number: number | null;
+  topic: string | null;
   slug: string;
   title: string;
   difficulty: Difficulty;
@@ -206,7 +246,7 @@ export const VERDICT_LABELS: Record<Verdict, string> = {
 };
 
 class PracticeService {
-  listProblems(params: { difficulty?: string; tag?: string; search?: string; status?: string } = {}) {
+  listProblems(params: { difficulty?: string; tag?: string; topic?: string; search?: string; status?: string; sort?: string } = {}) {
     const q = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => v && q.set(k, v));
     const qs = q.toString();
@@ -214,6 +254,15 @@ class PracticeService {
   }
   listTags() {
     return apiClient.get<string[]>("/api/practice/tags");
+  }
+  listTopics() {
+    return apiClient.get<TopicProgress[]>("/api/practice/topics");
+  }
+  history(params: { verdict?: string; limit?: number; offset?: number } = {}) {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v !== undefined && v !== "" && q.set(k, String(v)));
+    const qs = q.toString();
+    return apiClient.get<{ items: SubmissionHistoryItem[]; total: number }>(`/api/practice/submissions${qs ? `?${qs}` : ""}`);
   }
   getProblem(slug: string) {
     return apiClient.get<ProblemDetail>(`/api/practice/problems/${encodeURIComponent(slug)}`);

@@ -66,7 +66,7 @@ export default function AdminProblemsPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return items.filter((p) => !q || p.title.toLowerCase().includes(q) || p.slug.includes(q) || p.tags.some((t) => t.includes(q)));
+    return items.filter((p) => !q || p.title.toLowerCase().includes(q) || p.slug.includes(q) || String(p.number ?? "") === q || (p.topic ?? "").toLowerCase().includes(q) || p.tags.some((t) => t.includes(q)));
   }, [items, search]);
 
   const validate = async (p: ProblemAdminListItem) => {
@@ -144,8 +144,8 @@ export default function AdminProblemsPage() {
               {filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900 dark:text-white">{p.title}</div>
-                    <div className="font-mono text-xs text-slate-400">{p.slug}</div>
+                    <div className="font-medium text-slate-900 dark:text-white">{p.number != null ? `${p.number}. ` : ""}{p.title}</div>
+                    <div className="font-mono text-xs text-slate-400">{p.slug}{p.topic ? ` · ${p.topic}` : ""}</div>
                   </td>
                   <td className="px-4 py-3">
                     <DifficultyBadge difficulty={p.difficulty} />

@@ -50,3 +50,31 @@ Once all exams are graded:
 1. Navigate to the Exam Management page.
 2. Click **Export Grades (CSV)**.
 3. This downloads an official Registrar-compliant file containing Student Names, Roll Numbers, Risk Scores, and Final Grades.
+
+## 5. Coding Practice Problems
+
+Students have a LeetCode-style **Problem Set** (116 data-structures-and-algorithms problems
+in 16 topics plus 11 SQL problems). Practice never affects exam results.
+
+### Managing problems
+1. Open **Admin → Practice Problems**. Each problem shows its permanent **ID**, topic, test
+   counts, submissions, acceptance rate and — once 20+ students have submitted — a
+   **suggested difficulty** based on how many actually solve it.
+2. **New problem** / edit: statement, input/output format, constraints, expected complexity,
+   editorial (students see it only after solving), hints, function signature or stdin/SQL
+   mode, starter code, reference solution and test cases (mark 2–3 as visible samples).
+3. Press **Validate** before publishing: the reference solution is run against every test on
+   the real code runner, so broken test data is caught before students see it.
+4. The built-in bank is maintained in the repository (`backend/practice_bank/`) and loaded
+   with `python seed_practice.py`; see `docs/DSA_QUESTION_BANK.md`.
+
+### Using a practice problem in an exam
+On a problem's row, click the clipboard icon (**Add to exam**) and pick the exam and points. This creates a
+coding question judged by the problem's full test suite: candidates can run the samples
+during the exam, and their final answer is graded against all tests when they submit.
+
+### What students see
+Topic and difficulty filters, search by title or `#ID`, a Monaco editor with Run (samples and
+their own input) and Submit (all hidden tests), verdicts, their submission history and
+per-topic progress (**Practice Progress** in the sidebar). Hidden test data and reference
+solutions are never shown to students.

@@ -1,12 +1,16 @@
 # Project: ExamSentinel
 
-ExamSentinel is a production-ready, full-stack AI-powered examination integrity platform adhering to all requirements, specifications, and acceptance criteria in `ORIGINAL_REQUEST.md`.
+ExamSentinel is a full-stack AI-assisted examination platform with a coding practice platform.
+
+> **Status:** this file is the original feature inventory and milestone plan. For what is
+> implemented today see [ARCHITECTURE.md](ARCHITECTURE.md), [CODE_EXECUTION.md](CODE_EXECUTION.md),
+> [DSA_QUESTION_BANK.md](DSA_QUESTION_BANK.md), [API.md](API.md) and [SECURITY.md](SECURITY.md).
 
 ## Architecture
 - **Frontend**: Next.js 14+ (App Router), React, TypeScript, Tailwind CSS, Monaco Editor, Lucide Icons, WebRTC (LiveKit/Daily client), IndexedDB (Dexie/idb).
 - **Backend**: FastAPI (Python 3.11+), Pydantic v2, SQLAlchemy 2.0 (async), Alembic, Uvicorn, PostgreSQL, Redis (pub/sub, event queue, caching).
 - **AI & Detectors**: OpenCV, YOLO (Ultralytics / ONNX Runtime), Whisper transcription service, MOSS-style winnowing token similarity, 2PL IRT Bayesian estimation engine.
-- **Workers & Sandbox**: Stateless execution runner with resource limits (cgroups/Docker isolation), strictly zero network access (`--net=none`), CPU/memory/time bounds.
+- **Code execution**: self-hosted Piston engine (`infra/piston/`); each run is isolated (no network, non-root, CPU/memory/time/process/output/file limits) — verified by `backend/tests/test_sandbox_engine.py`. No container mounts the Docker socket.
 - **Observability & Ops**: Structlog structured logging, Prometheus metrics, GitHub Actions CI/CD, k6 load testing scripts, Docker Compose orchestration.
 
 ### Data Flow
@@ -24,7 +28,7 @@ ExamSentinel is a production-ready, full-stack AI-powered examination integrity 
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
 | 1 | Documentation Suite | `docs/readme.md`, `docs/plan.md`, `docs/explain.md`, `docs/prompt.md` verbatim specs | M1 | Survey 1 |
-| 2 | Docker Compose Environment | Multi-service orchestration (Postgres, Redis, Backend, Frontend, Worker) | M1 | Survey 1 |
+| 2 | Docker Compose Environment | Multi-service orchestration (Postgres, Redis, Backend, Frontend, Piston) | M1 | Survey 1 |
 | 3 | Core Database Schema & Migrations | Alembic migrations, SQLAlchemy models, UUID keys, audit timestamps | M1 | Survey 1 |
 | 4 | Authentication & JWT Service | Access/refresh tokens, password hashing (bcrypt), token revocation | M1 | Survey 1 |
 | 5 | Role-Based Access Control (RBAC) | Admin, Proctor, Reviewer, Candidate roles and route guards | M1 | Survey 1 |
@@ -128,9 +132,8 @@ ExamSentinel is a production-ready, full-stack AI-powered examination integrity 
 - `WS /ws/proctor/stream?token=<JWT>`
   - Event Push: `{ session_id: UUID, candidate_name: string, risk_score: float, risk_level: "LOW"|"MEDIUM"|"HIGH"|"CRITICAL", latest_event: { type: string, description: string, timestamp: ISO8601 } }`
 
-### 4. Code Execution ↔ Sandbox Worker
-- Job Message: `{ submission_id: UUID, language: "python" | "javascript", source_code: string, stdin: string, time_limit_sec: float, memory_limit_mb: int }`
-- Result Message: `{ submission_id: UUID, stdout: string, stderr: string, exit_code: int, wall_time_ms: int, peak_memory_kb: int, status: "SUCCESS" | "TIME_LIMIT_EXCEEDED" | "MEMORY_LIMIT_EXCEEDED" | "RUNTIME_ERROR" }`
+### 4. Code Execution ↔ Piston engine
+- `sandbox_service.execute_async(language, source_code, stdin, timeout_sec, memory_mb, extra_files)` → `SandboxResult(status, stdout, stderr, exit_code, wall_time_ms, compile_output)`; `status` ∈ `success | error | compile_error | timeout | memory_limit | output_limit | system_error`. See [CODE_EXECUTION.md](CODE_EXECUTION.md).
 
 ### 5. Review Center ↔ Appeals Module
 - Appeal creation links to `review_finding_id`, assigning a distinct reviewer (`appeal_reviewer_id != original_reviewer_id`).
@@ -147,6 +150,7 @@ ExamSentinel/
 │   ├── explain.md
 │   └── prompt.md
 ├── backend/                             # FastAPI Backend Service
+│   ├── practice_bank/                   # DSA + SQL question bank (seeded by seed_practice.py)
 │   ├── app/
 │   │   ├── api/                         # REST endpoints (auth, exams, questions, coding, interviews, adaptive, appeals, etc.)
 │   │   ├── core/                        # Config, security, database session, redis client
@@ -174,10 +178,7 @@ ExamSentinel/
 │   ├── services/                        # API client services
 │   ├── Dockerfile
 │   └── package.json
-├── execution-workers/                   # Code sandbox runner
-│   ├── runner.py                        # Isolated execution daemon
-│   ├── Dockerfile                       # Hardened container with no network
-│   └── requirements.txt
+├── infra/piston/                        # Code execution engine image (self-hosted Piston)
 ├── ai/                                  # AI & ML modules
 │   ├── proctoring/                      # OpenCV / YOLO detector models
 │   ├── code-integrity/                  # MOSS winnowing & typing cadence

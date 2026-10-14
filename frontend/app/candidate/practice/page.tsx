@@ -32,6 +32,8 @@ interface ExecResult {
   status: string;
   stdout: string;
   stderr: string;
+  compile_output?: string;
+  exit_code?: number | null;
   wall_time_ms?: number | null;
 }
 
@@ -168,6 +170,7 @@ export default function PracticePlaygroundPage() {
               {status && (
                 <span className={`text-xs font-semibold ${status.tone}`}>
                   {status.text}
+                  {result?.exit_code != null && result.status !== "compile_error" && result.status !== "system_error" ? ` · exit ${result.exit_code}` : ""}
                   {result?.wall_time_ms != null && result.status !== "system_error" ? ` · ${result.wall_time_ms} ms` : ""}
                 </span>
               )}
@@ -178,7 +181,7 @@ export default function PracticePlaygroundPage() {
             </pre>
           </div>
           <p className="text-xs text-slate-500">
-            Runs in an isolated sandbox with a 5 s time limit and 128 MB memory. Java code must define <code>public class Main</code>.
+            Runs in an isolated sandbox with a 5 s time limit, 256 MB memory and no network access. Java code must define <code>public class Main</code>.
           </p>
         </div>
       </div>

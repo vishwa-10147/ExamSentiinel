@@ -41,6 +41,16 @@ test_async_session_maker = async_sessionmaker(
 test_async_session_maker.__test__ = False
 
 
+@pytest.fixture(autouse=True)
+def reset_local_rate_limits():
+    """In-process rate-limit windows (used without Redis) must not leak between tests."""
+    from app.api import deps
+
+    deps._local_windows.clear()
+    yield
+    deps._local_windows.clear()
+
+
 @pytest_asyncio.fixture(autouse=True)
 async def prepare_database():
     """Create schema before each test and drop after."""
