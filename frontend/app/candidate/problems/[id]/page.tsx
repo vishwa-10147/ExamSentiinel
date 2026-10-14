@@ -361,14 +361,33 @@ export default function ProblemWorkspacePage() {
 
                 <Markdown source={problem.statement} />
 
+                {problem.sql_schema && (
+                  <div>
+                    <h3 className="mb-2 font-semibold text-slate-900 dark:text-white">Tables</h3>
+                    <pre className="overflow-x-auto rounded-lg bg-slate-100 p-3 font-mono text-[12px] leading-relaxed text-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                      {problem.sql_schema}
+                    </pre>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Rows may be returned in {problem.compare_mode === "exact" ? "the order the statement asks for" : "any order"}.
+                    </p>
+                  </div>
+                )}
+
                 {problem.examples.map((ex, i) => (
                   <div key={i}>
                     <h3 className="mb-2 font-semibold text-slate-900 dark:text-white">Example {i + 1}</h3>
                     <div className="space-y-1 border-l-2 border-slate-200 pl-4 font-mono text-[13px] dark:border-slate-600">
-                      <div className="whitespace-pre-wrap break-all">
-                        <span className="font-sans font-semibold text-slate-900 dark:text-white">Input: </span>
-                        {spec ? formatCaseInput(ex.input, spec).split("\n").join(", ") : ex.input}
-                      </div>
+                      {problem.judge_mode === "SQL" ? (
+                        <div>
+                          <span className="font-sans font-semibold text-slate-900 dark:text-white">Data:</span>
+                          <pre className="mt-1 max-h-56 overflow-auto whitespace-pre text-[12px]">{ex.input || "(all tables empty)"}</pre>
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap break-all">
+                          <span className="font-sans font-semibold text-slate-900 dark:text-white">Input: </span>
+                          {spec ? formatCaseInput(ex.input, spec).split("\n").join(", ") : ex.input}
+                        </div>
+                      )}
                       <div className="whitespace-pre-wrap break-all">
                         <span className="font-sans font-semibold text-slate-900 dark:text-white">Output: </span>
                         {ex.expected_output}
@@ -573,7 +592,9 @@ export default function ProblemWorkspacePage() {
                         <label className="text-xs text-slate-500" htmlFor="custom-input">
                           {spec
                             ? `One JSON value per line, in order: ${spec.params.map((p) => `${p.name} (${p.type})`).join(", ")}`
-                            : "Standard input for your program"}
+                            : problem.judge_mode === "SQL"
+                              ? "INSERT statements that fill the tables for your own dataset"
+                              : "Standard input for your program"}
                         </label>
                         <textarea
                           id="custom-input"

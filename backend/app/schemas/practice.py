@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.practice import JudgeMode, ProblemDifficulty, Verdict
 
-Language = Literal["python", "javascript", "java", "cpp", "c"]
+Language = Literal["python", "javascript", "java", "cpp", "c", "sql"]
 
 
 class FunctionParam(BaseModel):
@@ -54,6 +54,8 @@ class ProblemDetail(BaseModel):
     hints: List[str]
     judge_mode: JudgeMode
     function_spec: Optional[FunctionSpec]
+    sql_schema: Optional[str] = None
+    compare_mode: str = "exact"
     examples: List[ExampleCase]
     starter_code: Dict[str, str]
     languages: List[str]
@@ -168,6 +170,7 @@ class ProblemUpsert(BaseModel):
     hints: List[str] = []
     judge_mode: JudgeMode = JudgeMode.FUNCTION
     function_spec: Optional[FunctionSpec] = None
+    sql_schema: Optional[str] = None
     compare_mode: Literal["exact", "unordered", "float"] = "exact"
     starter_code: Dict[str, str] = {}
     reference_solution: Optional[Dict[str, str]] = None
@@ -190,6 +193,7 @@ class ProblemAdminOut(BaseModel):
     hints: List[str]
     judge_mode: JudgeMode
     function_spec: Optional[Dict[str, Any]]
+    sql_schema: Optional[str] = None
     compare_mode: str
     starter_code: Dict[str, str]
     reference_solution: Optional[Dict[str, str]]
@@ -212,6 +216,8 @@ class ProblemAdminListItem(BaseModel):
     sample_count: int
     submissions: int
     acceptance_rate: Optional[float]
+    # Set when real acceptance (20+ submissions) suggests a different level.
+    suggested_difficulty: Optional[ProblemDifficulty] = None
     updated_at: datetime
 
 

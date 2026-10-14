@@ -14,7 +14,7 @@ const Editor = dynamic(() => import("@monaco-editor/react"), {
   loading: () => <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading editor…</div>,
 });
 
-const LANGUAGES: PracticeLanguage[] = ["python", "javascript", "java", "cpp", "c"];
+const LANGUAGES: PracticeLanguage[] = ["python", "javascript", "java", "cpp", "c", "sql"];
 
 const TEMPLATES: Record<PracticeLanguage, string> = {
   python: 'name = input().strip()\nprint(f"Hello, {name}!")\n',
@@ -23,6 +23,8 @@ const TEMPLATES: Record<PracticeLanguage, string> = {
     'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        String name = in.nextLine().trim();\n        System.out.println("Hello, " + name + "!");\n    }\n}\n',
   cpp:
     '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string name;\n    getline(cin, name);\n    cout << "Hello, " << name << "!" << endl;\n    return 0;\n}\n',
+  sql:
+    "-- SQLite: create tables, add rows, then query them.\nCREATE TABLE scores (name TEXT, score INTEGER);\nINSERT INTO scores VALUES ('Asha', 91), ('Ben', 78), ('Chen', 85);\n\nSELECT name, score FROM scores ORDER BY score DESC;\n",
   c: '#include <stdio.h>\n#include <string.h>\n\nint main(void) {\n    char name[256];\n    if (fgets(name, sizeof name, stdin)) {\n        name[strcspn(name, "\\n")] = 0;\n        printf("Hello, %s!\\n", name);\n    }\n    return 0;\n}\n',
 };
 

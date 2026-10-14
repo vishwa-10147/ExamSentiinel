@@ -74,12 +74,14 @@ cd backend && ../.venv/Scripts/python.exe seed_practice.py
 
 ## Smoke test
 
-1. `curl localhost:8000/api/health` → `database: healthy`. `redis: unhealthy` + HTTP 503 is expected without Redis; the app degrades gracefully.
+1. `curl localhost:8000/api/health` → 200 with `database: healthy`; without Redis the status is `degraded` (Redis is optional).
 2. Open `http://localhost:3000/auth/login`, sign in as `reviewer@sentinel.edu` → lands on `/reviewer/dashboard`; `GET /api/proctoring/review-queue` returns 200.
 3. `python scripts/e2e_roles_smoke.py` → every step passes (exam lifecycle for all roles, coding grading, practice).
 
 ## Known limits in local mode
 
-- No Redis → forgot-password / OTP endpoints return 500; rate limiting is skipped (best-effort).
+- No Redis → reset codes live in process memory and rate limiting is skipped (fine for one local process).
+- No email provider → in DEBUG the password-reset code is written to the backend log.
+- Docker Desktop stopped → the code runner is down; restart Docker and the `examsentinel-piston` container comes back.
 - Without the Piston container, runs return `SYSTEM_ERROR` ("engine unavailable") and coding exam answers fall back to manual grading.
 - YOLO / Whisper packages are not installed → proctoring vision and interview transcription use mock fallbacks.

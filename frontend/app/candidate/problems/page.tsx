@@ -82,6 +82,7 @@ export default function ProblemsPage() {
   const [difficulty, setDifficulty] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [tag, setTag] = useState<string>("");
+  const [sort, setSort] = useState<"difficulty" | "acceptance" | "title">("difficulty");
 
   const load = useCallback(async () => {
     try {
@@ -107,16 +108,37 @@ export default function ProblemsPage() {
     void load();
   }, [load]);
 
+  // Stable problem numbers, independent of filtering and sorting.
+  const numberOf = useMemo(() => new Map(problems.map((p, i) => [p.id, i + 1])), [problems]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return problems.filter(
+    const rows = problems.filter(
       (p) =>
         (!q || p.title.toLowerCase().includes(q) || p.tags.some((t) => t.includes(q))) &&
         (!difficulty || p.difficulty === difficulty) &&
         (!status || p.status === status) &&
         (!tag || p.tags.includes(tag))
     );
-  }, [problems, search, difficulty, status, tag]);
+    const rank: Record<Difficulty, number> = { EASY: 0, MEDIUM: 1, HARD: 2 };
+    return [...rows].sort((a, b) => {
+      if (sort === "title") return a.title.localeCompare(b.title);
+      if (sort === "acceptance") return (b.acceptance_rate ?? -1) - (a.acceptance_rate ?? -1);
+      return rank[a.difficulty] - rank[b.difficulty] || (numberOf.get(a.id)! - numberOf.get(b.id)!);
+    });
+  }, [problems, search, difficulty, status, tag, sort, numberOf]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, { total: number; solved: number }> = { "": { total: 0, solved: 0 } };
+    for (const d of DIFFICULTIES) c[d] = { total: 0, solved: 0 };
+    for (const p of problems) {
+      for (const key of ["", p.difficulty]) {
+        c[key].total += 1;
+        if (p.status === "solved") c[key].solved += 1;
+      }
+    }
+    return c;
+  }, [problems]);
 
   const clearFilters = () => {
     setSearch("");
@@ -217,15 +239,14 @@ export default function ProblemsPage() {
                 />
               </div>
               <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
-                aria-label="Filter by difficulty"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as typeof sort)}
+                aria-label="Sort problems"
                 className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
               >
-                <option value="">All difficulties</option>
-                <option value="EASY">Easy</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HARD">Hard</option>
+                <option value="difficulty">Sort: Easy → Hard</option>
+                <option value="acceptance">Sort: Acceptance (high → low)</option>
+                <option value="title">Sort: Title</option>
               </select>
               <select
                 value={status}
@@ -243,6 +264,27 @@ export default function ProblemsPage() {
                   <X className="h-4 w-4" /> Clear
                 </button>
               )}
+            </div>
+
+            <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800" role="tablist" aria-label="Difficulty">
+              {(["", ...DIFFICULTIES] as const).map((d) => (
+                <button
+                  key={d || "all"}
+                  role="tab"
+                  aria-selected={difficulty === d}
+                  onClick={() => setDifficulty(d)}
+                  className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                    difficulty === d
+                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <span className={d ? DIFFICULTY_TEXT[d] : ""}>{d ? d.charAt(0) + d.slice(1).toLowerCase() : "All"}</span>
+                  <span className="ml-1.5 text-xs tabular-nums text-slate-400">
+                    {counts[d]?.solved ?? 0}/{counts[d]?.total ?? 0}
+                  </span>
+                </button>
+              ))}
             </div>
 
             {tags.length > 0 && (
@@ -295,7 +337,7 @@ export default function ProblemsPage() {
                       <td className="px-4 py-3"><StatusIcon status={p.status} /></td>
                       <td className="px-4 py-3">
                         <Link href={`/candidate/problems/${p.slug}`} className="font-medium text-slate-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
-                          {problems.indexOf(p) + 1}. {p.title}
+                          {numberOf.get(p.id)}. {p.title}
                         </Link>
                       </td>
                       <td className="hidden px-4 py-3 md:table-cell">

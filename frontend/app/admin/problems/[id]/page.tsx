@@ -36,6 +36,7 @@ const EMPTY: ProblemUpsert = {
   hints: [],
   judge_mode: "FUNCTION",
   function_spec: { name: "solve", params: [{ name: "nums", type: "int[]" }], return_type: "int" },
+  sql_schema: null,
   compare_mode: "exact",
   starter_code: {},
   reference_solution: { language: "python", code: "class Solution:\n    def solve(self, nums):\n        return sum(nums)\n" },
@@ -84,6 +85,7 @@ export default function ProblemEditorPage() {
           hints: p.hints,
           judge_mode: p.judge_mode,
           function_spec: p.function_spec,
+          sql_schema: p.sql_schema ?? null,
           compare_mode: p.compare_mode,
           starter_code: p.starter_code ?? {},
           reference_solution: p.reference_solution,
@@ -114,6 +116,7 @@ export default function ProblemEditorPage() {
         ...form,
         constraints: form.constraints?.trim() ? form.constraints : null,
         function_spec: form.judge_mode === "FUNCTION" ? form.function_spec : null,
+        sql_schema: form.judge_mode === "SQL" ? form.sql_schema : null,
         hints: form.hints.filter((h) => h.trim()),
         tags: form.tags.map((t) => t.trim().toLowerCase()).filter(Boolean),
         reference_solution: form.reference_solution?.code.trim() ? form.reference_solution : null,
@@ -318,6 +321,7 @@ export default function ProblemEditorPage() {
               <select id="mode" className={input} value={form.judge_mode} onChange={(e) => set("judge_mode", e.target.value as ProblemUpsert["judge_mode"])}>
                 <option value="FUNCTION">LeetCode style — implement a method on class Solution</option>
                 <option value="STDIO">Input/output — read stdin, print to stdout</option>
+                <option value="SQL">SQL — one SQLite SELECT, result rows compared</option>
               </select>
             </div>
             <div>
@@ -393,7 +397,31 @@ export default function ProblemEditorPage() {
             </div>
           )}
 
-          {!fnMode && (
+          {form.judge_mode === "SQL" && (
+            <div className="space-y-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-900/50">
+              <div>
+                <label className={label} htmlFor="schema">Schema (CREATE TABLE statements shared by every test)</label>
+                <textarea
+                  id="schema"
+                  rows={8}
+                  className={`${input} font-mono text-xs`}
+                  value={form.sql_schema ?? ""}
+                  onChange={(e) => set("sql_schema", e.target.value)}
+                  placeholder={"CREATE TABLE employees (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL\n);"}
+                />
+              </div>
+              <div>
+                <label className={label} htmlFor="sqlcmp">Row order</label>
+                <select id="sqlcmp" className={input} value={form.compare_mode} onChange={(e) => set("compare_mode", e.target.value as ProblemUpsert["compare_mode"])}>
+                  <option value="unordered">Any order</option>
+                  <option value="exact">Must match the order (statement requires ORDER BY)</option>
+                </select>
+              </div>
+              <p className="text-xs text-slate-500">Judged on SQLite 3.36. Avoid naming a table <code>argv</code> (reserved by the runner).</p>
+            </div>
+          )}
+
+          {form.judge_mode === "STDIO" && (
             <div className="space-y-3">
               <p className="text-xs text-slate-500">Optional starter code per language (stdin inputs are limited to 128 KB per test).</p>
               {STDIO_LANGUAGES.map((l) => (
@@ -424,7 +452,9 @@ export default function ProblemEditorPage() {
               value={form.reference_solution?.language ?? "python"}
               onChange={(e) => set("reference_solution", { language: e.target.value, code: form.reference_solution?.code ?? "" })}
             >
-              {(fnMode ? REF_LANGUAGES : STDIO_LANGUAGES).map((l) => <option key={l} value={l}>{LANGUAGE_LABELS[l]}</option>)}
+              {(fnMode ? REF_LANGUAGES : form.judge_mode === "SQL" ? (["sql"] as PracticeLanguage[]) : STDIO_LANGUAGES).map((l) => (
+                <option key={l} value={l}>{LANGUAGE_LABELS[l]}</option>
+              ))}
             </select>
           </div>
           <div className="h-64 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
@@ -446,7 +476,9 @@ export default function ProblemEditorPage() {
             <p className="text-xs text-slate-500">
               {fnMode
                 ? `Input: one JSON value per line, in parameter order (${spec?.params.map((p) => p.name).join(", ")}). Expected output: one JSON value.`
-                : "Input: exact stdin. Expected output: exact stdout (trailing whitespace ignored)."}{" "}
+                : form.judge_mode === "SQL"
+                  ? "Input: INSERT statements for this dataset. Expected output: JSON array of rows, e.g. [[\"Asha\", 3]]."
+                  : "Input: exact stdin. Expected output: exact stdout (trailing whitespace ignored)."}{" "}
               Sample cases are shown to students as examples; the rest are hidden.
             </p>
           </div>

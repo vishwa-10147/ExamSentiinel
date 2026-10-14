@@ -72,8 +72,11 @@ async def check_health(db: AsyncSession = Depends(get_db)):
             error=_public_error(exc),
         )
 
-    overall_status = "healthy" if is_healthy else "degraded"
-    response_code = status.HTTP_200_OK if is_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
+    # Redis is optional (every caller has a fallback), so only a database
+    # outage makes the service unready; Redis down is reported as degraded.
+    database_ok = components["database"].status == "healthy"
+    overall_status = "healthy" if is_healthy else ("degraded" if database_ok else "unhealthy")
+    response_code = status.HTTP_200_OK if database_ok else status.HTTP_503_SERVICE_UNAVAILABLE
 
     health_data = HealthResponse(
         status=overall_status,

@@ -17,7 +17,7 @@ cd backend && ../.venv/Scripts/python.exe -m pytest -q -p no:cacheprovider
 - `tests/test_practice.py` fakes the sandbox; its `test_real_engine_*` cases run only when Piston is up on :2000.
 - `-p no:cacheprovider` avoids a permission error writing `backend/.pytest_cache`.
 - Never set `DATABASE_URL=` to an empty string — config will fail to parse it.
-- Baseline: 110 passed (2026-10-14).
+- Baseline: 135 passed (2026-10-14), with Piston up (real-engine tests skip otherwise).
 
 ## End-to-end (live servers)
 

@@ -1,11 +1,13 @@
 """LeetCode-style practice: problem bank, run/submit judge, progress and admin authoring."""
 
 from collections import defaultdict
+import json
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -21,8 +23,12 @@ from app.models.practice import (
     ProblemDifficulty,
     Verdict,
 )
+from app.models.exam import Exam
+from app.models.question import ExamQuestion, Question, QuestionType
+from app.models.session import ExamSession, SessionStatus
 from app.models.user import User, UserRole
 from app.schemas.practice import (
+    Language,
     CaseResultOut,
     DifficultyProgress,
     ExampleCase,
@@ -118,7 +124,21 @@ def _rate(total_accepted: Optional[tuple[int, int]]) -> Optional[float]:
     return round(100.0 * accepted / total, 1)
 
 
+CALIBRATION_MIN_SUBMISSIONS = 20
+
+
+def _suggested_difficulty(current: ProblemDifficulty, total_accepted: Optional[tuple[int, int]]) -> Optional[ProblemDifficulty]:
+    """Difficulty implied by acceptance: >= 60% Easy, >= 35% Medium, otherwise Hard."""
+    if not total_accepted or total_accepted[0] < CALIBRATION_MIN_SUBMISSIONS:
+        return None
+    rate = 100.0 * total_accepted[1] / total_accepted[0]
+    implied = ProblemDifficulty.EASY if rate >= 60 else ProblemDifficulty.MEDIUM if rate >= 35 else ProblemDifficulty.HARD
+    return implied if implied != current else None
+
+
 def _languages(problem: PracticeProblem) -> list[str]:
+    if problem.judge_mode == JudgeMode.SQL:
+        return ["sql"]
     if problem.judge_mode == JudgeMode.FUNCTION:
         return list(SUPPORTED_LANGUAGES)
     return ["python", "javascript", "java", "cpp", "c"]
@@ -214,6 +234,8 @@ async def get_problem(slug: str, db: AsyncSession = Depends(get_db), current_use
         hints=problem.hints or [],
         judge_mode=problem.judge_mode,
         function_spec=problem.function_spec,
+        sql_schema=problem.sql_schema,
+        compare_mode=problem.compare_mode,
         examples=[
             ExampleCase(input=tc.input_data, expected_output=tc.expected_output, explanation=tc.explanation)
             for tc in problem.test_cases if tc.is_sample
@@ -446,6 +468,11 @@ def _apply_upsert(problem: PracticeProblem, payload: ProblemUpsert) -> None:
             if payload.judge_mode == JudgeMode.FUNCTION:
                 inp = normalize_function_input(tc.input_data, spec)
                 exp = normalize_function_output(tc.expected_output)
+            elif payload.judge_mode == JudgeMode.SQL:
+                exp = normalize_function_output(tc.expected_output)
+                if not isinstance(json.loads(exp), list):
+                    raise JudgeSpecError(f"Test case {i + 1}: expected output must be a JSON array of rows")
+                inp = tc.input_data
             else:
                 if len(tc.input_data.encode()) > MAX_STDIO_INPUT_BYTES:
                     raise JudgeSpecError(
@@ -459,7 +486,9 @@ def _apply_upsert(problem: PracticeProblem, payload: ProblemUpsert) -> None:
     except JudgeSpecError as exc:
         _raise_spec_error(exc)
 
-    for field in ("slug", "title", "difficulty", "tags", "statement", "constraints", "hints", "judge_mode",
+    if payload.judge_mode == JudgeMode.SQL and not (payload.sql_schema or "").strip():
+        _raise_spec_error(JudgeSpecError("SQL problems need a schema (CREATE TABLE statements)"))
+    for field in ("slug", "title", "difficulty", "tags", "statement", "constraints", "hints", "judge_mode", "sql_schema",
                   "compare_mode", "starter_code", "reference_solution", "time_limit_ms", "memory_limit_mb", "is_published"):
         setattr(problem, field, getattr(payload, field))
     problem.function_spec = spec
@@ -476,7 +505,8 @@ async def admin_list_problems(db: AsyncSession = Depends(get_db), current_user: 
         ProblemAdminListItem(
             id=p.id, slug=p.slug, title=p.title, difficulty=p.difficulty, tags=p.tags or [], is_published=p.is_published,
             test_case_count=len(p.test_cases), sample_count=sum(1 for t in p.test_cases if t.is_sample),
-            submissions=acceptance.get(p.id, (0, 0))[0], acceptance_rate=_rate(acceptance.get(p.id)), updated_at=p.updated_at,
+            submissions=acceptance.get(p.id, (0, 0))[0], acceptance_rate=_rate(acceptance.get(p.id)),
+            suggested_difficulty=_suggested_difficulty(p.difficulty, acceptance.get(p.id)), updated_at=p.updated_at,
         )
         for p in problems
     ]
@@ -563,3 +593,125 @@ async def admin_validate_problem(problem_id: uuid.UUID, db: AsyncSession = Depen
     )
     return ValidationReport(ok=ok, verdict=outcome.verdict, passed_count=outcome.passed_count,
                             total_count=outcome.total_count, message=message, failures=failures)
+
+
+# ---------------------------------------------------------------------------
+# Practice problems inside exams
+# ---------------------------------------------------------------------------
+
+class ToExamRequest(BaseModel):
+    exam_id: Optional[uuid.UUID] = None
+    points: float = Field(default=10.0, gt=0, le=1000)
+
+
+class ExamRunRequest(BaseModel):
+    session_id: uuid.UUID
+    question_id: uuid.UUID
+    language: Language
+    code: str = Field(min_length=1, max_length=50_000)
+
+
+def _exam_question_content(problem: PracticeProblem) -> str:
+    parts = [problem.statement]
+    if problem.sql_schema:
+        parts.append("**Tables**\n\n```\n" + problem.sql_schema + "\n```")
+    for i, tc in enumerate((t for t in problem.test_cases if t.is_sample), start=1):
+        parts.append(f"**Example {i}**\n\n```\nInput:\n{tc.input_data}\n\nOutput:\n{tc.expected_output}\n```")
+    if problem.constraints:
+        parts.append("**Constraints**\n\n" + problem.constraints)
+    return "\n\n".join(parts)
+
+
+@router.post("/admin/problems/{problem_id}/to-exam", status_code=status.HTTP_201_CREATED)
+async def admin_problem_to_exam(
+    problem_id: uuid.UUID,
+    payload: ToExamRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(_AUTHOR_ROLES)),
+):
+    """Create an exam question judged by this problem's tests (optionally adding it to an exam)."""
+    problem = (await db.execute(
+        select(PracticeProblem).options(selectinload(PracticeProblem.test_cases)).where(PracticeProblem.id == problem_id)
+    )).scalar_one_or_none()
+    if problem is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Problem not found")
+    if not problem.test_cases:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Add test cases before using this problem in an exam")
+
+    question = Question(
+        institution_id=current_user.institution_id,
+        type=QuestionType.SQL if problem.judge_mode == JudgeMode.SQL else QuestionType.CODING,
+        title=problem.title,
+        content_rich_text=_exam_question_content(problem),
+        points=payload.points,
+        difficulty=problem.difficulty.value,
+        # Visible to candidates: languages and starter code only — never the tests.
+        options={
+            "practice_problem_id": str(problem.id),
+            "judge_mode": problem.judge_mode.value,
+            "allowed_languages": _languages(problem),
+            "starter_code": starter_code_map(problem),
+        },
+        correct_answer={"practice_problem_id": str(problem.id)},
+    )
+    db.add(question)
+    await db.flush()
+
+    if payload.exam_id:
+        exam = await db.get(Exam, payload.exam_id)
+        if exam is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Exam not found")
+        next_index = (await db.execute(
+            select(func.count(ExamQuestion.id)).where(ExamQuestion.exam_id == exam.id)
+        )).scalar_one()
+        db.add(ExamQuestion(exam_id=exam.id, question_id=question.id, order_index=next_index))
+
+    await log_audit_event(db=db, action="PRACTICE_PROBLEM_ADDED_TO_EXAM", resource_type="question", resource_id=str(question.id),
+                          details={"problem": problem.slug, "exam_id": str(payload.exam_id) if payload.exam_id else None},
+                          user_id=current_user.id, institution_id=current_user.institution_id)
+    await db.commit()
+    return {"question_id": str(question.id), "exam_id": str(payload.exam_id) if payload.exam_id else None, "title": question.title}
+
+
+@router.post("/exam-run", response_model=RunResponse, dependencies=[Depends(RateLimiter(30, 60))])
+async def exam_run_samples(
+    payload: ExamRunRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """During an exam, run a linked question's code against its sample tests only."""
+    session = await db.get(ExamSession, payload.session_id)
+    if session is None or session.candidate_id != current_user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Exam session not found")
+    if session.status != SessionStatus.IN_PROGRESS:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This exam session is no longer active")
+    in_exam = (await db.execute(
+        select(ExamQuestion.id).where(ExamQuestion.exam_id == session.exam_id, ExamQuestion.question_id == payload.question_id)
+    )).scalar_one_or_none()
+    question = await db.get(Question, payload.question_id) if in_exam else None
+    problem_ref = (question.correct_answer or {}).get("practice_problem_id") if question and isinstance(question.correct_answer, dict) else None
+    if not problem_ref:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Question is not linked to a practice problem")
+    problem = (await db.execute(
+        select(PracticeProblem).options(selectinload(PracticeProblem.test_cases)).where(PracticeProblem.id == uuid.UUID(problem_ref))
+    )).scalar_one_or_none()
+    if problem is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Linked problem no longer exists")
+    if payload.language not in _languages(problem):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{payload.language} is not available for this question")
+
+    cases = _judge_cases(problem, samples_only=True)
+    with _JudgeSlot(current_user.id):
+        try:
+            outcome = await judge(problem, payload.language, payload.code, cases)
+        except JudgeSpecError as exc:
+            _raise_spec_error(exc)
+    return RunResponse(
+        verdict=outcome.verdict,
+        cases=_case_out(outcome, cases, reveal_hidden=False),
+        passed_count=outcome.passed_count,
+        total_count=outcome.total_count,
+        runtime_ms=outcome.runtime_ms,
+        compile_output=outcome.compile_output,
+        error=outcome.error,
+    )

@@ -30,6 +30,11 @@ class UserCreate(BaseModel):
     roll_no: Optional[str] = None
     phone: Optional[str] = None
 
+class AdminUserCreate(UserCreate):
+    """Admin provisioning: password optional — a temporary one is generated."""
+    password: Optional[str] = Field(default=None, min_length=8, max_length=128)
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
@@ -65,3 +70,8 @@ class UserUpdate(BaseModel):
 class UserPasswordUpdate(BaseModel):
     current_password: str
     new_password: str
+
+
+class AdminUserCreated(UserResponse):
+    # Present only when the server generated the password; shown to the admin once.
+    temporary_password: Optional[str] = None

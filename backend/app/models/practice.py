@@ -25,6 +25,8 @@ class JudgeMode(str, enum.Enum):
     FUNCTION = "FUNCTION"
     # Student reads stdin and prints to stdout; compared as trimmed text.
     STDIO = "STDIO"
+    # Student writes one SQLite SELECT; result rows are compared.
+    SQL = "SQL"
 
 
 class Verdict(str, enum.Enum):
@@ -59,6 +61,9 @@ class PracticeProblem(TimeStampedUUIDModel):
     )
     # FUNCTION mode: {"name": "twoSum", "params": [{"name": "nums", "type": "int[]"}], "return_type": "int[]"}
     function_spec: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    # SQL mode: CREATE TABLE statements shared by every test case (each case
+    # supplies its own INSERTs as input_data).
+    sql_schema: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # "exact" | "unordered" (list result in any order) | "float" (1e-5 tolerance)
     compare_mode: Mapped[str] = mapped_column(String(16), default="exact", nullable=False)
     # Optional per-language overrides; generated from function_spec when absent.
@@ -86,9 +91,9 @@ class PracticeTestCase(TimeStampedUUIDModel):
     problem_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("practice_problems.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    # FUNCTION mode: one JSON value per line, one line per parameter. STDIO: raw stdin.
+    # FUNCTION: one JSON value per line, one line per parameter. STDIO: raw stdin. SQL: INSERT statements.
     input_data: Mapped[str] = mapped_column(Text, default="", nullable=False)
-    # FUNCTION mode: a JSON value. STDIO: expected stdout.
+    # FUNCTION: a JSON value. STDIO: expected stdout. SQL: JSON array of rows (arrays of values).
     expected_output: Mapped[str] = mapped_column(Text, nullable=False)
     is_sample: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

@@ -340,3 +340,98 @@ def _piston_available() -> bool:
 async def test_real_engine_accepts_correct_solutions(language, code):
     outcome = await practice_judge.judge(_problem(), language, code, [JudgeCase("[1,2]\n3", "6"), JudgeCase("[]\n-4", "-4")])
     assert outcome.verdict == Verdict.ACCEPTED, (outcome.compile_output, outcome.error)
+
+
+# ---------------------------------------------------------------------------
+# SQL problems
+# ---------------------------------------------------------------------------
+
+SQL_SCHEMA = "CREATE TABLE people (name TEXT, age INTEGER);"
+SQL_CASES = [JudgeCase("INSERT INTO people VALUES ('Asha', 30), ('Ben', 25);", '[["Asha"],["Ben"]]')]
+
+
+def _sql_problem(compare_mode="unordered"):
+    return _problem(judge_mode=JudgeMode.SQL, function_spec=None, sql_schema=SQL_SCHEMA, compare_mode=compare_mode)
+
+
+async def test_sql_rows_match_any_order_when_unordered(fake_sandbox):
+    fake_sandbox.result = SandboxResult("success", '[{"name":"Ben"},\n{"name":"Asha"}]\n', "", 0, 5)
+    outcome = await practice_judge.judge(_sql_problem(), "sql", "SELECT name FROM people", SQL_CASES)
+    assert outcome.verdict == Verdict.ACCEPTED
+    script = fake_sandbox.calls[0].source
+    assert script.index(SQL_SCHEMA) < script.index("INSERT") < script.index(".mode json") < script.index("SELECT name")
+
+
+async def test_sql_order_matters_when_exact(fake_sandbox):
+    fake_sandbox.result = SandboxResult("success", '[{"name":"Ben"},\n{"name":"Asha"}]\n', "", 0, 5)
+    outcome = await practice_judge.judge(_sql_problem("exact"), "sql", "SELECT name FROM people", SQL_CASES)
+    assert outcome.verdict == Verdict.WRONG_ANSWER
+
+
+async def test_sql_error_and_multiple_statements(fake_sandbox):
+    fake_sandbox.result = SandboxResult("error", "", 'Error: near line 7: near "SELEC": syntax error', 1, 5)
+    outcome = await practice_judge.judge(_sql_problem(), "sql", "SELEC name", SQL_CASES)
+    assert outcome.verdict == Verdict.RUNTIME_ERROR and "near line" not in outcome.error
+
+    fake_sandbox.result = SandboxResult("success", '[{"a":1}]\n[{"b":2}]\n', "", 0, 5)
+    outcome = await practice_judge.judge(_sql_problem(), "sql", "SELECT 1; SELECT 2", SQL_CASES)
+    assert outcome.verdict == Verdict.RUNTIME_ERROR and "more than one result set" in outcome.error
+
+
+@pytest.mark.skipif(not _piston_available(), reason="Piston engine not running")
+async def test_real_engine_sql_judging():
+    outcome = await practice_judge.judge(
+        _sql_problem(), "sql", "SELECT name FROM people WHERE age > 20;",
+        SQL_CASES + [JudgeCase("", "[]")],
+    )
+    assert outcome.verdict == Verdict.ACCEPTED, (outcome.error, outcome.cases)
+
+
+# ---------------------------------------------------------------------------
+# Practice problems used in exams
+# ---------------------------------------------------------------------------
+
+async def test_problem_added_to_exam_is_run_and_graded_by_its_tests(async_client: AsyncClient, seed_users, fake_sandbox):
+    from datetime import datetime, timedelta, timezone
+
+    admin, candidate = _user(seed_users, UserRole.ADMIN), _user(seed_users, UserRole.CANDIDATE)
+    await async_client.post("/api/practice/admin/problems", headers=auth_header(admin), json=PROBLEM_PAYLOAD)
+    pid = (await async_client.get("/api/practice/admin/problems", headers=auth_header(admin))).json()[0]["id"]
+
+    now = datetime.now(timezone.utc)
+    exam = (await async_client.post("/api/exams", headers=auth_header(admin), json={
+        "title": "Coding exam", "duration_minutes": 30,
+        "start_window": (now - timedelta(minutes=5)).isoformat(), "end_window": (now + timedelta(hours=1)).isoformat(),
+    })).json()
+    r = await async_client.post(f"/api/practice/admin/problems/{pid}/to-exam", headers=auth_header(admin),
+                                json={"exam_id": exam["id"], "points": 8})
+    assert r.status_code == 201, r.text
+    qid = r.json()["question_id"]
+    assert (await async_client.post(f"/api/practice/admin/problems/{pid}/to-exam", headers=auth_header(candidate), json={})).status_code == 403
+
+    await async_client.post(f"/api/exams/{exam['id']}/publish", headers=auth_header(admin))
+    await async_client.post(f"/api/exams/{exam['id']}/enroll", headers=auth_header(admin), json={"candidate_ids": [str(candidate.id)]})
+    session = (await async_client.post("/api/exam/sessions/start", headers=auth_header(candidate), json={"exam_id": exam["id"]})).json()
+
+    # The candidate sees starter code but never the tests or the link's answer.
+    q = next(q for q in session["questions"] if q["id"] == qid)
+    assert q["type"] == "CODING" and "python" in q["options"]["starter_code"]
+    assert "test_cases" not in json.dumps(q) and "99" not in json.dumps(q["options"])
+
+    # Run = sample tests only (one sample in PROBLEM_PAYLOAD).
+    fake_sandbox.result = SandboxResult("success", _records({"i": 0, "ok": True, "result": 6, "ms": 1, "stdout": ""}), "", 0, 5)
+    run = await async_client.post("/api/practice/exam-run", headers=auth_header(candidate), json={
+        "session_id": session["session_id"], "question_id": qid, "language": "python", "code": "x"})
+    assert run.status_code == 200, run.text
+    assert run.json()["total_count"] == 1
+
+    # Grading uses every test: passing 1 of 2 earns half the points.
+    await async_client.post(f"/api/exam/sessions/{session['session_id']}/answers", headers=auth_header(candidate), json={
+        "question_id": qid, "response_data": {"text": "x", "language": "python"}, "sequence_id": 1})
+    fake_sandbox.result = SandboxResult("success", _records(
+        {"i": 0, "ok": True, "result": 6, "ms": 1, "stdout": ""},
+        {"i": 1, "ok": True, "result": 0, "ms": 1, "stdout": ""},
+    ), "", 0, 5)
+    await async_client.post(f"/api/exam/sessions/{session['session_id']}/submit", headers=auth_header(candidate), json={"confirm": True})
+    rows = (await async_client.get(f"/api/results/admin/exam/{exam['id']}/sessions", headers=auth_header(admin))).json()
+    assert rows[0]["score"] == 4.0

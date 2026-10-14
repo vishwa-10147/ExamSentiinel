@@ -287,46 +287,94 @@ async def submit_question_code(
     )
 
 
+_CSV_TYPE_ALIASES = {
+    "mcq": QuestionType.MCQ_SINGLE, "mcq_single": QuestionType.MCQ_SINGLE, "single": QuestionType.MCQ_SINGLE,
+    "multiple_choice": QuestionType.MCQ_SINGLE, "multiple-choice": QuestionType.MCQ_SINGLE,
+    "mcq_multi": QuestionType.MCQ_MULTI, "multi": QuestionType.MCQ_MULTI, "multiple_select": QuestionType.MCQ_MULTI,
+    "short": QuestionType.SHORT_ANSWER, "short_answer": QuestionType.SHORT_ANSWER,
+    "essay": QuestionType.ESSAY, "coding": QuestionType.CODING, "code": QuestionType.CODING, "sql": QuestionType.SQL,
+}
+_MAX_CSV_BYTES = 2 * 1024 * 1024
+_MAX_CSV_ROWS = 2000
+
+
+def _csv_question_type(raw: str, has_options: bool) -> QuestionType:
+    key = (raw or "").strip().lower()
+    if not key:
+        return QuestionType.MCQ_SINGLE if has_options else QuestionType.SHORT_ANSWER
+    if key in _CSV_TYPE_ALIASES:
+        return _CSV_TYPE_ALIASES[key]
+    return QuestionType(key.upper())  # raises ValueError for unknown types
+
+
 @router.post("/bulk", response_model=dict)
 async def bulk_upload_questions(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN]))
 ):
-    if not file.filename.endswith('.csv'):
+    """Import questions from CSV.
+
+    Columns: title, content, type, difficulty, points, options, correct_answer[, rubric].
+    ``options`` and multi-select answers are ``|``-separated. Rows that fail
+    validation are skipped and reported with their line number.
+    """
+    if not (file.filename or "").lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
-    
     contents = await file.read()
+    if len(contents) > _MAX_CSV_BYTES:
+        raise HTTPException(status_code=413, detail="CSV is larger than 2 MB.")
     try:
-        text = contents.decode('utf-8')
+        text = contents.decode("utf-8-sig")  # tolerate Excel's BOM
     except UnicodeDecodeError:
         raise HTTPException(status_code=400, detail="CSV must be UTF-8 encoded.")
-        
+
     reader = csv.DictReader(io.StringIO(text))
-    questions_to_insert = []
-    
-    for row in reader:
-        # Expected CSV columns: title, content, type, difficulty, points, options, correct_answer
+    questions_to_insert, errors = [], []
+    for line_no, row in enumerate(reader, start=2):  # line 1 is the header
+        if len(questions_to_insert) + len(errors) >= _MAX_CSV_ROWS:
+            errors.append({"line": line_no, "error": f"Row limit of {_MAX_CSV_ROWS} reached; remaining rows ignored."})
+            break
+        row = {(k or "").strip().lower(): (v or "").strip() for k, v in row.items()}
         try:
-            q = Question(
+            title = row.get("title", "")
+            content = row.get("content", "") or title
+            if not title:
+                raise ValueError("title is required")
+            options = [o.strip() for o in row.get("options", "").split("|") if o.strip()]
+            qtype = _csv_question_type(row.get("type", ""), bool(options))
+            answer: object = row.get("correct_answer", "")
+            if qtype in (QuestionType.MCQ_SINGLE, QuestionType.MCQ_MULTI):
+                if len(options) < 2:
+                    raise ValueError("multiple-choice questions need at least two '|'-separated options")
+                if qtype == QuestionType.MCQ_MULTI:
+                    answer = [a.strip() for a in str(answer).split("|") if a.strip()]
+                    missing = [a for a in answer if a not in options]
+                else:
+                    missing = [] if answer in options else [answer]
+                if not answer or missing:
+                    raise ValueError(f"correct_answer must be one of the options (got {missing or 'nothing'})")
+            points = float(row.get("points") or 1)
+            if points <= 0:
+                raise ValueError("points must be positive")
+            questions_to_insert.append(Question(
                 id=uuid.uuid4(),
-                title=row.get('title', '').strip(),
-                content_rich_text=row.get('content', '').strip(),
-                type=QuestionType(row.get('type', 'multiple_choice')),
-                difficulty=row.get('difficulty', 'MEDIUM').strip().upper(),
-                points=int(row.get('points', 10)),
-                options=row.get('options', '').split('|') if row.get('options') else [],
-                correct_answer=row.get('correct_answer', '').strip(),
-                rubric=row.get('rubric', None)
-            )
-            questions_to_insert.append(q)
-        except Exception as e:
-            continue # skip invalid rows
-            
+                institution_id=current_user.institution_id,
+                title=title[:255],
+                content_rich_text=content,
+                type=qtype,
+                difficulty=(row.get("difficulty") or "medium").upper(),
+                points=points,
+                options=[{"id": o, "text": o} for o in options] if options else None,
+                correct_answer=answer or None,
+                rubric=row.get("rubric") or None,
+            ))
+        except ValueError as exc:
+            errors.append({"line": line_no, "error": str(exc)})
+
     if not questions_to_insert:
-        raise HTTPException(status_code=400, detail="No valid questions found in CSV.")
-        
+        summary = "; ".join(f"line {e['line']}: {e['error']}" for e in errors[:3])
+        raise HTTPException(status_code=400, detail=f"No valid questions found in CSV. {summary}".strip())
     db.add_all(questions_to_insert)
     await db.commit()
-    
-    return {"status": "success", "inserted": len(questions_to_insert)}
+    return {"status": "success", "inserted": len(questions_to_insert), "skipped": len(errors), "errors": errors[:50]}

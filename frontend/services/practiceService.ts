@@ -2,7 +2,8 @@ import { apiClient } from "./apiClient";
 
 export type Difficulty = "EASY" | "MEDIUM" | "HARD";
 export type ProblemStatus = "solved" | "attempted" | "todo";
-export type PracticeLanguage = "python" | "javascript" | "java" | "cpp" | "c";
+export type PracticeLanguage = "python" | "javascript" | "java" | "cpp" | "c" | "sql";
+export type JudgeMode = "FUNCTION" | "STDIO" | "SQL";
 export type Verdict =
   | "ACCEPTED"
   | "WRONG_ANSWER"
@@ -44,8 +45,10 @@ export interface ProblemDetail {
   statement: string;
   constraints: string | null;
   hints: string[];
-  judge_mode: "FUNCTION" | "STDIO";
+  judge_mode: JudgeMode;
   function_spec: FunctionSpec | null;
+  sql_schema: string | null;
+  compare_mode: string;
   examples: ExampleCase[];
   starter_code: Record<string, string>;
   languages: PracticeLanguage[];
@@ -130,8 +133,9 @@ export interface ProblemUpsert {
   statement: string;
   constraints: string | null;
   hints: string[];
-  judge_mode: "FUNCTION" | "STDIO";
+  judge_mode: JudgeMode;
   function_spec: FunctionSpec | null;
+  sql_schema: string | null;
   compare_mode: "exact" | "unordered" | "float";
   starter_code: Record<string, string>;
   reference_solution: { language: string; code: string } | null;
@@ -159,6 +163,7 @@ export interface ProblemAdminListItem {
   sample_count: number;
   submissions: number;
   acceptance_rate: number | null;
+  suggested_difficulty: Difficulty | null;
   updated_at: string;
 }
 
@@ -177,6 +182,7 @@ export const LANGUAGE_LABELS: Record<PracticeLanguage, string> = {
   java: "Java",
   cpp: "C++17",
   c: "C",
+  sql: "SQLite",
 };
 
 export const MONACO_LANGUAGE: Record<PracticeLanguage, string> = {
@@ -185,6 +191,7 @@ export const MONACO_LANGUAGE: Record<PracticeLanguage, string> = {
   java: "java",
   cpp: "cpp",
   c: "c",
+  sql: "sql",
 };
 
 export const VERDICT_LABELS: Record<Verdict, string> = {
@@ -246,6 +253,12 @@ class PracticeService {
   }
   adminDelete(id: string) {
     return apiClient.delete<void>(`/api/practice/admin/problems/${id}`);
+  }
+  adminAddToExam(id: string, examId: string | null, points: number) {
+    return apiClient.post<{ question_id: string; exam_id: string | null; title: string }>(
+      `/api/practice/admin/problems/${id}/to-exam`,
+      { exam_id: examId, points }
+    );
   }
   adminValidate(id: string) {
     return apiClient.post<ValidationReport>(`/api/practice/admin/problems/${id}/validate`, {});

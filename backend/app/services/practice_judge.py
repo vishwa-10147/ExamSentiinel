@@ -131,9 +131,14 @@ def starter_code(spec: dict, language: str) -> str:
     raise JudgeSpecError(f"Unsupported language: {language}")
 
 
+SQL_STARTER = "-- Write a single SQLite SELECT statement.\nSELECT\n"
+
+
 def starter_code_map(problem: PracticeProblem) -> dict[str, str]:
     if problem.judge_mode == JudgeMode.STDIO:
         return dict(problem.starter_code or {})
+    if problem.judge_mode == JudgeMode.SQL:
+        return {"sql": (problem.starter_code or {}).get("sql") or SQL_STARTER}
     generated = {lang: starter_code(problem.function_spec, lang) for lang in SUPPORTED_LANGUAGES}
     generated.update(problem.starter_code or {})
     return generated
@@ -622,10 +627,91 @@ async def _run_stdio_mode(
     return outcome
 
 
+def sql_rows_match(actual: list, expected: list, ordered: bool) -> bool:
+    """Compare result rows; numbers within 1e-6 (SQLite and Python print floats differently)."""
+    if len(actual) != len(expected):
+        return False
+    if not ordered:
+        key = lambda row: json.dumps([round(v, 6) if isinstance(v, float) else v for v in row], default=str)  # noqa: E731
+        actual, expected = sorted(actual, key=key), sorted(expected, key=key)
+    return all(_close(a, e) for a, e in zip(actual, expected))
+
+
+def _parse_sql_rows(stdout: str) -> list[list]:
+    """`.mode json` prints one array of row objects per statement; exactly one is expected."""
+    text = stdout.strip()
+    if not text:
+        return []  # no rows
+    decoder = json.JSONDecoder()
+    rows, end = decoder.raw_decode(text)
+    if text[end:].strip():
+        raise ValueError("Your query produced more than one result set. Submit a single SELECT statement.")
+    return [list(row.values()) for row in rows]
+
+
+async def _run_sql_mode(
+    problem: PracticeProblem, code: str, cases: list[JudgeCase], stop_on_failure: bool
+) -> JudgeOutcome:
+    query = code.strip()
+    if not query:
+        return JudgeOutcome(verdict=Verdict.COMPILE_ERROR, compile_output="Empty query", total_count=len(cases))
+    timeout_sec = problem.time_limit_ms / 1000
+    scripts = [
+        f"{problem.sql_schema or ''}\n{case.input}\n.bail on\n.mode json\n{query}\n"
+        for case in cases
+    ]
+    results = await asyncio.gather(*[
+        sandbox_service.execute_async("sql", script, "", timeout_sec, problem.memory_limit_mb) for script in scripts
+    ])
+    outcome = JudgeOutcome(verdict=Verdict.ACCEPTED, total_count=len(cases))
+    total_ms = 0
+    ordered = problem.compare_mode == "exact"
+    for i, (case, res) in enumerate(zip(cases, results)):
+        if res.status == "system_error":
+            outcome.verdict, outcome.error = Verdict.SYSTEM_ERROR, res.stderr
+            return outcome
+        total_ms += res.wall_time_ms
+        error = None
+        if res.status in ("timeout", "memory_limit", "output_limit"):
+            verdict = _crash_verdict(res.status)
+            error = verdict.value
+        elif res.status != "success" or res.stderr.strip():
+            # sqlite3 reports syntax/semantic errors as "Error: near line N: …"
+            verdict, error = Verdict.RUNTIME_ERROR, re.sub(r"near line \d+: ", "", res.stderr.strip())[:1500]
+        else:
+            try:
+                rows = _parse_sql_rows(res.stdout)
+            except ValueError as exc:
+                verdict, error = Verdict.RUNTIME_ERROR, str(exc)
+            else:
+                output = json.dumps(rows, separators=(",", ":"), default=str)
+                passed = None if case.expected is None else sql_rows_match(rows, json.loads(case.expected), ordered)
+                outcome.cases.append(CaseResult(i, passed, output=output, runtime_ms=res.wall_time_ms))
+                if passed:
+                    outcome.passed_count += 1
+                elif passed is False:
+                    if outcome.verdict == Verdict.ACCEPTED:
+                        outcome.verdict, outcome.failed_index = Verdict.WRONG_ANSWER, i
+                    if stop_on_failure:
+                        break
+                continue
+        outcome.cases.append(CaseResult(i, False, runtime_ms=res.wall_time_ms, error=error))
+        if outcome.verdict == Verdict.ACCEPTED:
+            outcome.verdict, outcome.failed_index, outcome.error = verdict, i, error
+        if stop_on_failure:
+            break
+    outcome.runtime_ms = total_ms
+    return outcome
+
+
 async def judge(
     problem: PracticeProblem, language: str, code: str, cases: list[JudgeCase], stop_on_failure: bool = False
 ) -> JudgeOutcome:
     language = "cpp" if language in ("c++", "cpp") else language
+    if problem.judge_mode == JudgeMode.SQL:
+        if language != "sql":
+            raise JudgeSpecError("SQL problems are answered in SQL")
+        return await _run_sql_mode(problem, code, cases, stop_on_failure)
     if problem.judge_mode == JudgeMode.FUNCTION:
         if language not in SUPPORTED_LANGUAGES:
             raise JudgeSpecError(f"{language} is not supported for this problem")

@@ -55,6 +55,28 @@ class GradingService:
         )
         return points * passed / len(test_cases), passed == len(test_cases)
 
+    async def _grade_practice_problem(
+        self, db: AsyncSession, problem_id: str, code: str, language: str, points: float
+    ) -> tuple[float, Optional[bool]]:
+        """Grade against every test of a linked practice problem (hidden ones included)."""
+        from app.models.practice import PracticeProblem, Verdict
+        from app.services.practice_judge import JudgeCase, JudgeSpecError, judge
+
+        problem = (await db.execute(
+            select(PracticeProblem).options(selectinload(PracticeProblem.test_cases))
+            .where(PracticeProblem.id == uuid.UUID(problem_id))
+        )).scalar_one_or_none()
+        if problem is None or not problem.test_cases:
+            return 0.0, None
+        cases = [JudgeCase(tc.input_data, tc.expected_output, tc.is_sample) for tc in problem.test_cases]
+        try:
+            outcome = await judge(problem, language.lower(), code, cases)
+        except JudgeSpecError:
+            return 0.0, False  # e.g. a language this problem doesn't support
+        if outcome.verdict == Verdict.SYSTEM_ERROR:
+            return 0.0, None
+        return points * outcome.passed_count / len(cases), outcome.verdict == Verdict.ACCEPTED
+
     async def grade_session(self, db: AsyncSession, session_id: uuid.UUID) -> ExamSession:
         """Grades an exam session and computes total score."""
         session = (await db.execute(
@@ -199,15 +221,24 @@ class GradingService:
                     except Exception:
                         logger.warning("Essay response requires manual grading", extra={"response_id": str(response.id)})
                         is_correct = None
-            elif question.type == QuestionType.CODING:
+            elif question.type in (QuestionType.CODING, QuestionType.SQL):
                 code = response.response_data.get("text") or response.response_data.get("code")
-                language = response.response_data.get("language") or "python"
+                default_language = "sql" if question.type == QuestionType.SQL else "python"
+                language = response.response_data.get("language") or default_language
+                linked_problem = (
+                    question.correct_answer.get("practice_problem_id")
+                    if isinstance(question.correct_answer, dict) else None
+                )
                 test_cases = []
                 if isinstance(question.correct_answer, dict):
                     test_cases = question.correct_answer.get("test_cases") or []
                 elif isinstance(question.correct_answer, list):
                     test_cases = question.correct_answer
-                if code and test_cases:
+                if code and linked_problem:
+                    marks, is_correct = await self._grade_practice_problem(db, linked_problem, code, language, question_points)
+                    if is_correct is None:
+                        logger.warning("Coding response requires manual grading because the execution engine is unavailable", extra={"response_id": str(response.id)})
+                elif code and test_cases and question.type == QuestionType.CODING:
                     marks, is_correct = await self._grade_code(code, language, test_cases, question_points)
                     if is_correct is None:
                         logger.warning("Coding response requires manual grading because the execution engine is unavailable", extra={"response_id": str(response.id)})
