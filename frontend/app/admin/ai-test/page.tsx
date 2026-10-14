@@ -102,7 +102,9 @@ export default function AITestDashboard() {
           const multipleFacesEvent = rawDetections.find(d => d.event_type === "MULTIPLE_FACES");
           const phoneDetected = rawDetections.some(d => d.event_type === "PHONE_DETECTED");
           
-          const facesFound = multipleFacesEvent?.details?.faces_found || (faceNotDetected ? 0 : 1);
+          // YOLO reports people_found; the Haar fallback reports faces_found.
+          const facesFound =
+            multipleFacesEvent?.details?.people_found ?? multipleFacesEvent?.details?.faces_found ?? (faceNotDetected ? 0 : 1);
 
           setResults({
             face_detected: !faceNotDetected,

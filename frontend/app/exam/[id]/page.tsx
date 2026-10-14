@@ -14,7 +14,7 @@ import { TimerBanner } from "@/components/exam/TimerBanner";
 import { QuestionPalette } from "@/components/exam/QuestionPalette";
 import { QuestionCard } from "@/components/exam/QuestionCard";
 import { SubmitModal } from "@/components/exam/SubmitModal";
-import FaceTracker from "@/components/FaceTracker";
+import FaceTracker, { FrameAnalysis } from "@/components/FaceTracker";
 import { proctoringService } from "@/services/proctoringService";
 import { apiClient } from "@/services/apiClient";
 
@@ -115,8 +115,9 @@ export default function ExamTakingPage() {
         .then((res: any) => {
           if (res?.violation_count !== undefined) {
             setViolationCount(res.violation_count);
+            // Must match _SECURITY_EVENT_TYPES in backend/app/api/proctoring.py
             const securityEvents = [
-              "TAB_BLUR", "VISIBILITY_HIDDEN", "FULLSCREEN_EXIT", "PASTE_ATTEMPT",
+              "TAB_BLUR", "FULLSCREEN_EXIT", "PASTE_ATTEMPT",
               "SECURITY_KEY_BLOCKED", "MULTI_TAB", "MULTIPLE_FACES", "PHONE_DETECTED"
             ];
             if (securityEvents.includes(eventType)) {
@@ -132,6 +133,22 @@ export default function ExamTakingPage() {
         .catch(() => undefined);
     },
     [session, isSubmitted, isAutoTerminated]
+  );
+
+  // Server-side webcam analysis already recorded these signals; mirror the
+  // same warning / auto-submit behaviour as browser telemetry.
+  const handleFrameAnalysis = useCallback(
+    (res: FrameAnalysis) => {
+      if (isSubmitted || isAutoTerminated) return;
+      setViolationCount(res.violation_count);
+      if (res.is_terminated) {
+        setIsAutoTerminated(true);
+        setIsSubmitted(true);
+      } else if (res.signals.some((s) => s.event_type === "PHONE_DETECTED" || s.event_type === "MULTIPLE_FACES")) {
+        setShowViolationModal(true);
+      }
+    },
+    [isSubmitted, isAutoTerminated]
   );
 
   useEffect(() => {
@@ -556,10 +573,11 @@ export default function ExamTakingPage() {
               </span>
             </div>
             <div className="p-3 bg-white">
-              <FaceTracker 
-                enabled={true} 
+              <FaceTracker
+                enabled={true}
                 sessionId={session?.session_id}
-                onEventDetected={(eventType, details) => submitTelemetry(eventType as any, details)} 
+                onEventDetected={(eventType, details) => submitTelemetry(eventType, details)}
+                onAnalysis={handleFrameAnalysis}
               />
             </div>
           </div>

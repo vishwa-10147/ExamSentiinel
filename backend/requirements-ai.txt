@@ -1,0 +1,7 @@
+# Optional server-side computer vision (phone / extra-person detection).
+# The API runs without these and reports phone detection as unavailable.
+# CPU-only PyTorch keeps the image small; no GPU is needed for yolo11n.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.4,<3
+torchvision>=0.19,<1
+ultralytics>=8.3,<9

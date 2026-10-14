@@ -172,6 +172,21 @@ def main() -> int:
         csid = csess["session_id"]
         check("save code answer", c.post(f"/api/exam/sessions/{csid}/answers", headers=candidate, json={
             "question_id": coding_q["id"], "response_data": {"text": "print(2 * int(input()))", "language": "python"}, "sequence_id": 1}))
+        # Server-side AI on a real photo with two people in frame (ships with ultralytics).
+        try:
+            import pathlib
+            import ultralytics
+            photo = (pathlib.Path(ultralytics.__file__).parent / "assets" / "zidane.jpg").read_bytes()
+        except (ImportError, OSError):
+            photo = None
+        if photo:
+            ai = check("webcam frame analysed by YOLO", c.post(
+                f"/api/proctoring/sessions/{csid}/webcam/analyze", headers=candidate,
+                files={"frame": ("frame.jpg", photo, "image/jpeg")}))
+            step("AI flags a second person in frame", any(s["event_type"] == "MULTIPLE_FACES" for s in (ai or {}).get("signals", [])),
+                 str([(s["event_type"], s["details"].get("people_found")) for s in (ai or {}).get("signals", [])]))
+        else:
+            step("webcam AI check skipped (requirements-ai.txt not installed)", True)
         check("submit coding exam", c.post(f"/api/exam/sessions/{csid}/submit", headers=candidate, json={"confirm": True}))
         crows = check("admin views coding exam sessions", c.get(f"/api/results/admin/exam/{cx}/sessions", headers=admin))
         crow = next((r for r in (crows or []) if str(r.get("id")) == csid), {})

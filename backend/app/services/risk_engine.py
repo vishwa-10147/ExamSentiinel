@@ -27,16 +27,20 @@ DEFAULT_RISK_WEIGHTS: Dict[str, float] = {
     # Browser events
     "TAB_BLUR": 2.0,
     "TAB_FOCUS": 0.0,  # informational only
+    "VISIBILITY_HIDDEN": 0.0,  # fires alongside TAB_BLUR; informational only
     "FULLSCREEN_EXIT": 5.0,
     "PASTE_ATTEMPT": 3.0,
     "RIGHT_CLICK": 1.0,
     "RESIZE": 1.5,
     "COPY_ATTEMPT": 2.0,
+    "CUT_ATTEMPT": 2.0,
+    "SECURITY_KEY_BLOCKED": 1.0,
     # Webcam events
     "FACE_NOT_DETECTED": 4.0,
     "MULTIPLE_FACES": 8.0,
     "PHONE_DETECTED": 7.0,
     "OBJECT_DETECTED": 3.0,
+    "CAMERA_DENIED": 5.0,
     # Code integrity events
     "LARGE_PASTE": 5.0,
     "TYPING_CADENCE_ANOMALY": 2.0,

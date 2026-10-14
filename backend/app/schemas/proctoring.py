@@ -65,6 +65,7 @@ class RiskScoreResponse(BaseModel):
     risk_level: str
     violation_count: int = 0
     is_terminated: bool = False
+    recorded: bool = True  # False when de-duplicated or the session is no longer active
     event_counts: List[EventCountByCategory] = []
     total_events: int = 0
 
