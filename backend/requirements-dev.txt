@@ -1,0 +1,5 @@
+# Local development and tests: the production set plus SQLite and pytest.
+-r requirements.txt
+aiosqlite>=0.20.0,<1.0.0
+pytest>=8.0.0,<9.0.0
+pytest-asyncio>=0.23.5,<1.0.0

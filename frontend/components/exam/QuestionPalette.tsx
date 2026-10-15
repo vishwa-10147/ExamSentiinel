@@ -79,6 +79,8 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
               onClick={() => onSelectQuestion(idx)}
               className={buttonClasses}
               title={`Question ${idx + 1}: ${answered ? "Answered" : "Unanswered"}${flagged ? " (Flagged)" : ""}`}
+              aria-label={`Question ${idx + 1}: ${answered ? "answered" : "unanswered"}${flagged ? ", flagged" : ""}`}
+              aria-current={active ? "step" : undefined}
             >
               {idx + 1}
               {flagged && (

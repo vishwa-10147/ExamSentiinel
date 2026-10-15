@@ -223,6 +223,9 @@ test("admin schedules a contest; candidate registers, solves and is ranked", asy
 
     await page.getByRole("link", { name: "A. Balanced Brackets" }).click();
     await expect(page.getByRole("link", { name: "Contest", exact: true })).toBeVisible({ timeout: 20000 });
+    // The sidebar shows the student is inside the contest, not the practice problem set.
+    await expect(page.getByRole("link", { name: "Contests", exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("link", { name: "Problem Set", exact: true })).not.toHaveAttribute("aria-current", "page");
     await setEditorCode(
       page,
       [

@@ -43,6 +43,11 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
   hold a DB connection while the engine runs. Monaco and the BlazeFace model are self-hosted (CSP in
   `frontend/next.config.js`). Rehearsal of the AWS topology: `deploy/rehearsal/`; schema check:
   `backend/check_migrations.py`; readiness status: `docs/PRODUCTION_READINESS.md`.
+- Exams: one session per (exam, candidate) - a DB constraint (migration 017); `start` resumes, and a losing concurrent
+  start resumes the winner. Answers go through `frontend/services/answerSync.ts` (latest per question, persisted,
+  retried, flushed before submit); never report a submit the server has not confirmed. Metrics: CloudWatch EMF lines
+  from `app/core/metrics.py` (production). Python deps: `requirements.txt` = the image; `requirements-dev.txt` adds
+  SQLite and pytest. The frontend's API origin is `API_BASE_URL` in `services/apiClient.ts` only.
 - Local SQLite: `create_all` plus `_sqlite_add_missing_columns` (app/main.py) adds new nullable/defaulted columns
   to an older dev database; Postgres still needs the Alembic migration.
 - `frontend/services/apiClient.ts` — the single API client. Browser sessions are httpOnly cookies (`app/core/auth_cookies.py`): requests send `credentials: "include"`, `X-Auth-Mode: cookie` and `X-Requested-With` (required for cookie-authenticated writes); tokens never touch localStorage. Scripts/tests may still use `Authorization: Bearer`. `components/RoleAreaLayout.tsx` guards each role area in the UI; the API enforces roles regardless.

@@ -3,6 +3,7 @@ penalties, editorial hiding and admin rules. The engine is faked here."""
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import select, update
@@ -278,4 +279,16 @@ def test_sqlite_dev_database_gains_new_columns(tmp_path):
         assert _sqlite_add_missing_columns(conn, Base.metadata) == []
         columns = {c["name"]: c for c in sa.inspect(conn).get_columns("practice_submissions")}
         assert columns["contest_id"]["nullable"] and columns["judge_attempts"]["default"] == "'0'"
+
+    # A unique constraint added to a model later becomes a unique index (when the data allows it).
+    sessions = Base.metadata.tables["exam_sessions"]
+    old_sessions = sa.MetaData()
+    sa.Table("exam_sessions", old_sessions, *[sa.Column(c.name, c.type, primary_key=c.primary_key, nullable=True) for c in sessions.columns])
+    with engine.begin() as conn:
+        old_sessions.create_all(conn)
+        added = _sqlite_add_missing_columns(conn, Base.metadata)
+        assert "exam_sessions:uq_exam_session_candidate" in added
+        conn.exec_driver_sql("INSERT INTO exam_sessions (id, exam_id, candidate_id) VALUES ('a', 'e', 'c')")
+        with pytest.raises(sa.exc.IntegrityError):
+            conn.exec_driver_sql("INSERT INTO exam_sessions (id, exam_id, candidate_id) VALUES ('b', 'e', 'c')")
     engine.dispose()

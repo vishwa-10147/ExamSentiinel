@@ -10,6 +10,7 @@ import structlog
 
 from app.api.router import api_router
 from app.core.config import settings
+from app.core.metrics import metrics
 from app.core.logging import (
     logger,
     set_correlation_id,
@@ -39,6 +40,24 @@ def _sqlite_add_missing_columns(conn, metadata) -> list[str]:
                 continue  # a NOT NULL column needs a default; recreate the dev database for this one
             conn.exec_driver_sql(ddl)
             added.append(f"{table.name}.{column.name}")
+        # Unique constraints added to models later (SQLite cannot add constraints to a table;
+        # a unique index enforces the same rule).
+        from sqlalchemy import UniqueConstraint
+
+        existing = {ix["name"] for ix in inspector.get_indexes(table.name)} | {
+            uc["name"] for uc in inspector.get_unique_constraints(table.name) if uc.get("name")
+        }
+        for constraint in table.constraints:
+            if not isinstance(constraint, UniqueConstraint) or not constraint.name or constraint.name in existing:
+                continue
+            if any(c.name not in present for c in constraint.columns):
+                continue
+            columns = ", ".join(f'"{c.name}"' for c in constraint.columns)
+            try:
+                conn.exec_driver_sql(f'CREATE UNIQUE INDEX IF NOT EXISTS "{constraint.name}" ON "{table.name}" ({columns})')
+                added.append(f"{table.name}:{constraint.name}")
+            except Exception as exc:  # existing rows break the rule: leave it, but say so
+                logger.warning("sqlite_unique_index_skipped", table=table.name, constraint=constraint.name, error=str(exc)[:200])
     return added
 
 
@@ -67,8 +86,15 @@ async def lifespan(app: FastAPI):
     from app.services.computer_vision import computer_vision_service
 
     warm_up = asyncio.create_task(asyncio.to_thread(computer_vision_service.warm_up))
+    from app.core.metrics import metrics
+
+    metrics_on = settings.METRICS_ENABLED if settings.METRICS_ENABLED is not None else settings.ENVIRONMENT.lower() == "production"
+    if metrics_on:
+        metrics.start()
     yield
     warm_up.cancel()
+    if metrics_on:
+        await metrics.stop()
     # Hand unfinished judging back to the queue and stop background listeners.
     from app.services.judge_queue import judge_queue
     from app.websocket.manager import manager
@@ -142,9 +168,11 @@ async def correlation_id_and_logging_middleware(request: Request, call_next):
             status_code=response.status_code,
             duration_ms=process_time_ms,
         )
+        metrics.record_request(response.status_code, process_time_ms, request.url.path)
         return response
     except Exception as exc:
         process_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        metrics.record_request(503 if _is_database_overload(exc) else 500, process_time_ms, request.url.path)
         if _is_database_overload(exc):
             # Saturated database (pool wait timed out / server connection limit): tell clients to
             # retry shortly instead of reporting a server fault.

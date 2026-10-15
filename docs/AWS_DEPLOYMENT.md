@@ -22,6 +22,7 @@ ExamSentinel supports two production topologies on AWS:
 - [4. Code runner (Piston on EC2)](#4-code-runner-piston-on-ec2)
 - [5. Single sign-on, interviews and speech-to-text](#5-single-sign-on-interviews-and-speech-to-text)
 - [6. ECS services](#6-ecs-services)
+- [Metrics and alarms](#metrics-and-alarms)
 - [Option B: single EC2 host](#option-b-single-ec2-host)
 - [Post-deployment checks](#post-deployment-checks)
 
@@ -204,9 +205,29 @@ Security notes for the code runner (details and the tests behind them: [SECURITY
 2. Run migrations as a **one-off task** with the backend image and command `["migrate"]`
    (applies Alembic migrations and bootstraps the first admin if none exists). CI checks that
    the migrations build exactly the schema the models describe (`backend/check_migrations.py`).
+   Migration 017 adds one-session-per-(exam, candidate); if an older database holds duplicate
+   sessions it stops and lists them rather than deleting a student's answers - keep one per
+   pair (normally the one with answers) and run it again.
 3. Update the services. Never set `RUN_MIGRATIONS_ON_START=true` with more than one task.
 4. Seed or update the practice problem bank when it changes: one-off task with command
    `["python", "seed_practice.py"]` (idempotent).
+
+## Metrics and alarms
+
+With `ENVIRONMENT=production` every API worker writes one CloudWatch **Embedded Metric Format**
+line per minute to its log (`METRICS_ENABLED` overrides; `METRICS_INTERVAL_SECONDS` sets the
+period). With the `awslogs` driver CloudWatch turns these into metrics in the namespace
+**`ExamSentinel`** (dimension `Service=api`) with no agent; counts are summed across tasks.
+
+| Metric | Meaning | Suggested alarm |
+|---|---|---|
+| `Requests`, `Responses4xx`, `Responses5xx` | Requests per minute and error responses | `Responses5xx` > 5 for 3 minutes |
+| `DatabaseBusy` | 503s because the database had no free connection | > 0 for 3 minutes: raise RDS size or lower pool sizes |
+| `RateLimited` | 429 responses | Watch during exams: a lab behind one address may need a higher `LOGIN_RATE_LIMIT_PER_IP` |
+| `LatencyP50`, `LatencyP95`, `LatencyP99`, `LatencyMax` | Request latency (ms, per process) | `LatencyP95` > 2000 for 5 minutes |
+| `SubmissionsQueued` | Submits answered 202 (judging took longer than 20 s) | Sustained > 0: add tasks or engine capacity |
+| `Verdicts`, `JudgeSystemErrors`, `JudgeSecondsP95` | Judging volume, engine failures, time per job | `JudgeSystemErrors` > 0 for 3 minutes |
+| `JudgeBacklog`, `JudgeOldestPendingSeconds` | Submissions waiting to be judged | `JudgeOldestPendingSeconds` > 120 |
 
 ## Option B: single EC2 host
 

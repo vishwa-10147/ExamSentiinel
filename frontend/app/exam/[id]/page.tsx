@@ -16,7 +16,8 @@ import { QuestionCard } from "@/components/exam/QuestionCard";
 import { SubmitModal } from "@/components/exam/SubmitModal";
 import FaceTracker, { FrameAnalysis } from "@/components/FaceTracker";
 import { proctoringService } from "@/services/proctoringService";
-import { apiClient } from "@/services/apiClient";
+import { ApiError, apiClient } from "@/services/apiClient";
+import { AnswerSync } from "@/services/answerSync";
 
 export const dynamic = "force-dynamic";
 
@@ -40,13 +41,27 @@ export default function ExamTakingPage() {
   // Auto-save state
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [unsentCount, setUnsentCount] = useState(0);
   const sequenceCounters = useRef<Record<string, number>>({});
-  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  // Saves answers reliably: retries, survives reloads, flushed before submit (services/answerSync.ts).
+  const syncRef = useRef<AnswerSync | null>(null);
+  // Created on first use, so an answer typed before any effect has run is never dropped.
+  const getSync = useCallback((sessionId: string) => {
+    if (!syncRef.current || syncRef.current.sessionId !== sessionId) {
+      syncRef.current = new AnswerSync(sessionId, (answer) => examService.saveAnswer(sessionId, answer));
+    }
+    return syncRef.current;
+  }, []);
 
   // Submit Modal
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  // Time ran out and the final submit has not been confirmed by the server yet.
+  const [timeUpSubmitting, setTimeUpSubmitting] = useState<string | null>(null);
+  const timeUpLoop = useRef(false);
+  // The init effect re-runs as auth and exam details settle; start (or resume) the session once.
+  const sessionStarting = useRef(false);
 
   // Integrity warning flags & violation modal
   const [blurWarning, setBlurWarning] = useState<boolean>(false);
@@ -78,7 +93,8 @@ export default function ExamTakingPage() {
       });
     }
 
-    if (examId && examDetails && !session) {
+    if (examId && examDetails && !session && !sessionStarting.current) {
+      sessionStarting.current = true;
       setLoading(true);
       const initSession = async () => {
         try {
@@ -98,6 +114,7 @@ export default function ExamTakingPage() {
             setIsSubmitted(true);
           }
         } catch (err: any) {
+          sessionStarting.current = false;
           setError(err.message || "Failed to initialize exam session.");
         } finally {
           setLoading(false);
@@ -121,7 +138,8 @@ export default function ExamTakingPage() {
               "SECURITY_KEY_BLOCKED", "MULTI_TAB", "MULTIPLE_FACES", "PHONE_DETECTED"
             ];
             if (securityEvents.includes(eventType)) {
-              if (res.is_terminated || res.violation_count >= 4) {
+              // The server decides (and holds the result for a human reviewer); never assume it here.
+              if (res.is_terminated) {
                 setIsAutoTerminated(true);
                 setIsSubmitted(true);
               } else {
@@ -212,25 +230,9 @@ export default function ExamTakingPage() {
       submitTelemetry("NETWORK_DISCONNECT");
     };
     
-    const handleOnline = async () => {
+    const handleOnline = () => {
       submitTelemetry("NETWORK_RECONNECT");
-      // Attempt to sync offline queue
-      const queueKey = `offline_answers_${session?.session_id}`;
-      const cached = localStorage.getItem(queueKey);
-      if (cached) {
-        setSaveStatus("saving");
-        try {
-          const queue = JSON.parse(cached);
-          for (const item of queue) {
-            await examService.saveAnswer(session!.session_id, item);
-          }
-          localStorage.removeItem(queueKey);
-          setSaveStatus("saved");
-        } catch(e) {
-          console.error("Failed to sync offline answers", e);
-          setSaveStatus("offline");
-        }
-      }
+      void syncRef.current?.flush();
     };
 
     window.addEventListener("blur", handleBlur);
@@ -289,42 +291,52 @@ export default function ExamTakingPage() {
         },
       }));
 
-      // Clear existing debounce timer for this question
-      if (debounceTimers.current[questionId]) {
-        clearTimeout(debounceTimers.current[questionId]);
-      }
-
-      debounceTimers.current[questionId] = setTimeout(async () => {
-        try {
-          const result = await examService.saveAnswer(session.session_id, {
-            question_id: questionId,
-            response_data: responseData,
-            sequence_id: nextSeq,
-            is_flagged: isFlagged,
-          });
-
-          setSaveStatus("saved");
-          setLastSavedAt(new Date(result.server_timestamp || Date.now()));
-        } catch (err: any) {
-          console.error("Auto-save error:", err);
-          setSaveStatus("offline");
-          // Queue offline
-          if (session?.session_id) {
-            const queueKey = `offline_answers_${session.session_id}`;
-            const existing = JSON.parse(localStorage.getItem(queueKey) || "[]");
-            existing.push({
-              question_id: questionId,
-              response_data: responseData,
-              sequence_id: nextSeq,
-              is_flagged: isFlagged,
-            });
-            localStorage.setItem(queueKey, JSON.stringify(existing));
-          }
-        }
-      }, 600); // 600ms debounce
+      getSync(session.session_id).enqueue({
+        question_id: questionId,
+        response_data: responseData,
+        sequence_id: nextSeq,
+        is_flagged: isFlagged,
+      });
     },
-    [session, isSubmitted]
+    [session, isSubmitted, getSync]
   );
+
+  // One AnswerSync per session: restores answers saved on this device but not yet on the
+  // server (e.g. before a reload or a dropped connection) and keeps sending them.
+  useEffect(() => {
+    if (!session) return;
+    const sync = getSync(session.session_id);
+    const restored = sync.restore().filter((a) => a.sequence_id > (sequenceCounters.current[a.question_id] || 0));
+    if (restored.length) {
+      setResponses((prev) => {
+        const next = { ...prev };
+        restored.forEach((a) => {
+          next[a.question_id] = {
+            question_id: a.question_id,
+            response_data: a.response_data as any,
+            is_flagged: a.is_flagged ?? prev[a.question_id]?.is_flagged ?? false,
+            sequence_id: a.sequence_id,
+            server_timestamp: a.client_timestamp,
+          };
+        });
+        return next;
+      });
+      restored.forEach((a) => {
+        sequenceCounters.current[a.question_id] = a.sequence_id;
+      });
+    }
+    const unsubscribe = sync.subscribe((state) => {
+      setSaveStatus(state.rejected.length && state.status === "saved" ? "error" : state.status);
+      setUnsentCount(state.pending);
+      if (state.lastSavedAt) setLastSavedAt(state.lastSavedAt);
+    });
+    void sync.flush();
+    return () => {
+      unsubscribe();
+      sync.dispose();
+      if (syncRef.current === sync) syncRef.current = null; // unsent answers stay in localStorage
+    };
+  }, [session, getSync]);
 
   const handleAnswerChange = (data: any) => {
     if (!session || session.questions.length === 0) return;
@@ -347,19 +359,46 @@ export default function ExamTakingPage() {
   };
 
   const handleTimeout = async () => {
-    if (isSubmitted || !session) return;
-    try {
-      await examService.submitSession(session.session_id);
-      setIsSubmitted(true);
-    } catch {
-      setIsSubmitted(true);
+    if (isSubmitted || !session || timeUpLoop.current) return;
+    timeUpLoop.current = true;
+    setTimeUpSubmitting("Time is up. Submitting your answers…");
+    // The server accepts answers for 30 s after the end: send the last edits first, then submit,
+    // retrying until the server confirms. Never report success it has not confirmed.
+    await syncRef.current?.flushNow(8000);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await examService.submitSession(session.session_id);
+        break;
+      } catch (err: any) {
+        if (/already been submitted/i.test(err?.message || "")) break; // done (e.g. by another tab)
+        if (err instanceof ApiError && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429) {
+          setTimeUpSubmitting(`Your exam could not be submitted: ${err.message}. Please tell your proctor.`);
+          timeUpLoop.current = false;
+          return;
+        }
+        setTimeUpSubmitting("Time is up. Waiting for the connection to submit your answers — keep this page open…");
+        await new Promise((r) => setTimeout(r, Math.min(2000 * (attempt + 1), 10000)));
+      }
     }
+    timeUpLoop.current = false;
+    setTimeUpSubmitting(null);
+    setIsSubmitted(true);
   };
 
   const handleConfirmSubmit = async () => {
     if (!session || isSubmitting) return;
     setIsSubmitting(true);
     try {
+      const unsent = (await syncRef.current?.flushNow(10000)) ?? 0;
+      if (
+        unsent > 0 &&
+        !window.confirm(
+          `${unsent} answer${unsent > 1 ? "s have" : " has"} not reached the server yet (check your connection). ` +
+            "They stay saved on this device and keep retrying. Submit anyway?"
+        )
+      ) {
+        return;
+      }
       await examService.submitSession(session.session_id);
       setIsSubmitted(true);
       setIsSubmitModalOpen(false);
@@ -401,6 +440,17 @@ export default function ExamTakingPage() {
           >
             Back to Examinations
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (timeUpSubmitting) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+        <div role="alert" className="max-w-md w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl rounded-2xl p-6 text-center">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Submitting</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{timeUpSubmitting}</p>
         </div>
       </div>
     );
@@ -493,7 +543,7 @@ export default function ExamTakingPage() {
           </div>
 
           <div className="flex items-center gap-3 shrink-0 flex-nowrap">
-            <AutoSaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} />
+            <AutoSaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} unsent={unsentCount} />
 
             {session && (
               <TimerBanner

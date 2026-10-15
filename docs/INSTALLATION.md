@@ -59,7 +59,7 @@ The commands use `.venv/bin/python` (macOS and Linux). On Windows use `.venv\Scr
 
 ```bash
 python -m venv .venv
-.venv/bin/python -m pip install -r backend/requirements.txt
+.venv/bin/python -m pip install -r backend/requirements-dev.txt
 cd frontend && npm install && cd ..
 ```
 

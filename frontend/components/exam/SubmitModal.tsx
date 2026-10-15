@@ -23,11 +23,22 @@ export const SubmitModal: React.FC<SubmitModalProps> = ({
   unansweredCount,
   flaggedCount,
 }) => {
+  const confirmRef = React.useRef<HTMLButtonElement>(null);
+  React.useEffect(() => {
+    if (!isOpen) return;
+    confirmRef.current?.focus(); // keyboard and screen-reader users land in the dialog
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isSubmitting) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, isSubmitting, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-labelledby="submit-dialog-title" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
         <div className="flex items-center gap-3 mb-4">
           <div className="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/30 flex items-center justify-center shrink-0">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,7 +46,7 @@ export const SubmitModal: React.FC<SubmitModalProps> = ({
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Submit Examination?</h3>
+            <h3 id="submit-dialog-title" className="text-lg font-bold text-slate-900 dark:text-white">Submit Examination?</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">Please review your completion status below.</p>
           </div>
         </div>
@@ -82,6 +93,7 @@ export const SubmitModal: React.FC<SubmitModalProps> = ({
             Review Questions
           </button>
           <button
+            ref={confirmRef}
             onClick={onConfirmSubmit}
             disabled={isSubmitting}
             className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all shadow-md shadow-emerald-600/20 flex items-center gap-2"

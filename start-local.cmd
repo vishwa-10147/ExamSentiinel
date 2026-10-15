@@ -31,7 +31,7 @@ if not exist "%PY%" (
         goto :fail
     )
     "%PY%" -m pip install --upgrade pip >nul
-    "%PY%" -m pip install -r backend\requirements.txt
+    "%PY%" -m pip install -r backend\requirements-dev.txt
     if errorlevel 1 goto :fail
 ) else (
     echo       OK

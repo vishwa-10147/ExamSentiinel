@@ -65,6 +65,9 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | `test_multi_instance.py` | 11 | Several API processes sharing Redis (simulated with an in-memory fake): interview signalling between processes, seat replacement on reconnect, a seat joined during a Redis outage joining the shared room later, monitoring events delivered once on every process, the listener surviving idle periods, one run per student across processes, and the single-process fallbacks |
 | `test_log_redaction.py` | 4 | Tokens, tickets and OAuth codes in logged URLs are redacted; other query strings are kept |
 | `test_production_config.py` | 23 | Production start-up refuses every unsafe setting (and lists them together); `CORS_ORIGINS` from the environment; client IP headers cannot be forged; uvicorn behind a trusted load balancer |
+| `test_session_start.py` | 2 | Six simultaneous exam starts resume one session; the database refuses a second session for the same candidate |
+| `test_metrics.py` | 2 | The CloudWatch Embedded Metric Format document (namespace, units, values, reset) and request counting by the middleware |
+| `test_ai_grading.py` | 3 | Gemini suggestions parsed and clamped, the API key sent in a header (never the URL), failures fall back to manual grading, nothing sent without a key |
 | `test_practice_dsa_api.py` | 8 | IDs, topics, sorting and search; editorial gating; checker protection; history and progress; playground limits; rate limiting |
 | Other `test_*.py` | 116 | Authentication, RBAC, SSO, password reset, exams, proctoring and AI, interviews, IRT, adversarial and security checks |
 
@@ -75,6 +78,8 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | `dashboard.spec.ts` | Login and registration pages render; dashboard requires authentication |
 | `protected-routes.spec.ts` | Every protected route redirects anonymous users; login works on a mobile viewport |
 | `roles.spec.ts` | Solving a problem (Run and Submit), browsing by topic and ID, a C++ linked-list solution unlocking the editorial, a C solution with LeetCode-style signatures, the progress page, a C program in the playground, staff areas closed to candidates, user creation, problem authoring, reviewer and proctor dashboards, scheduling a contest and solving inside it |
+| `exam-resilience.spec.ts` | Answers reach the server despite 503s while online, a dropped connection plus a reload, and a submit right after typing; time-out submits retry until confirmed; one session start per exam |
+| `exam-accessibility.spec.ts` | Multiple-choice answered with the keyboard alone and saved; the submit dialog is announced, takes focus and closes with Escape |
 | `production.spec.ts` | Production build only: no Content-Security-Policy violations and no request leaving the app or its API on the main candidate pages; the exam page loads the self-hosted face model and starts the camera (Chromium's fake device) |
 
 ## Latest results
@@ -84,8 +89,8 @@ was skipped. Re-run the suites after any change rather than relying on these fig
 
 | Suite | Result |
 |---|---|
-| Backend | **656 passed**, 0 failed, 0 skipped |
-| Browser | **29 passed** against the production build (rehearsal stack); the 27 non-production specs also pass against the development server |
+| Backend | **663 passed**, 0 failed, 0 skipped |
+| Browser | **34 passed** against the production build (rehearsal stack); the exam-resilience, accessibility and role specs also pass against the development server |
 | End to end | **73 / 73** steps passed |
 | Type check, lint, production build | No errors or warnings |
 
