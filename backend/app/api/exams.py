@@ -3,6 +3,7 @@ from typing import List, Optional
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import delete, func, select, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -537,7 +538,14 @@ async def enroll_candidates(
         db.add(enrollment)
         created_enrollments.append(enrollment)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # A concurrent request enrolled some of them first: return the enrollments as they are now.
+        await db.rollback()
+        return list((await db.execute(
+            select(ExamEnrollment).where(ExamEnrollment.exam_id == exam_id, ExamEnrollment.candidate_id.in_(target_ids))
+        )).scalars().all())
     for e in created_enrollments:
         await db.refresh(e)
 

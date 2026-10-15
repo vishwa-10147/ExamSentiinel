@@ -12,6 +12,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, log_audit_event, require_roles
@@ -72,7 +73,16 @@ async def create_interview(
     interview = InterviewSession(exam_session_id=session.id, mode=payload.mode, status="SCHEDULED", room_name=room_name,
                                  transcript={"segments": [], "topics": []})
     db.add(interview)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # A concurrent request (the page asking twice) created it first: return that one.
+        await db.rollback()
+        existing = (await db.execute(
+            select(InterviewSession).where(InterviewSession.exam_session_id == payload.exam_session_id)
+        )).scalar_one()
+        return {"id": existing.id, "mode": existing.mode, "status": existing.status, "room_name": existing.room_name,
+                "recording_consent": existing.recording_consent}
     await db.refresh(interview)
     return {"id": interview.id, "mode": interview.mode, "status": interview.status, "room_name": interview.room_name,
             "recording_consent": False}

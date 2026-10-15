@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select, func, cast, Date
+from sqlalchemy import select, func
 from datetime import datetime, timedelta
 from app.models.code_submission import CodeSubmission
 from app.api.deps import get_current_user
@@ -169,35 +169,20 @@ async def get_my_activity(
     cutoff_date = datetime.utcnow() - timedelta(days=105)
     daily_counts: Dict[str, int] = {}
 
-    # 1. Query Code Submissions
-    code_query = (
-        select(
-            cast(CodeSubmission.created_at, Date).label("date"),
-            func.count(CodeSubmission.id).label("count")
-        )
-        .where(CodeSubmission.candidate_id == current_user.id)
-        .where(CodeSubmission.created_at >= cutoff_date)
-        .group_by(cast(CodeSubmission.created_at, Date))
-    )
-    code_res = await db.execute(code_query)
-    for row in code_res.all():
-        if row.date:
-            daily_counts[str(row.date)] = daily_counts.get(str(row.date), 0) + row.count
-
-    # 2. Query Exam Sessions started/submitted
-    session_query = (
-        select(
-            cast(ExamSession.started_at, Date).label("date"),
-            func.count(ExamSession.id).label("count")
-        )
-        .where(ExamSession.candidate_id == current_user.id)
-        .where(ExamSession.started_at >= cutoff_date)
-        .group_by(cast(ExamSession.started_at, Date))
-    )
-    session_res = await db.execute(session_query)
-    for row in session_res.all():
-        if row.date:
-            daily_counts[str(row.date)] = daily_counts.get(str(row.date), 0) + row.count
+    # Code submissions and exam sessions per day. Grouped here rather than with CAST(... AS DATE),
+    # which SQLite does not support (it returns a year number), so the page works on both databases.
+    timestamps = list((await db.execute(
+        select(CodeSubmission.created_at)
+        .where(CodeSubmission.candidate_id == current_user.id, CodeSubmission.created_at >= cutoff_date)
+    )).scalars().all())
+    timestamps += list((await db.execute(
+        select(ExamSession.started_at)
+        .where(ExamSession.candidate_id == current_user.id, ExamSession.started_at >= cutoff_date)
+    )).scalars().all())
+    for moment in timestamps:
+        if moment:
+            day = moment.date().isoformat()
+            daily_counts[day] = daily_counts.get(day, 0) + 1
 
     # 3. Calculate total problems solved / questions answered
     resp_query = select(func.count(ExamResponse.id)).join(ExamSession).where(ExamSession.candidate_id == current_user.id)

@@ -97,7 +97,8 @@ export default function FaceTracker({ onEventDetected, onAnalysis, enabled, sess
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          void videoRef.current.play();
+          // Rejected when a newer stream replaces this one (re-render, navigation): harmless.
+          videoRef.current.play().catch(() => undefined);
         }
         isTracking.current = true;
 
