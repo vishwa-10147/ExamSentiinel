@@ -48,6 +48,9 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
   retried, flushed before submit); never report a submit the server has not confirmed. Metrics: CloudWatch EMF lines
   from `app/core/metrics.py` (production). Python deps: `requirements.txt` = the image; `requirements-dev.txt` adds
   SQLite and pytest. The frontend's API origin is `API_BASE_URL` in `services/apiClient.ts` only.
+- Deployments: AWS (`docs/AWS_DEPLOYMENT.md`, rehearsed by `deploy/rehearsal/`) or one campus server
+  (`deploy/campus/`: setup.sh / update.sh / restore.sh / backup.sh, evidence on disk via `EVIDENCE_DIR`, one host
+  name with /api proxied). The backend image runs `migrate`, any other command as given, or the server by default.
 - Local SQLite: `create_all` plus `_sqlite_add_missing_columns` (app/main.py) adds new nullable/defaulted columns
   to an older dev database; Postgres still needs the Alembic migration.
 - `frontend/services/apiClient.ts` — the single API client. Browser sessions are httpOnly cookies (`app/core/auth_cookies.py`): requests send `credentials: "include"`, `X-Auth-Mode: cookie` and `X-Requested-With` (required for cookie-authenticated writes); tokens never touch localStorage. Scripts/tests may still use `Authorization: Bearer`. `components/RoleAreaLayout.tsx` guards each role area in the UI; the API enforces roles regardless.

@@ -1,0 +1,5 @@
+.env
+certs/
+acme/
+backups/
+data/

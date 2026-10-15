@@ -17,7 +17,9 @@ COPY . .
 # must be passed as build args (setting them on the running container is too late).
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SITE_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+# Optional TURN servers for live interviews (JSON list of RTCIceServer)
+ARG NEXT_PUBLIC_ICE_SERVERS=
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL     NEXT_PUBLIC_ICE_SERVERS=$NEXT_PUBLIC_ICE_SERVERS
 # Next.js telemetry disable
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN test -n "$NEXT_PUBLIC_API_URL" || (echo "Build arg NEXT_PUBLIC_API_URL is required" && exit 1)

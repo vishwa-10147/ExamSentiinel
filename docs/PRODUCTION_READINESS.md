@@ -7,6 +7,7 @@ steps themselves are in [AWS deployment](AWS_DEPLOYMENT.md).
 ## Contents
 
 - [Summary](#summary)
+- [Campus server](#campus-server)
 - [Rehearsal results](#rehearsal-results)
 - [Problems the rehearsal found](#problems-the-rehearsal-found)
 - [Operator checklist](#operator-checklist)
@@ -21,6 +22,30 @@ against the production build. **Not yet done** (they need an AWS account or real
 local rehearsal can do them): the AWS resources themselves, a backup restore drill, alarms,
 e-mail delivery, a TURN server, an external security review and a pilot on real student devices.
 See the [operator checklist](#operator-checklist).
+
+## Campus server
+
+`deploy/campus/` runs everything on one Linux server with Docker (guide for IT:
+[deploy/campus/README.md](../deploy/campus/README.md)): one host name and certificate, nginx in
+front, the API with four worker processes, PostgreSQL, Redis, the code sandbox, webcam evidence
+on the server's disk (signed, expiring links) and nightly database dumps. No internet is needed
+during exams. Rehearsed end to end on this machine on 2026-10-15 exactly as `setup.sh` installs
+it (test overrides: ports 9443/9080 and an existing runtimes volume):
+
+| Check | Result |
+|---|---|
+| `setup.sh` from scratch, then again (idempotent) | Images built, migrations applied, admin created, runtimes verified, 127 problems seeded; health `healthy` in production mode |
+| HTTPS front door | TLS, security headers, HTTP redirected to the configured address, Let's Encrypt challenge path served |
+| End-to-end role journeys over HTTPS | **73 / 73** |
+| Several worker processes (interviews, live monitoring, run slots) | **11 / 11** |
+| Browser suite on the campus build | **34 / 34** |
+| Webcam evidence on disk | Stored, served byte-for-byte through a signed link; a forged link is refused |
+| Backup and restore drill | Backup taken; data added afterwards was gone after `restore.sh`, earlier data intact, the replaced data saved first; 73 / 73 again after the restore |
+| `update.sh` | Backup, rebuild, migrations, restart and health check in 49 s |
+
+Found and fixed during this rehearsal: the backend image ignored any command other than
+`migrate` (one-off commands such as installing runtimes started a web server instead), and the
+HTTP-to-HTTPS redirect dropped a non-default port.
 
 ## Rehearsal results
 

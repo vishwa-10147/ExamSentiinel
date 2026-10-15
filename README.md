@@ -278,6 +278,11 @@ machine — two API replicas behind a TLS load balancer, PostgreSQL, Redis and t
 every check runs against it, including a rolling restart during a 250-student submission rush.
 Results, the operator checklist and known limitations: [Production readiness](docs/PRODUCTION_READINESS.md).
 
+**On a college server instead of AWS:** `deploy/campus/` installs everything on one Linux server
+with Docker in one command (`sh setup.sh exam.college.edu admin@college.edu`), with HTTPS,
+nightly backups and evidence on the server's disk; nothing needs the internet during exams. Guide
+for the IT team: [deploy/campus/README.md](deploy/campus/README.md).
+
 ## Security
 
 - Untrusted code runs only in the sandbox; isolation and limits are verified by automated tests
