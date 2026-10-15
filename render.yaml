@@ -11,10 +11,6 @@ services:
         fromDatabase:
           name: examsentinel-db
           property: connectionString
-      - key: SYNC_DATABASE_URL
-        fromDatabase:
-          name: examsentinel-db
-          property: connectionString
       - key: REDIS_URL
         fromService:
           type: keyvalue
@@ -46,8 +42,6 @@ services:
           type: web
           name: examsentinel-backend
           envVarKey: RENDER_EXTERNAL_URL
-      - key: NEXT_PUBLIC_WS_URL
-        value: wss://examsentinel-backend.onrender.com
       - key: PORT
         value: 3000
 

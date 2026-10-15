@@ -58,7 +58,6 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5440/examsentinel"
-    SYNC_DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5440/examsentinel"
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
@@ -75,7 +74,6 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # Email API Keys (HTTPS Port 443 Providers)
-    RESEND_API_KEY: str = ""
     BREVO_API_KEY: str = ""
     SENDGRID_API_KEY: str = ""
 
