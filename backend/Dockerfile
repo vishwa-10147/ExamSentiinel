@@ -27,7 +27,8 @@ RUN pip install --upgrade pip && pip install -r requirements.txt \
 
 COPY . .
 
-RUN useradd --create-home --uid 1001 app && chown -R app /app && chmod +x docker-entrypoint.sh
+# /data/evidence: webcam evidence when stored on disk (EVIDENCE_DIR), owned by the app user
+RUN useradd --create-home --uid 1001 app && mkdir -p /data/evidence && chown -R app /app /data && chmod +x docker-entrypoint.sh
 USER app
 
 EXPOSE 8000

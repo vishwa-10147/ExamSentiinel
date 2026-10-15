@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.api import admin_settings, auth, calendar, code_execution, contests, compliance, dashboard, exams, health, imports, analytics, interviews, monitoring, practice, proctoring, sso, questions, reports, reviews, sessions, results, broadcast, usage, users
+from app.api import admin_settings, auth, calendar, code_execution, contests, evidence, compliance, dashboard, exams, health, imports, analytics, interviews, monitoring, practice, proctoring, sso, questions, reports, reviews, sessions, results, broadcast, usage, users
 from app.api.deps import get_current_user, require_roles
 from app.models.user import User, UserRole
 
@@ -36,6 +36,7 @@ api_router.include_router(code_execution.router)
 api_router.include_router(practice.router)
 api_router.include_router(contests.router)
 api_router.include_router(contests.admin_router)
+api_router.include_router(evidence.router)
 api_router.include_router(interviews.router)
 api_router.include_router(compliance.router)
 api_router.include_router(usage.router)

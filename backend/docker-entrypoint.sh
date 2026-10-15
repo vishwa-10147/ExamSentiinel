@@ -4,6 +4,7 @@
 #   (default)  serve the API with uvicorn
 #   migrate    apply Alembic migrations and bootstrap the first admin, then exit
 #              (run as a one-off ECS task / `docker compose run backend migrate`)
+#   <command>  run any other command, e.g. `python seed_practice.py`
 #
 # RUN_MIGRATIONS_ON_START=true runs `migrate` before serving — only for
 # single-instance setups (Render, one EC2 host), never with several replicas.
@@ -15,9 +16,14 @@ migrate() {
     python seed_admin.py || echo "Admin bootstrap skipped (see message above)."
 }
 
-if [ "$1" = "migrate" ]; then
+if [ "${1:-}" = "migrate" ]; then
     migrate
     exit 0
+fi
+
+# Any other command runs as given, e.g. `docker compose run --rm backend python seed_practice.py`.
+if [ "$#" -gt 0 ]; then
+    exec "$@"
 fi
 
 if [ "$RUN_MIGRATIONS_ON_START" = "true" ]; then

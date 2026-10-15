@@ -1,0 +1,185 @@
+# ExamSentinel on one campus server (Linux + Docker). See deploy/campus/README.md.
+#
+#   browsers ──https──► proxy (nginx: TLS, /api → backend, everything else → frontend)
+#                          ├─ frontend   Next.js production build
+#                          └─ backend    FastAPI, WEB_CONCURRENCY worker processes
+#   db (PostgreSQL 16) · redis · engine (Piston code sandbox) · backup (nightly database dumps)
+#
+# One host name serves everything (https://exam.college.edu and https://exam.college.edu/api), so
+# the college needs one DNS name and one certificate. Only ports 80 and 443 are published.
+
+name: examsentinel-campus
+
+x-backend-env: &backend-env
+  ENVIRONMENT: production
+  DEBUG: "false"
+  LOG_LEVEL: INFO
+  SECRET_KEY: ${SECRET_KEY:?run setup.sh first}
+  DATABASE_URL: postgresql+asyncpg://examsentinel:${POSTGRES_PASSWORD:?run setup.sh first}@db:5432/examsentinel
+  REDIS_URL: redis://redis:6379/0
+  CORS_ORIGINS: ${PUBLIC_URL:?set PUBLIC_URL in .env}
+  FRONTEND_URL: ${PUBLIC_URL}
+  PUBLIC_API_URL: ${PUBLIC_URL}
+  # Only the proxy may say who the client is (per-IP sign-in limits depend on it).
+  FORWARDED_ALLOW_IPS: 172.31.250.10
+  PISTON_URL: ${PISTON_URL:-http://engine:2000/api/v2/execute}
+  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+  LOGIN_RATE_LIMIT_PER_IP: ${LOGIN_RATE_LIMIT_PER_IP:-300}   # sign-ins per minute per address (a NATed lab shares one)
+  # Webcam evidence on the server's disk (./data/evidence), served through signed, expiring links.
+  EVIDENCE_DIR: /data/evidence
+  ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+  # Pool per worker process: 4 workers x (5 + 5) = 40 connections, below PostgreSQL's 100.
+  DB_POOL_SIZE: "5"
+  DB_MAX_OVERFLOW: "5"
+  # E-mail for password-reset codes (a campus SMTP relay works without internet).
+  ENABLE_EMAILS: ${ENABLE_EMAILS:-false}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_SENDER: ${SMTP_SENDER:-}
+  BREVO_API_KEY: ${BREVO_API_KEY:-}
+  SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+  # Optional, need internet: advisory AI grading and single sign-on.
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  SSO_GOOGLE_CLIENT_ID: ${SSO_GOOGLE_CLIENT_ID:-}
+  SSO_GOOGLE_CLIENT_SECRET: ${SSO_GOOGLE_CLIENT_SECRET:-}
+  SSO_MICROSOFT_CLIENT_ID: ${SSO_MICROSOFT_CLIENT_ID:-}
+  SSO_MICROSOFT_CLIENT_SECRET: ${SSO_MICROSOFT_CLIENT_SECRET:-}
+  SSO_MICROSOFT_TENANT: ${SSO_MICROSOFT_TENANT:-organizations}
+  SSO_OIDC_ISSUER: ${SSO_OIDC_ISSUER:-}
+  SSO_OIDC_CLIENT_ID: ${SSO_OIDC_CLIENT_ID:-}
+  SSO_OIDC_CLIENT_SECRET: ${SSO_OIDC_CLIENT_SECRET:-}
+  SSO_OIDC_NAME: ${SSO_OIDC_NAME:-University Login}
+  SSO_ALLOWED_DOMAINS: ${SSO_ALLOWED_DOMAINS:-}
+  SSO_AUTO_PROVISION: ${SSO_AUTO_PROVISION:-false}
+
+services:
+  proxy:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ${SERVER_NAME:?set SERVER_NAME in .env}
+      PUBLIC_URL: ${PUBLIC_URL}
+    volumes:
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./acme:/var/www/acme:ro            # Let's Encrypt HTTP challenge (certbot --webroot)
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    depends_on: [backend, frontend]
+    networks:
+      default:
+        ipv4_address: 172.31.250.10
+
+  backend:
+    build:
+      context: ../../backend
+      args:
+        WITH_AI: ${WITH_AI:-false}
+    image: examsentinel-backend:campus
+    restart: unless-stopped
+    environment: *backend-env
+    volumes:
+      - ./data/evidence:/data/evidence
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # One-off: `docker compose run --rm migrate` (setup.sh and update.sh do this).
+  migrate:
+    image: examsentinel-backend:campus
+    command: ["migrate"]
+    environment: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["tools"]
+
+  frontend:
+    build:
+      context: ../../frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_URL}
+        NEXT_PUBLIC_SITE_URL: ${PUBLIC_URL}
+        NEXT_PUBLIC_ICE_SERVERS: ${NEXT_PUBLIC_ICE_SERVERS:-}
+    image: examsentinel-frontend:campus
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: examsentinel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: examsentinel
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U examsentinel -d examsentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+
+  # The code sandbox. Privileged so it can create an isolated sandbox per run; it holds no
+  # secrets and is reachable only from the backend (no published port).
+  engine:
+    build:
+      context: ../../infra/piston
+    image: examsentinel-piston:latest
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - PISTON_RUN_TIMEOUT=10000
+      - PISTON_COMPILE_TIMEOUT=15000
+      - PISTON_OUTPUT_MAX_SIZE=8388608
+      - PISTON_MAX_PROCESS_COUNT=64
+      - PISTON_RUN_MEMORY_LIMIT=268435456
+      - PISTON_COMPILE_MEMORY_LIMIT=536870912
+    volumes:
+      - piston_packages:/piston/packages
+    tmpfs:
+      - /piston/jobs:exec,uid=1000,gid=1000,mode=711
+      - /tmp:exec
+
+  # Nightly PostgreSQL dumps into ./backups, kept for BACKUP_KEEP_DAYS. Copy that folder off the
+  # server too (a dump on the same disk does not survive a disk failure).
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_HOUR: ${BACKUP_HOUR:-2}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backups:/backups
+      - ./backup.sh:/backup.sh:ro
+    entrypoint: ["sh", "/backup.sh", "schedule"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.31.250.0/24
+
+volumes:
+  pgdata:
+  redisdata:
+  piston_packages:
+    name: ${PISTON_PACKAGES_VOLUME:-examsentinel-campus_piston_packages}

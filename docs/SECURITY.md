@@ -110,6 +110,9 @@ DOMPurify for exam HTML, audit logging) are covered by `test_auth.py`, `test_rba
   manager in production). `.env.example` and `.env.production.example` contain placeholders only.
 - Only `NEXT_PUBLIC_*` variables reach the browser; none of them is a secret.
 - The sandbox environment contains no application variables (verified above).
+- Webcam evidence stored on the server's disk (`EVIDENCE_DIR`, campus servers) is served only
+  through links signed with `SECRET_KEY` (HMAC) that expire after `EVIDENCE_URL_TTL_SECONDS`;
+  forged, expired and path-traversal links get 404 (`test_evidence_storage.py`).
 - Credentials in URLs never reach the logs: uvicorn's request and WebSocket lines have
   `token`, `access_token`, `refresh_token`, `ticket` and `code` query values replaced with
   `[REDACTED]` (`RedactSecretsFilter` in `app/core/logging.py`; `test_log_redaction.py`, and
