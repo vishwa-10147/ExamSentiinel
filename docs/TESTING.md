@@ -59,7 +59,7 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | `test_practice.py` | 35 | Verdict logic, harness generation, authoring, hidden-data redaction, SQL judging, practice problems in exams |
 | `test_judge_queue.py` | 6 | Verdict within the wait, 202 then polling, one pending submission per student, engine-outage retries, recovery of an orphaned job, bounded engine concurrency, per-student (not per-IP) limits |
 | `test_cookie_sessions.py` | 7 | httpOnly cookie sign-in and refresh, CSRF header, logout, bearer clients unchanged, failed-login throttle, WebSocket origin check |
-| `test_redis_breaker.py` | 3 | Half-open circuit breaker: one probe at a time, cool-down, healthy Redis stays closed |
+| `test_resilience.py` | 4 | Half-open Redis circuit breaker (one probe at a time, cool-down, healthy Redis stays closed); one pooled HTTP client for the engine |
 | `test_practice_dsa_api.py` | 8 | IDs, topics, sorting and search; editorial gating; checker protection; history and progress; playground limits; rate limiting |
 | Other `test_*.py` | 116 | Authentication, RBAC, SSO, password reset, exams, proctoring and AI, interviews, IRT, adversarial and security checks |
 
@@ -78,7 +78,7 @@ was skipped. Re-run the suites after any change rather than relying on these fig
 
 | Suite | Result |
 |---|---|
-| Backend | **605 passed**, 0 failed, 0 skipped |
+| Backend | **606 passed**, 0 failed, 0 skipped |
 | Browser | **26 passed** |
 | End to end | **73 / 73** steps passed |
 | Type check, lint, production build | No errors or warnings |
@@ -98,20 +98,20 @@ solution at the same moment; queued (202) submissions are polled like the web ap
 ```
 
 It creates development-only accounts directly in the configured database and refuses to run
-when `ENVIRONMENT=production`. Results on 2026-10-15 (one API process, PostgreSQL 16, one
-Piston container, Windows 11 / 32 cores):
+when `ENVIRONMENT=production`. All traffic comes from one IP, so for runs above ~250 students
+raise `LOGIN_RATE_LIMIT_PER_IP` on the test instance. Results on 2026-10-15 (one API process,
+PostgreSQL 16, one Piston container, Windows 11 / 32 cores):
 
-| Students | Sign-in p95 | Submit responses | Accepted | Time to verdict p50 / p95 | Throughput |
-|---:|---:|---|---:|---:|---:|
-| 100 | 1.4 s | 100 × 200 | 100 / 100 | 8.6 s / 14.2 s | 6.7 verdicts/s |
-| 200 | 2.8 s | 144 × 200, 54 × 202 (queued) | 198 / 200 | 18.6 s / 32.0 s | 5.8 verdicts/s |
+| Students | Sign-in p95 | Submit responses | Accepted | Time to verdict p50 / p95 | Throughput | Errors |
+|---:|---:|---|---:|---:|---:|---:|
+| 200 | 3.3 s | 200 × 200 | 200 / 200 | 3.7 s / 5.7 s | 29 verdicts/s | 0 |
+| 500 | 8.8 s | 500 × 200 | 500 / 500 | 6.1 s / 13.2 s | 33 verdicts/s | 0 |
 
-The two missing results in the 200-student run were client-side connection drops (`ReadError`);
-the server logged no errors and left nothing pending. The load test found and fixed four
-problems on the way: the database pool was exhausted by requests waiting for verdicts,
-password hashing blocked the event loop, every request in a burst tried to reconnect to a
-missing Redis (100 sign-ins took 51 s; now 1.6 s), and code-execution limits were per IP
-(a whole lab shares one).
+Load testing found and fixed five problems: the database pool was exhausted by requests
+waiting for verdicts; password hashing blocked the event loop; every request in a burst tried
+to reconnect to a missing Redis (100 sign-ins took 51 s, now 1.6 s); code-execution limits were
+per IP although a whole lab shares one; and a new HTTP connection per engine call cost
+150-400 ms (judging rose from 6 to 29-33 verdicts/s once the client was pooled).
 
 ## Writing tests
 

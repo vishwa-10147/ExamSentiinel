@@ -59,7 +59,7 @@ AI is used to *surface* signals — never to penalise a candidate automatically.
   samples, hidden tests, hints, complexity and an editorial
 - Monaco editor with starter code in Python, JavaScript, Java, C++ and C (LeetCode-style C signatures)
 - **Run** against samples and custom input; **Submit** against every hidden test, through a
-  judging queue load-tested with 200 simultaneous submissions
+  judging queue load-tested with 500 simultaneous submissions
 - Verdicts: Accepted, Wrong Answer, Time/Memory/Output Limit Exceeded, Runtime Error, Compile Error
 - Topic and difficulty filters, search by ID, submission history and per-topic progress
 - Code playground for any C, C++, Java, Python, JavaScript or SQL program with custom stdin
@@ -305,8 +305,7 @@ together with known limitations. Please report vulnerabilities privately.
 - [x] OpenID Connect single sign-on and live interviews with transcription
 - [x] C support for function-style problems with LeetCode-style signatures
 - [x] httpOnly cookie sessions with CSRF protection; brute-force throttling without Redis
-- [x] Queued judging, load-tested with 200 simultaneous students
-- [ ] Several engine instances behind a load balancer (the measured throughput bottleneck)
+- [x] Queued judging, load-tested with 500 simultaneous students (all judged, p95 13 s)
 - [ ] Timed contests and curated study plans
 
 ## Contributing

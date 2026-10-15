@@ -79,7 +79,7 @@ shares one NAT address.
 Submissions go through a database-backed queue (`app/services/judge_queue.py`):
 
 1. Submit stores the submission with verdict `PENDING` and wakes the workers.
-2. Workers — `JUDGE_WORKERS` asyncio tasks per API process (default 4) — claim one pending
+2. Workers — `JUDGE_WORKERS` asyncio tasks per API process (default 8) — claim one pending
    submission at a time with a conditional `UPDATE`, so several processes can share the queue.
 3. The request waits up to `SUBMIT_WAIT_SECONDS` (default 20) and returns the verdict. If
    judging takes longer it returns **202** with `verdict: PENDING`; clients poll
@@ -91,12 +91,22 @@ Submissions go through a database-backed queue (`app/services/judge_queue.py`):
 Pending and engine-error submissions are not counted as attempts in progress, acceptance
 rates or streaks.
 
-**Measured capacity** (one API process, one Piston container, PostgreSQL, a 7-test Python
-problem): 200 students submitting at the same moment were all judged; 25 % received 202 and
-were polled; time to verdict p50 18 s, p95 32 s. Throughput was about 6 verdicts/s and did not
-change with 8 workers instead of 4 — the engine is the bottleneck, so scale by adding Piston
-instances (see [AWS deployment](AWS_DEPLOYMENT.md#4-code-runner-piston-on-ec2)).
-Reproduce with `scripts/load_test.py` ([Testing](TESTING.md#load-test)).
+The API talks to the engine through one pooled keep-alive HTTP client per process. Opening a
+new connection per job used to cost 150-400 ms - ten times the engine's own run time for a
+typical problem - and capped judging at about 6 verdicts/s.
+
+**Measured capacity** (one API process, one Piston container, PostgreSQL 16, a 7-test Python
+problem, everyone submitting at the same moment):
+
+| Students | Accepted | Time to verdict p50 / p95 | Throughput |
+|---:|---:|---:|---:|
+| 200 | 200 / 200 | 3.7 s / 5.7 s | 29 verdicts/s |
+| 500 | 500 / 500 | 6.1 s / 13.2 s | 33 verdicts/s |
+
+One Piston container sustains about 75 judge runs per second for this problem (measured
+directly), so at this load a single API process is the limit, not the engine: scale out API
+processes/tasks first, then add engine instances. Reproduce with `scripts/load_test.py`
+([Testing](TESTING.md#load-test)).
 
 ## Judge modes
 

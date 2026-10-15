@@ -124,17 +124,18 @@ No AWS access keys: the **task role** grants S3 access.
    `python scripts/install_piston_runtimes.py --url http://PISTON_PRIVATE_IP:2000`
 4. Register it in Cloud Map (or use its private DNS) and set `PISTON_URL` on the backend.
 
-Scale out by running several Piston instances behind an internal NLB. **The engine is the
-throughput bottleneck:** in load tests one instance judged about 6 submissions per second (a
-7-test Python problem), and doubling the API's judge workers did not change that. Size the
-number of instances for your largest exam (e.g. 200 simultaneous submissions ≈ 35 s to clear
-on one instance), and rehearse with `scripts/load_test.py` against a staging stack.
+**Capacity.** In load tests one API process with one Piston instance judged 500 simultaneous
+submissions (a 7-test Python problem) with every verdict within 15 s, at about 33 verdicts/s;
+the Piston instance alone sustains about 75 judge runs/s, so the API process saturates first.
+Scale out ECS backend tasks first; add Piston instances behind an internal NLB when the
+combined judge rate of the tasks approaches ~75/s per instance. Rehearse your largest exam
+with `scripts/load_test.py` against a staging stack.
 
 Related settings on the API: `JUDGE_WORKERS` (concurrent judge jobs per API process, default
-4 — raise it in step with engine instances), `SUBMIT_WAIT_SECONDS` (how long Submit waits
-before answering 202, default 20), `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` (per process; keep the
-total across tasks below RDS `max_connections`), and `LOGIN_RATE_LIMIT_PER_IP` (default 300/min,
-sized for an exam lab behind one NAT address).
+8), `PISTON_MAX_CONCURRENCY` (engine calls per process, default 16), `SUBMIT_WAIT_SECONDS`
+(how long Submit waits before answering 202, default 20), `DB_POOL_SIZE` / `DB_MAX_OVERFLOW`
+(per process; keep the total across tasks below RDS `max_connections`), and
+`LOGIN_RATE_LIMIT_PER_IP` (default 300/min, sized for an exam lab behind one NAT address).
 
 Security notes for the code runner (details and the tests behind them: [SECURITY.md](SECURITY.md)):
 

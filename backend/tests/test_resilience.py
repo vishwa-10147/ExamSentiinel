@@ -1,4 +1,4 @@
-"""Redis circuit breaker: after a failure, only one caller at a time probes Redis.
+"""Resilience under load: the Redis circuit breaker (one probe at a time) and the pooled engine client.
 
 Regression test for a burst stall: with Redis down, every request in a burst tried to
 connect at once, and redis-py connects under a pool lock, so 100 sign-ins took 51 s.
@@ -42,3 +42,16 @@ def test_a_healthy_redis_stays_closed(monkeypatch):
     breaker.is_open  # startup probe
     now[0] += 5
     assert not any(breaker.is_open for _ in range(1000))
+
+
+async def test_sandbox_reuses_one_pooled_http_client():
+    """A new HTTP client (and connection) per engine call cost 150-400 ms and capped judging at
+    ~6 verdicts/s; the service must reuse one keep-alive client within an event loop."""
+    from app.services.sandbox_service import SandboxService
+
+    service = SandboxService()
+    first = service._http()
+    assert service._http() is first
+    assert not first.is_closed
+    await first.aclose()
+    assert service._http() is not first, "a closed client is replaced"

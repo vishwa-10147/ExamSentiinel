@@ -35,7 +35,7 @@ Handler = Callable[[AsyncSession, PracticeSubmission], Awaitable[Verdict]]
 
 class JudgeQueue:
     def __init__(self) -> None:
-        self.workers = int(os.getenv("JUDGE_WORKERS", "4"))
+        self.workers = int(os.getenv("JUDGE_WORKERS", "8"))
         self.session_maker: async_sessionmaker = async_session_maker
         self.handler: Optional[Handler] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None

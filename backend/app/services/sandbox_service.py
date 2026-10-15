@@ -53,11 +53,22 @@ COMPILE_TIMEOUT_MS = 15_000
 
 class SandboxService:
     def __init__(self) -> None:
-        self.piston_url = os.getenv("PISTON_URL", "http://localhost:2000/api/v2/execute")
+        self.piston_url = os.getenv("PISTON_URL", "http://127.0.0.1:2000/api/v2/execute")
         self.language_map = LANGUAGE_MAP
         # Bound concurrent jobs per backend process so bursts queue here
         # instead of overwhelming the engine.
-        self._slots = asyncio.Semaphore(int(os.getenv("PISTON_MAX_CONCURRENCY", "8")))
+        self._slots = asyncio.Semaphore(int(os.getenv("PISTON_MAX_CONCURRENCY", "16")))
+        # One pooled keep-alive client per event loop. Opening a new connection per job cost
+        # 150-400 ms (and 10x the engine's own run time) in load tests.
+        self._client: httpx.AsyncClient | None = None
+        self._client_loop: asyncio.AbstractEventLoop | None = None
+
+    def _http(self) -> httpx.AsyncClient:
+        loop = asyncio.get_running_loop()
+        if self._client is None or self._client_loop is not loop or self._client.is_closed:
+            self._client = httpx.AsyncClient(limits=httpx.Limits(max_connections=64, max_keepalive_connections=32))
+            self._client_loop = loop
+        return self._client
 
     async def execute_async(
         self,
@@ -101,8 +112,9 @@ class SandboxService:
         started = time.perf_counter()
         try:
             async with self._slots:
-                async with httpx.AsyncClient(timeout=timeout_sec + COMPILE_TIMEOUT_MS / 1000 + 5) as client:
-                    response = await client.post(self.piston_url, json=payload)
+                response = await self._http().post(
+                    self.piston_url, json=payload, timeout=timeout_sec + COMPILE_TIMEOUT_MS / 1000 + 5
+                )
             wall_time_ms = int((time.perf_counter() - started) * 1000)
             if response.status_code >= 400:
                 message = response.json().get("message", response.text) if response.content else ""
