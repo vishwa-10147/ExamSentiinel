@@ -5,12 +5,10 @@ ICE candidates through this socket; media then flows peer-to-peer. Messages
 are JSON objects with a ``type`` (``offer``, ``answer``, ``ice``, ``hangup``)
 and are relayed verbatim to the other participant.
 
-Rooms live in this process's memory, so with several backend instances the
-load balancer must route both participants of an interview to the same
-instance (ALB stickiness on ``/api/ws/interview/*``) — see docs/AWS_DEPLOYMENT.md.
+Rooms are shared through Redis (``app/services/interview_hub.py``), so the two participants may
+be connected to different backend processes; without Redis they must share one process.
 """
 
-import asyncio
 import json
 import uuid
 
@@ -22,25 +20,13 @@ from app.core.logging import logger
 from app.models.interview import InterviewSession
 from app.models.session import ExamSession
 from app.models.user import UserRole
+from app.services.interview_hub import hub, send_json
 
 router = APIRouter(prefix="/ws", tags=["Interview signalling"])
 
 _STAFF = {UserRole.ADMIN, UserRole.PROCTOR, UserRole.REVIEWER}
 _RELAYED = {"offer", "answer", "ice", "hangup"}
 _MAX_MESSAGE_BYTES = 64 * 1024
-
-# interview id -> {"candidate": ws, "interviewer": ws}
-_rooms: dict[str, dict[str, WebSocket]] = {}
-_lock = asyncio.Lock()
-
-
-async def _send(ws: WebSocket | None, message: dict) -> None:
-    if ws is None:
-        return
-    try:
-        await ws.send_text(json.dumps(message))
-    except Exception:
-        pass  # the peer's own loop will notice the closed socket
 
 
 @router.websocket("/interview/{interview_id}")
@@ -68,28 +54,18 @@ async def interview_signalling(websocket: WebSocket, interview_id: str) -> None:
         if not interview.recording_consent:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Consent required")
             return
-        seat, other_seat = "candidate", "interviewer"
+        seat = "candidate"
     else:
-        seat, other_seat = "interviewer", "candidate"
+        seat = "interviewer"
     if interview.status == "COMPLETED":
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Interview has ended")
         return
 
-    async with _lock:
-        room = _rooms.setdefault(interview_id, {})
-        previous = room.get(seat)
-        room[seat] = websocket
-        peer = room.get(other_seat)
-    if previous is not None:  # same seat re-joined from another tab: drop the old one
-        await _send(previous, {"type": "replaced"})
-        try:
-            await previous.close()
-        except Exception:
-            pass
+    conn = await hub.join(interview_id, seat, websocket)
 
     # Tell both sides who is present; the interviewer creates the offer.
-    await _send(websocket, {"type": "joined", "seat": seat, "peer_present": peer is not None})
-    await _send(peer, {"type": "peer-joined", "seat": seat})
+    await send_json(websocket, {"type": "joined", "seat": seat, "peer_present": conn.peer_present})
+    await hub.relay(conn, {"type": "peer-joined", "seat": seat})
 
     try:
         while True:
@@ -101,21 +77,13 @@ async def interview_signalling(websocket: WebSocket, interview_id: str) -> None:
             except json.JSONDecodeError:
                 continue
             if message.get("type") == "ping":
-                await _send(websocket, {"type": "pong"})
-            elif message.get("type") in _RELAYED:
-                await _send(_rooms.get(interview_id, {}).get(other_seat), message)
+                await send_json(websocket, {"type": "pong"})
+            elif message.get("type") in _RELAYED and hub.holds_seat(conn):
+                await hub.relay(conn, message)
     except WebSocketDisconnect:
         pass
     except Exception as exc:
         logger.warning("interview_ws.error", interview_id=interview_id, error=str(exc))
     finally:
-        async with _lock:
-            room = _rooms.get(interview_id, {})
-            if room.get(seat) is websocket:
-                del room[seat]
-                peer = room.get(other_seat)
-                if not room:
-                    _rooms.pop(interview_id, None)
-            else:
-                peer = None  # already replaced by a newer connection
-        await _send(peer, {"type": "peer-left", "seat": seat})
+        if await hub.leave(conn):
+            await hub.relay(conn, {"type": "peer-left", "seat": seat})

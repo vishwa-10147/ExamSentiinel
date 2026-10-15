@@ -1,4 +1,5 @@
 import time
+import uuid
 
 import redis.asyncio as redis
 
@@ -18,9 +19,9 @@ redis_client = redis.from_url(
 class RedisBreaker:
     """Skip Redis for a cool-down period after a connection failure.
 
-    Callers check ``is_open`` before touching Redis and call ``trip()`` when a
-    call fails, so an outage costs one timeout per cool-down instead of one
-    per request.
+    Callers check ``is_open`` before touching Redis, call ``trip()`` when a
+    call fails and ``succeeded()`` when one works, so an outage costs one
+    timeout per cool-down instead of one per request.
 
     After the cool-down the breaker is *half-open*: exactly one caller is let
     through to probe Redis while everyone else keeps using their fallback. If
@@ -52,12 +53,30 @@ class RedisBreaker:
             self._recovering, self._probe_until = False, 0.0  # probe passed: Redis is back
         return False
 
+    def succeeded(self) -> None:
+        """A Redis call worked: end a probe early instead of waiting out ``probe_seconds``."""
+        if self._recovering and time.monotonic() >= self._down_until:
+            self._recovering, self._probe_until = False, 0.0
+
     def trip(self) -> None:
         self._down_until = time.monotonic() + self.cooldown_seconds
         self._recovering, self._probe_until = True, 0.0
 
 
 redis_breaker = RedisBreaker()
+
+# Identifies this API process in cross-process messages (e.g. to skip its own pub/sub echoes).
+INSTANCE_ID = uuid.uuid4().hex[:12]
+
+# Atomic "only if I still own it" operations for keys holding an owner token.
+COMPARE_AND_DELETE = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end"
+COMPARE_AND_EXPIRE = (
+    "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('expire', KEYS[1], ARGV[2]) else return 0 end"
+)
+
+# Pub/sub subscribers must poll with ``get_message(timeout=...)``: ``listen()`` blocks with the
+# client's 2 s socket timeout and raises on an idle channel.
+PUBSUB_POLL_SECONDS = 1.0
 
 
 async def get_redis():

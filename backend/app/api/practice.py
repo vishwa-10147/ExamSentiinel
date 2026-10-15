@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import RateLimiter, get_current_user, log_audit_event, require_roles
 from app.core.database import get_db
 from app.core.logging import logger
+from app.core.user_slots import UserSlot
 from app.models.contest import Contest, ContestProblem
 from app.models.practice import (
     JudgeMode,
@@ -70,22 +71,6 @@ from app.services.practice_judge import (
 
 router = APIRouter(prefix="/practice", tags=["Practice"])
 _AUTHOR_ROLES = [UserRole.ADMIN]
-
-# One judge job per user at a time (works without Redis; Redis adds a rate limit on top).
-_users_running: set[uuid.UUID] = set()
-
-
-class _JudgeSlot:
-    def __init__(self, user_id: uuid.UUID):
-        self.user_id = user_id
-
-    def __enter__(self):
-        if self.user_id in _users_running:
-            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "A run is already in progress. Please wait for it to finish.")
-        _users_running.add(self.user_id)
-
-    def __exit__(self, *exc):
-        _users_running.discard(self.user_id)
 
 
 # ---------------------------------------------------------------------------
@@ -381,7 +366,7 @@ async def run_samples(problem: PracticeProblem, payload: RunRequest, current_use
         custom_index = len(cases)
         cases.append(JudgeCase(custom, expected, is_sample=True))
 
-    with _JudgeSlot(current_user.id):
+    async with UserSlot("practice", current_user.id):
         try:
             outcome = await judge(problem, payload.language, payload.code, cases)
         except JudgeSpecError as exc:
@@ -930,7 +915,7 @@ async def exam_run_samples(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{payload.language} is not available for this question")
 
     cases = _judge_cases(problem, samples_only=True)
-    with _JudgeSlot(current_user.id):
+    async with UserSlot("practice", current_user.id):
         try:
             outcome = await judge(problem, payload.language, payload.code, cases)
         except JudgeSpecError as exc:

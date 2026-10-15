@@ -290,7 +290,8 @@ def RateLimiter(calls: int, period: int, local_fallback: bool = False, per_user:
                 pipe.expire(key, period)
                 
                 results = await pipe.execute()
-                
+            redis_breaker.succeeded()
+
             request_count = results[2]
             
             if request_count > calls:
@@ -331,6 +332,7 @@ class FailedLoginThrottle:
                     pipe.zcard(key)
                     pipe.expire(key, self.period)
                     results = await pipe.execute()
+                redis_breaker.succeeded()
                 return int(results[2] if add else results[1])
             except Exception:
                 redis_breaker.trip()

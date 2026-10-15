@@ -33,6 +33,10 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
   practice submissions with `contest_id`, judged by the same queue; problems of a published, unfinished contest
   are hidden from practice (`practice.contest_locked_problem_ids`). UI: `/candidate/contests`, `/admin/contests`;
   the problem workspace takes `?contest=<slug>`.
+- Several API processes: Redis carries live events (`websocket/manager.py`, own echoes skipped by `INSTANCE_ID`),
+  interview rooms (`services/interview_hub.py`) and run slots (`core/user_slots.py`). Pub/sub readers must poll
+  `get_message(timeout=PUBSUB_POLL_SECONDS)` — `listen()` dies on the client's 2 s socket timeout. Real check:
+  `scripts/multi_process_check.py --a URL --b URL`.
 - Local SQLite: `create_all` plus `_sqlite_add_missing_columns` (app/main.py) adds new nullable/defaulted columns
   to an older dev database; Postgres still needs the Alembic migration.
 - `frontend/services/apiClient.ts` — the single API client. Browser sessions are httpOnly cookies (`app/core/auth_cookies.py`): requests send `credentials: "include"`, `X-Auth-Mode: cookie` and `X-Requested-With` (required for cookie-authenticated writes); tokens never touch localStorage. Scripts/tests may still use `Authorization: Bearer`. `components/RoleAreaLayout.tsx` guards each role area in the UI; the API enforces roles regardless.

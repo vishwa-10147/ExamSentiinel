@@ -5,13 +5,13 @@ User code never runs in this process — it is sent to the self-hosted Piston en
 """
 
 from typing import Any, Dict, List, Optional
-import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.api.deps import RateLimiter, get_current_user
 from app.core.logging import logger
+from app.core.user_slots import UserSlot
 from app.models.user import User
 from app.services.practice_judge import _clean_compile_output
 from app.services.sandbox_service import sandbox_service
@@ -23,9 +23,6 @@ MAX_STDIN_CHARS = 64_000  # Piston truncates stdin past ~200 kB; keep custom inp
 RUN_TIMEOUT_SEC = 5.0
 RUN_MEMORY_MB = 256
 PLAYGROUND_LANGUAGES = ("python", "javascript", "java", "c", "cpp", "sql")
-
-_users_running: set[uuid.UUID] = set()
-
 
 class CodeExecutionRequest(BaseModel):
     language: str = Field(max_length=20)
@@ -56,16 +53,10 @@ async def execute_code(req: CodeExecutionRequest, current_user: User = Depends(g
         lang = "cpp"
     if lang not in PLAYGROUND_LANGUAGES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unsupported language: {req.language}. Use one of {', '.join(PLAYGROUND_LANGUAGES)}.")
-    if current_user.id in _users_running:
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "A run is already in progress. Please wait for it to finish.")
-
-    _users_running.add(current_user.id)
-    try:
+    async with UserSlot("playground", current_user.id):
         result = await sandbox_service.execute_async(
             language=lang, source_code=req.code, stdin=req.stdin or "", timeout_sec=RUN_TIMEOUT_SEC, memory_mb=RUN_MEMORY_MB,
         )
-    finally:
-        _users_running.discard(current_user.id)
     if result.status == "system_error":
         logger.error("sandbox.system_error", detail=result.stderr[:300])
         return CodeExecutionResponse(status="system_error", stderr="The code execution engine is unavailable. Please try again shortly.")

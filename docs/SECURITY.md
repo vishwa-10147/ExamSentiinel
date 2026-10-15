@@ -106,11 +106,17 @@ DOMPurify for exam HTML, audit logging) are covered by `test_auth.py`, `test_rba
   manager in production). `.env.example` and `.env.production.example` contain placeholders only.
 - Only `NEXT_PUBLIC_*` variables reach the browser; none of them is a secret.
 - The sandbox environment contains no application variables (verified above).
+- Credentials in URLs never reach the logs: uvicorn's request and WebSocket lines have
+  `token`, `access_token`, `refresh_token`, `ticket` and `code` query values replaced with
+  `[REDACTED]` (`RedactSecretsFilter` in `app/core/logging.py`; `test_log_redaction.py`, and
+  checked in real server logs). Browsers never put a token in a URL; scripts may.
 
 ### Known gaps
 
-- In-process rate-limit windows are per worker process: with N workers the effective limit is
-  N × the configured value until Redis is available.
+- In-process rate-limit windows and one-run-per-student slots are per worker process: with N
+  workers and no Redis, the effective limit is N × the configured value (and a student could
+  run N jobs at once) until Redis is available. With Redis both are shared
+  (`test_multi_instance.py`).
 - An XSS bug could still act *as* the signed-in user while the page is open (it cannot steal
   the tokens); exam HTML is sanitised with DOMPurify to reduce that risk.
 - AI proctoring signals are advisory only; they never penalise a candidate automatically.

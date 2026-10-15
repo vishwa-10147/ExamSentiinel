@@ -162,8 +162,9 @@ In production, `seed_admin.py` instead creates a single administrator from `ADMI
 curl http://localhost:8000/api/health
 ```
 
-The database should report `healthy`. An overall status of `degraded` only means Redis is not
-running, which is expected for local development.
+The database should report `healthy`, and `code_engine` should report `healthy` once Piston is
+running. An overall status of `degraded` because Redis is not running is expected for local
+development.
 
 Then open <http://localhost:3000>, sign in as the candidate, open **Problem Set →
 Pair With Target Sum** and press **Run**. The sample tests should pass in a few seconds.

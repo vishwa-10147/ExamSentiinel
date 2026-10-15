@@ -55,3 +55,15 @@ async def test_sandbox_reuses_one_pooled_http_client():
     assert not first.is_closed
     await first.aclose()
     assert service._http() is not first, "a closed client is replaced"
+
+
+def test_a_successful_call_ends_the_probe_early(monkeypatch):
+    _clock(monkeypatch)
+    breaker = RedisBreaker(cooldown_seconds=30, probe_seconds=3)
+    assert breaker.is_open is False  # this caller probes
+    assert breaker.is_open is True  # others wait for the outcome...
+    breaker.succeeded()  # ...which arrives at once
+    assert breaker.is_open is False
+    breaker.trip()
+    breaker.succeeded()  # a stale success during the cool-down changes nothing
+    assert breaker.is_open is True

@@ -1,52 +1,82 @@
+"""Live monitoring WebSockets (proctor dashboards) across any number of API processes.
+
+An event is delivered straight to this process's own sockets and published to Redis tagged
+with this process's ``INSTANCE_ID``; every other process's listener forwards it to its sockets
+and ignores its own echoes. Without Redis, events still reach this process's sockets, which is
+all a single-process deployment needs.
+"""
+
 import asyncio
 import json
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 from datetime import datetime, timezone
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketState
-import redis.asyncio as redis
 
 from app.core.logging import logger
-from app.core.config import settings
-from app.core.redis_client import redis_breaker, redis_client
+from app.core.redis_client import INSTANCE_ID, PUBSUB_POLL_SECONDS, redis_breaker, redis_client
+
 
 class ConnectionManager:
     """Manages WebSocket connections and broadcasts events globally via Redis Pub/Sub."""
 
-    def __init__(self):
+    channel_name = "examsentinel_live_events"
+
+    def __init__(self, redis=None, breaker=None, instance_id: str = INSTANCE_ID):
         self._exam_connections: Dict[str, Set[WebSocket]] = {}
         self._session_connections: Dict[str, Set[WebSocket]] = {}
         self._dashboard_connections: Set[WebSocket] = set()
         self._lock = asyncio.Lock()
-        
-        self.pubsub = redis_client.pubsub()
-        self.listener_task = None
-        self.channel_name = "examsentinel_live_events"
+        self._redis = redis or redis_client
+        self._breaker = breaker or redis_breaker
+        self.instance_id = instance_id
+        self.listener_task: Optional[asyncio.Task] = None
 
-    async def _start_listener(self):
-        if not self.listener_task:
+    # ------------------------------------------------------------------
+    # Redis listener
+    # ------------------------------------------------------------------
+
+    def _ensure_listener(self) -> None:
+        loop = asyncio.get_running_loop()
+        task = self.listener_task
+        if task is None or task.done() or task.get_loop() is not loop:
+            self.listener_task = loop.create_task(self._listen())
+
+    async def _listen(self) -> None:
+        """Forward other processes' events to local sockets; reconnect after Redis outages."""
+        while True:
+            if self._breaker.is_open:
+                await asyncio.sleep(PUBSUB_POLL_SECONDS)
+                continue
+            pubsub = self._redis.pubsub()
             try:
-                await self.pubsub.subscribe(self.channel_name)
-                self.listener_task = asyncio.create_task(self._listen_to_redis())
-                logger.info("Redis PubSub listener started for WebSockets.")
-            except Exception as e:
-                logger.debug(f"Failed to start Redis PubSub listener (Redis might be down): {e}")
+                await pubsub.subscribe(self.channel_name)
+                self._breaker.succeeded()
+                logger.info("live_events.listener_subscribed", instance=self.instance_id)
+                while True:
+                    message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=PUBSUB_POLL_SECONDS)
+                    if message and message.get("type") == "message":
+                        await self._on_message(message["data"])
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logger.warning("live_events.listener_error", error=str(exc))
+                self._breaker.trip()
+            finally:
+                try:
+                    await pubsub.aclose()
+                except Exception:
+                    pass
 
-    async def _listen_to_redis(self):
+    async def _on_message(self, data) -> None:
         try:
-            async for message in self.pubsub.listen():
-                if message["type"] == "message":
-                    data_str = message["data"].decode("utf-8") if isinstance(message["data"], bytes) else message["data"]
-                    try:
-                        payload = json.loads(data_str)
-                        session_id = payload.get("session_id", "")
-                        exam_id = payload.get("exam_id", "")
-                        await self._broadcast_to_all_tiers_local(session_id, exam_id, payload)
-                    except json.JSONDecodeError:
-                        logger.error("Failed to decode Redis message")
-        except Exception as e:
-            logger.error(f"Redis PubSub listener error: {e}")
-            self.listener_task = None
+            payload = json.loads(data.decode("utf-8") if isinstance(data, bytes) else data)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            logger.error("live_events.bad_message")
+            return
+        if payload.pop("_origin", None) == self.instance_id:
+            return  # already delivered locally by _publish
+        await self._broadcast_to_all_tiers_local(payload.get("session_id", ""), payload.get("exam_id", ""), payload)
 
     # ------------------------------------------------------------------
     # Connection lifecycle
@@ -56,58 +86,42 @@ class ConnectionManager:
         await websocket.accept()
         async with self._lock:
             self._dashboard_connections.add(websocket)
-        await self._start_listener()
+        self._ensure_listener()
 
     async def connect_exam(self, websocket: WebSocket, exam_id: str) -> None:
         await websocket.accept()
         async with self._lock:
-            if exam_id not in self._exam_connections:
-                self._exam_connections[exam_id] = set()
-            self._exam_connections[exam_id].add(websocket)
-        await self._start_listener()
+            self._exam_connections.setdefault(exam_id, set()).add(websocket)
+        self._ensure_listener()
 
     async def connect_session(self, websocket: WebSocket, session_id: str) -> None:
         await websocket.accept()
         async with self._lock:
-            if session_id not in self._session_connections:
-                self._session_connections[session_id] = set()
-            self._session_connections[session_id].add(websocket)
-        await self._start_listener()
+            self._session_connections.setdefault(session_id, set()).add(websocket)
+        self._ensure_listener()
 
     async def disconnect(self, websocket: WebSocket) -> None:
         async with self._lock:
             self._dashboard_connections.discard(websocket)
-
-            empty_exam_keys: list[str] = []
-            for exam_id, connections in self._exam_connections.items():
-                connections.discard(websocket)
-                if not connections:
-                    empty_exam_keys.append(exam_id)
-            for key in empty_exam_keys:
-                del self._exam_connections[key]
-
-            empty_session_keys: list[str] = []
-            for session_id, connections in self._session_connections.items():
-                connections.discard(websocket)
-                if not connections:
-                    empty_session_keys.append(session_id)
-            for key in empty_session_keys:
-                del self._session_connections[key]
+            for groups in (self._exam_connections, self._session_connections):
+                for key, connections in list(groups.items()):
+                    connections.discard(websocket)
+                    if not connections:
+                        del groups[key]
 
     # ------------------------------------------------------------------
     # Broadcasting
     # ------------------------------------------------------------------
 
     async def _publish(self, session_id: str, exam_id: str, message: dict):
-        if redis_breaker.is_open:
-            await self._broadcast_to_all_tiers_local(session_id, exam_id, message)
+        await self._broadcast_to_all_tiers_local(session_id, exam_id, message)
+        if self._breaker.is_open:
             return
         try:
-            await redis_client.publish(self.channel_name, json.dumps(message))
+            await self._redis.publish(self.channel_name, json.dumps({**message, "_origin": self.instance_id}))
+            self._breaker.succeeded()
         except Exception:
-            # Fallback to local if Redis is down
-            redis_breaker.trip()
-            await self._broadcast_to_all_tiers_local(session_id, exam_id, message)
+            self._breaker.trip()  # other processes miss this event; local sockets already have it
 
     async def broadcast_risk_update(self, session_id: str, exam_id: str, data: dict) -> None:
         message = {
@@ -145,24 +159,12 @@ class ConnectionManager:
     # ------------------------------------------------------------------
 
     async def _broadcast_to_all_tiers_local(self, session_id: str, exam_id: str, message: dict) -> None:
-        stale: list[WebSocket] = []
-
-        for ws in list(self._dashboard_connections):
-            if not await self._safe_send(ws, message):
-                stale.append(ws)
-
+        targets = set(self._dashboard_connections)
         if exam_id:
-            exam_conns = self._exam_connections.get(exam_id, set())
-            for ws in list(exam_conns):
-                if not await self._safe_send(ws, message):
-                    stale.append(ws)
-
+            targets |= self._exam_connections.get(exam_id, set())
         if session_id:
-            session_conns = self._session_connections.get(session_id, set())
-            for ws in list(session_conns):
-                if not await self._safe_send(ws, message):
-                    stale.append(ws)
-
+            targets |= self._session_connections.get(session_id, set())
+        stale = [ws for ws in targets if not await self._safe_send(ws, message)]
         for ws in stale:
             await self.disconnect(ws)
 
@@ -174,5 +176,6 @@ class ConnectionManager:
             return True
         except Exception:
             return False
+
 
 manager = ConnectionManager()
