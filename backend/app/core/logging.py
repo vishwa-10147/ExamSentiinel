@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 from contextvars import ContextVar
 import structlog
@@ -22,6 +23,20 @@ def add_correlation_id(logger, method_name, event_dict):
     return event_dict
 
 
+_SECRET_QUERY = re.compile(r"([?&](?:token|access_token|refresh_token|ticket|code)=)[^&\s'\"]+")
+
+
+class RedactSecretsFilter(logging.Filter):
+    """Mask credentials in logged URLs, e.g. uvicorn's line for ``/api/ws/...?token=<jwt>``."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        redacted = _SECRET_QUERY.sub(lambda m: m.group(1) + "[REDACTED]", message)
+        if redacted != message:
+            record.msg, record.args = redacted, None
+        return True
+
+
 def setup_logging(log_level: str = "INFO") -> None:
     level = getattr(logging, log_level.upper(), logging.INFO)
     logging.basicConfig(
@@ -29,6 +44,10 @@ def setup_logging(log_level: str = "INFO") -> None:
         stream=sys.stdout,
         level=level,
     )
+    for name in ("uvicorn.access", "uvicorn.error", "uvicorn"):
+        target = logging.getLogger(name)
+        if not any(isinstance(f, RedactSecretsFilter) for f in target.filters):
+            target.addFilter(RedactSecretsFilter())
 
     structlog.configure(
         processors=[

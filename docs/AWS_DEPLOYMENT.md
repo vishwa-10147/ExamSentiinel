@@ -42,10 +42,16 @@ Why these pieces:
 - **Piston needs `privileged`**, which Fargate doesn't allow — run it on a small EC2 instance
   (or an ECS EC2 capacity provider) in a private subnet. The public emkc.org Piston API is
   whitelist-only since 2026-02-15, so self-hosting is required.
-- **Redis** carries WebSocket events between backend tasks; without it, proctors only see events from
-  the task their socket landed on. No ALB stickiness is needed.
-- **Liveness vs readiness**: `/api/health/live` is process-only (use for ALB/ECS health checks);
-  `/api/health` checks DB + Redis and returns 503 when degraded (use for dashboards/alarms).
+- **Redis is required with more than one backend task.** It carries live-proctoring events and
+  interview signalling between tasks, and holds the shared state that must agree across tasks:
+  rate-limit windows, one-run-per-student slots, password-reset codes and SSO tickets. Without it
+  each task falls back to its own memory, which is only correct for a single task. No ALB
+  stickiness is needed. Verify a multi-task setup with `scripts/multi_process_check.py`.
+- **Liveness vs readiness**: `/api/health/live` is process-only (use for ALB/ECS health checks).
+  `/api/health` reports the database, Redis, the code engine and the judging backlog (pending
+  submissions and the age of the oldest); it returns 503 only when the database is down and
+  `degraded` otherwise. Alarm on `degraded`, on `code_engine` unhealthy, and on
+  `judge_queue.details.oldest_pending_seconds` above a few minutes.
 
 ## 1. Build and push images (ECR)
 
@@ -156,8 +162,7 @@ Security notes for the code runner (details and the tests behind them: [SECURITY
 - **Live interviews**: video is peer-to-peer WebRTC. Add a **TURN server** for candidates behind strict NATs or
   firewalls (e.g. coturn on a small EC2 instance, or a managed TURN service) and pass it to the frontend build as
   `NEXT_PUBLIC_ICE_SERVERS='[{"urls":"turn:turn.<domain>:3478","username":"…","credential":"…"},{"urls":"stun:stun.l.google.com:19302"}]'`.
-  Signalling rooms live in backend memory: with more than one backend task, enable **ALB stickiness** on the
-  backend target group (or route `/api/ws/interview/*` to a single task).
+  Signalling rooms are shared through Redis, so the two participants may connect to different backend tasks.
 - **Speech-to-text** (`WITH_AI=true` image): faster-whisper downloads its model (`WHISPER_MODEL_SIZE`, default
   `base`, ~140 MB) on first use into `~/.cache/huggingface`. Mount an EFS volume there (or bake the model into the
   image) so new tasks don't re-download it. A 12-second clip takes about 1 s of CPU.

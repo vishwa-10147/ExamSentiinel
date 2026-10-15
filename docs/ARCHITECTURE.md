@@ -183,10 +183,14 @@ is computed from submissions rather than stored.
   repository code, run there.
 - **Hidden data stays on the server.** Hidden tests, reference solutions and checkers never
   reach the browser.
-- **Redis is optional.** Every Redis call has a fallback behind a circuit breaker, so an outage
-  degrades features instead of failing requests. After a failure the breaker is half-open:
-  one request probes Redis while the rest use the fallback, so a burst never stalls on
-  reconnect attempts.
+- **Redis is optional for one process, required for several.** Every Redis call has a fallback
+  behind a circuit breaker, so an outage degrades features instead of failing requests. After a
+  failure the breaker is half-open: one request probes Redis while the rest use the fallback, so
+  a burst never stalls on reconnect attempts. With several API processes, Redis carries what
+  must be shared: live-proctoring events (each process delivers to its own sockets and ignores
+  its own echoes), interview signalling rooms (`services/interview_hub.py`: seat ownership keys
+  plus a channel per seat), one-run-per-student slots (`core/user_slots.py`), rate-limit
+  windows, reset codes and SSO tickets. Judging needs no Redis: the queue is the database.
 - **Schema changes ship with migrations.** Postgres-only SQL is guarded by a dialect check.
 
 ---
