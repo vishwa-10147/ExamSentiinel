@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -43,6 +44,20 @@ async def start_exam_session(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Start the exam, or resume the candidate's session (one per exam and candidate).
+
+    Two starts can race (a double click, two tabs, a retried request). The database allows one
+    session per (exam, candidate); the loser of the race resumes the winner's session.
+    """
+    try:
+        return await _start_or_resume(request, payload, db, current_user)
+    except IntegrityError:
+        await db.rollback()
+        await db.refresh(current_user)  # the rollback expired it; reload before reading its fields
+        return await _start_or_resume(request, payload, db, current_user)
+
+
+async def _start_or_resume(request: Request, payload: SessionStartRequest, db: AsyncSession, current_user: User):
     now = datetime.now(timezone.utc)
 
     # 1. Load exam with questions
@@ -116,9 +131,12 @@ async def start_exam_session(
             ExamSession.exam_id == payload.exam_id,
             ExamSession.candidate_id == current_user.id,
         )
+        # Deterministic even on a database that already holds duplicates (created before the
+        # uniqueness constraint): every request resumes the same, earliest session.
+        .order_by(ExamSession.started_at, ExamSession.id)
     )
     s_res = await db.execute(session_query)
-    session = s_res.scalar_one_or_none()
+    session = s_res.scalars().first()
 
     resp_map: Dict[str, Any] = {}
     flagged_count = 0

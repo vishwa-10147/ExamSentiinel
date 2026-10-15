@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.database import async_session_maker
 from app.core.logging import logger
+from app.core.metrics import metrics
 from app.models.practice import PracticeSubmission, Verdict
 
 MAX_ATTEMPTS = 3
@@ -142,6 +143,7 @@ class JudgeQueue:
             submission = await db.get(PracticeSubmission, submission_id)
             if submission is None or submission.verdict != Verdict.PENDING:
                 return
+            started = asyncio.get_running_loop().time()
             try:
                 verdict = await self.handler(db, submission)
             except Exception as exc:  # never let one bad job kill a worker
@@ -158,6 +160,7 @@ class JudgeQueue:
                 self.notify()
                 return
             await db.commit()
+        metrics.record_verdict(getattr(verdict, "value", str(verdict)), asyncio.get_running_loop().time() - started)
         event = self._done.get(submission_id)
         if event is not None:
             event.set()

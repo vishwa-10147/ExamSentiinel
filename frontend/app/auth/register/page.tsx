@@ -17,6 +17,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { API_BASE_URL } from "@/services/apiClient";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -54,7 +55,7 @@ export default function RegisterPage() {
         role: "candidate"
       };
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "https://examsentinel-backend.onrender.com" : "http://localhost:8000");
+      const apiUrl = API_BASE_URL;
 
       const res = await fetch(`${apiUrl}/api/auth/register`, {
         method: "POST",

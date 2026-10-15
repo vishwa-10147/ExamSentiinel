@@ -16,7 +16,7 @@ Native dev setup verified on Windows 11, 2026-10-14. No Postgres, Redis or Docke
 - Backend venv at the repo root:
   ```bash
   py -3.12 -m venv .venv
-  .venv/Scripts/python.exe -m pip install -r backend/requirements.txt
+  .venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
   ```
 - Frontend deps: `cd frontend && npm install`
 

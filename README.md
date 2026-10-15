@@ -156,7 +156,7 @@ healthy and opens the browser. Stop everything with `start-local.cmd stop`.
 ```bash
 # 1. Dependencies
 python -m venv .venv
-.venv/bin/python -m pip install -r backend/requirements.txt      # Windows: .venv\Scripts\python
+.venv/bin/python -m pip install -r backend/requirements-dev.txt      # Windows: .venv\Scripts\python
 (cd frontend && npm install)
 
 # 2. Configuration (placeholders only — set SECRET_KEY)

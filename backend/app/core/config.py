@@ -50,7 +50,11 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = 5
     DB_MAX_OVERFLOW: int = 5
     DB_POOL_TIMEOUT: int = 30
-    SQL_ECHO: bool = False  # log every SQL statement (very noisy; development diagnosis only)
+    SQL_ECHO: bool = False
+
+    # CloudWatch Embedded Metric Format lines once a minute per process (app/core/metrics.py).
+    # Default: on in production, off elsewhere.
+    METRICS_ENABLED: Optional[bool] = None  # log every SQL statement (very noisy; development diagnosis only)
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5440/examsentinel"

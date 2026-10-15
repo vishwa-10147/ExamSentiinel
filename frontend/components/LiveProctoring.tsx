@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiClient } from "@/services/apiClient";
+import { API_BASE_URL, apiClient } from "@/services/apiClient";
 import { Video, AlertTriangle, ShieldCheck, AlertCircle, Search, X, Send, OctagonAlert, Eye } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -138,7 +138,7 @@ export default function LiveProctoringDashboard() {
     if (typeof window !== "undefined") {
       const isHttps = window.location.protocol === "https:";
       const wsProtocol = isHttps ? "wss:" : "ws:";
-      const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "https://examsentinel-backend.onrender.com" : "http://localhost:8000");
+      const rawApiUrl = API_BASE_URL;
       const cleanHost = rawApiUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
       const wsUrl = `${wsProtocol}//${cleanHost}/api/ws/dashboard`;
 

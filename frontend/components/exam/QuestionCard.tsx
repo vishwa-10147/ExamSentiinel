@@ -188,6 +188,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onToggleFlag}
+              aria-pressed={isFlagged}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 isFlagged
                   ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-500/30 font-bold"
@@ -232,7 +233,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         {/* Answer Options / Inputs */}
         <div className="space-y-3 mt-4">
           {question.type === "MCQ_SINGLE" && (
-            <div className="space-y-2.5">
+            <div className="space-y-2.5" role="radiogroup" aria-label={`Answer options for ${question.title}`}>
               {normalizedOptions.length === 0 ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400 italic">No options provided for this question.</p>
               ) : (
@@ -241,7 +242,16 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   return (
                     <div
                       key={opt.id}
+                      role="radio"
+                      aria-checked={selected}
+                      tabIndex={0}
                       onClick={() => handleSingleOption(opt.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === " " || e.key === "Enter") {
+                          e.preventDefault();
+                          handleSingleOption(opt.id);
+                        }
+                      }}
                       className={`flex items-center gap-3.5 p-3.5 rounded-xl border cursor-pointer transition-all ${
                         selected
                           ? "bg-blue-50/80 dark:bg-blue-500/10 border-blue-600 text-blue-950 dark:text-blue-300 font-semibold shadow-sm ring-1 ring-blue-500/20"
@@ -263,7 +273,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
           {question.type === "MCQ_MULTI" && (
             <div className="space-y-2.5">
-              <p className="text-xs text-slate-500 dark:text-slate-400 italic mb-1">Select all options that apply:</p>
+              <p id={`multi-hint-${question.id}`} className="text-xs text-slate-500 dark:text-slate-400 italic mb-1">Select all options that apply:</p>
               {normalizedOptions.length === 0 ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400 italic">No options provided for this question.</p>
               ) : (
@@ -274,7 +284,17 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   return (
                     <div
                       key={opt.id}
+                      role="checkbox"
+                      aria-checked={checked}
+                      aria-describedby={`multi-hint-${question.id}`}
+                      tabIndex={0}
                       onClick={() => handleMultiOption(opt.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === " " || e.key === "Enter") {
+                          e.preventDefault();
+                          handleMultiOption(opt.id);
+                        }
+                      }}
                       className={`flex items-center gap-3.5 p-3.5 rounded-xl border cursor-pointer transition-all ${
                         checked
                           ? "bg-blue-50/80 dark:bg-blue-500/10 border-blue-600 text-blue-950 dark:text-blue-300 font-semibold shadow-sm ring-1 ring-blue-500/20"
@@ -300,10 +320,11 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
           {question.type === "SHORT_ANSWER" && (
             <div>
-              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+              <label htmlFor={`answer-${question.id}`} className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                 Your Answer:
               </label>
               <input
+                id={`answer-${question.id}`}
                 type="text"
                 value={responseData?.text || ""}
                 onChange={handleTextChange}
@@ -316,12 +337,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           {question.type === "ESSAY" && (
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <label htmlFor={`answer-${question.id}`} className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Essay Response:
                 </label>
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">Words: {essayWordCount}</span>
               </div>
               <textarea
+                id={`answer-${question.id}`}
                 value={responseData?.text || ""}
                 onChange={handleTextChange}
                 rows={8}

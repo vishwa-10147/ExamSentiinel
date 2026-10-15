@@ -55,4 +55,11 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// NEXT_PUBLIC_API_URL is compiled into the bundle: a production build without it would talk to
+// localhost from every student's browser. Fail the build instead.
+module.exports = (phase) => {
+  if (phase === "phase-production-build" && !process.env.NEXT_PUBLIC_API_URL) {
+    throw new Error("NEXT_PUBLIC_API_URL must be set for a production build (the public API origin).");
+  }
+  return nextConfig;
+};

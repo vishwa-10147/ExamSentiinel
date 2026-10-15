@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient";
+import { API_BASE_URL, apiClient } from "./apiClient";
 
 export interface TranscriptSegment {
   speaker: string;
@@ -80,8 +80,7 @@ export const interviewService = new InterviewService();
 
 /** ws(s)://<api host>/api/ws/interview/<id> — authenticated by the httpOnly session cookie. */
 export function signallingUrl(interviewId: string): string {
-  const api = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
-  const base = api ? new URL(api) : new URL(window.location.origin);
+  const base = new URL(API_BASE_URL);
   const protocol = base.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${base.host}/api/ws/interview/${interviewId}`;
 }

@@ -33,6 +33,13 @@ import {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  // A problem opened from a contest (/candidate/problems/x?contest=slug) belongs to "Contests".
+  // Read after mount: useSearchParams here would force Suspense boundaries on every page.
+  const [inContest, setInContest] = useState(false);
+  useEffect(() => {
+    setInContest(new URLSearchParams(window.location.search).has("contest"));
+  }, [pathname]);
+  const activePath = inContest && pathname.startsWith("/candidate/problems/") ? "/candidate/contests/" : pathname;
   const { user, logout } = useAuth();
   const { isSidebarOpen, toggleSidebar, setSidebarOpen } = useSidebar();
 
@@ -102,11 +109,12 @@ export default function Sidebar() {
           <div className="mt-2 space-y-1">
             {filteredItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+              const isActive = activePath === item.href || (item.href !== "/dashboard" && activePath.startsWith(item.href + "/"));
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={isActive ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                     isActive
                       ? "bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25 dark:border-blue-500/30 shadow-sm font-semibold"

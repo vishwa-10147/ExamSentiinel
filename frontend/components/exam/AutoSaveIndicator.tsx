@@ -7,14 +7,17 @@ export type SaveStatus = "saved" | "saving" | "offline" | "error";
 interface AutoSaveIndicatorProps {
   status: SaveStatus;
   lastSavedAt?: Date | null;
+  /** Answers saved on this device but not yet on the server. */
+  unsent?: number;
 }
 
 export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
   status,
   lastSavedAt,
+  unsent = 0,
 }) => {
   return (
-    <div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full bg-slate-900 text-white border border-slate-700 shadow-sm whitespace-nowrap shrink-0">
+    <div role="status" aria-live="polite" data-save-status={status} className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full bg-slate-900 text-white border border-slate-700 shadow-sm whitespace-nowrap shrink-0">
       {status === "saving" && (
         <>
           <span className="relative flex h-2.5 w-2.5">
@@ -37,14 +40,16 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
       {status === "offline" && (
         <>
           <span className="inline-block h-2 w-2 rounded-full bg-amber-500"></span>
-          <span className="text-amber-300">Offline (Saved locally)</span>
+          <span className="text-amber-300">
+            Offline — {unsent > 0 ? `${unsent} answer${unsent > 1 ? "s" : ""} saved on this device, retrying` : "saved on this device"}
+          </span>
         </>
       )}
 
       {status === "error" && (
         <>
           <span className="inline-block h-2 w-2 rounded-full bg-red-500"></span>
-          <span className="text-red-400">Failed to save (Retrying...)</span>
+          <span className="text-red-400">An answer was not accepted (the exam may have ended)</span>
         </>
       )}
     </div>

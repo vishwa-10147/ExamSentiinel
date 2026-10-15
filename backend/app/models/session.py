@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 import uuid
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, JSON, String, Uuid, Integer, Boolean
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, JSON, String, Uuid, Integer, Boolean, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import TimeStampedUUIDModel
 
@@ -21,6 +21,8 @@ class SessionStatus(str, enum.Enum):
 
 class ExamSession(TimeStampedUUIDModel):
     __tablename__ = "exam_sessions"
+    # One session per candidate and exam: starting again resumes it (app/api/sessions.py).
+    __table_args__ = (UniqueConstraint("exam_id", "candidate_id", name="uq_exam_session_candidate"),)
 
     exam_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),

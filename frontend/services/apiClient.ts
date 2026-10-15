@@ -33,7 +33,16 @@ export interface HealthCheckResponse {
   };
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "https://examsentinel-backend.onrender.com" : "http://localhost:8000");
+/** An HTTP error from the API; ``status`` lets callers tell retryable failures from final ones. */
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/** The API origin, compiled in at build time. Production builds fail without it (next.config.js). */
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 class ApiClient {
   private baseUrl: string;
@@ -104,7 +113,7 @@ class ApiClient {
         });
         if (!retryResponse.ok) {
           const errorData = await retryResponse.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Request failed with status ${retryResponse.status}`);
+          throw new ApiError(errorData.detail || `Request failed with status ${retryResponse.status}`, retryResponse.status);
         }
         return retryResponse.json();
       } else if (typeof window !== "undefined") {
@@ -124,7 +133,7 @@ class ApiClient {
           errorMsg = errorData.detail.map((e: any) => e.msg || 'Validation Error').join(', ');
         }
       }
-      throw new Error(errorMsg);
+      throw new ApiError(errorMsg, response.status);
     }
 
     // Return empty object for 204 No Content
