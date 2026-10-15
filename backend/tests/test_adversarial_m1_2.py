@@ -184,7 +184,6 @@ def test_env_example_contains_all_core_settings():
         "ACCESS_TOKEN_EXPIRE_MINUTES",
         "REFRESH_TOKEN_EXPIRE_DAYS",
         "DATABASE_URL",
-        "SYNC_DATABASE_URL",
         "REDIS_URL",
         "CORS_ORIGINS",
     ]

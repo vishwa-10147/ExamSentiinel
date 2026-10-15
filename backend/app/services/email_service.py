@@ -25,7 +25,7 @@ class EmailService:
 
     @property
     def sender(self) -> str:
-        return os.getenv("SMTP_SENDER") or os.getenv("SMTP_USER") or "vishwa9821@gmail.com"
+        return os.getenv("SMTP_SENDER") or os.getenv("SMTP_USER") or ""
 
     @property
     def smtp_host(self) -> str:
