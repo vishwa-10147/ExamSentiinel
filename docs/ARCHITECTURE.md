@@ -100,17 +100,27 @@ sequenceDiagram
     participant P as Piston
     participant D as Database
 
+    participant W as Queue worker
+
     S->>A: POST /api/practice/problems/{slug}/submit
-    A->>A: authenticate, rate limit, one job per user
-    A->>J: problem + all test cases (samples first)
+    A->>A: authenticate, per-student rate limit, one pending submission
+    A->>D: insert submission (verdict PENDING)
+    A->>W: wake workers, then wait up to 20 s
+    W->>D: claim the oldest PENDING submission (conditional UPDATE)
+    W->>J: problem + all test cases (samples first)
     J->>J: generate language harness, write cases to es_input.txt
     J->>P: one execution request (code + input file)
     P-->>J: one @@ES@@ record per case
     J->>J: compare (exact / unordered / float / checker), per-case time limit
-    J-->>A: verdict, passed/total, first failure
-    A->>D: store submission (hidden-case details removed)
-    A-->>S: verdict
+    J-->>W: verdict, passed/total, first failure
+    W->>D: store verdict (hidden-case details removed)
+    W-->>A: done
+    A-->>S: verdict (or 202 PENDING, then the client polls)
 ```
+
+The request gives its database connection back while it waits, so hundreds of waiting
+students do not exhaust the pool. Details and measured capacity:
+[Code execution — judging queue](CODE_EXECUTION.md#judging-queue).
 
 Exam questions created from practice problems store a `practice_problem_id`; the grading
 service judges a candidate's final answer in the same way.
@@ -174,7 +184,9 @@ is computed from submissions rather than stored.
 - **Hidden data stays on the server.** Hidden tests, reference solutions and checkers never
   reach the browser.
 - **Redis is optional.** Every Redis call has a fallback behind a circuit breaker, so an outage
-  degrades features instead of failing requests.
+  degrades features instead of failing requests. After a failure the breaker is half-open:
+  one request probes Redis while the rest use the fallback, so a burst never stalls on
+  reconnect attempts.
 - **Schema changes ship with migrations.** Postgres-only SQL is guarded by a dialect check.
 
 ---

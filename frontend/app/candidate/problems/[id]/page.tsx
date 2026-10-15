@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import toast from "react-hot-toast";
 import {
@@ -94,6 +94,9 @@ function Block({ label, value, mono = true, tone }: { label: string; value: stri
 export default function ProblemWorkspacePage() {
   const params = useParams();
   const slug = String(params?.id || "");
+  // Opened from a contest: same workspace, but the contest's endpoints and rules apply.
+  const contest = useSearchParams()?.get("contest") || undefined;
+  const backHref = contest ? `/candidate/contests/${encodeURIComponent(contest)}` : "/candidate/problems";
   const { resolvedTheme } = useTheme();
 
   const [problem, setProblem] = useState<ProblemDetail | null>(null);
@@ -120,7 +123,7 @@ export default function ProblemWorkspacePage() {
     let cancelled = false;
     (async () => {
       try {
-        const p = await practiceService.getProblem(slug);
+        const p = await practiceService.getProblem(slug, contest);
         if (cancelled) return;
         setProblem(p);
         const savedLang = storage.get("practice:language") as PracticeLanguage | null;
@@ -133,12 +136,12 @@ export default function ProblemWorkspacePage() {
         if (!cancelled) setLoadError(e?.message || "Problem not found.");
       }
     })();
-    practiceService.submissions(slug).then(setSubmissions).catch(() => undefined);
+    practiceService.submissions(slug, contest).then(setSubmissions).catch(() => undefined);
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  }, [slug, contest]);
 
   // ---- Draft persistence ------------------------------------------------
   useEffect(() => {
@@ -169,7 +172,7 @@ export default function ProblemWorkspacePage() {
     setConsoleOpen(true);
     setConsoleTab("result");
     try {
-      const r = await practiceService.run(problem.slug, language, code, useCustom ? customInput : undefined);
+      const r = await practiceService.run(problem.slug, language, code, useCustom ? customInput : undefined, contest);
       setResult({
         kind: "run",
         verdict: r.verdict,
@@ -187,7 +190,7 @@ export default function ProblemWorkspacePage() {
     } finally {
       setBusy(null);
     }
-  }, [problem, busy, language, code, useCustom, customInput]);
+  }, [problem, busy, language, code, useCustom, customInput, contest]);
 
   const submit = useCallback(async () => {
     if (!problem || busy) return;
@@ -195,7 +198,13 @@ export default function ProblemWorkspacePage() {
     setConsoleOpen(true);
     setConsoleTab("result");
     try {
-      const s = await practiceService.submit(problem.slug, language, code);
+      const s = await practiceService.submit(
+        problem.slug,
+        language,
+        code,
+        () => toast("Many submissions are being judged right now - yours is queued.", { icon: "⏳" }),
+        contest
+      );
       const f = s.failure;
       const cases: CaseResult[] =
         f && f.is_sample !== undefined && f.case_number
@@ -229,17 +238,17 @@ export default function ProblemWorkspacePage() {
         toast.success(`Accepted! ${s.passed_count}/${s.total_count} tests passed.`);
         setProblem((p) => (p ? { ...p, status: "solved" } : p));
         // Solving unlocks the editorial; refetch to receive it.
-        practiceService.getProblem(problem.slug).then((fresh) => setProblem((p) => (p ? { ...p, editorial: fresh.editorial } : p))).catch(() => undefined);
+        practiceService.getProblem(problem.slug, contest).then((fresh) => setProblem((p) => (p ? { ...p, editorial: fresh.editorial } : p))).catch(() => undefined);
       } else if (s.verdict !== "SYSTEM_ERROR") {
         setProblem((p) => (p && p.status === "todo" ? { ...p, status: "attempted" } : p));
       }
-      practiceService.submissions(problem.slug).then(setSubmissions).catch(() => undefined);
+      practiceService.submissions(problem.slug, contest).then(setSubmissions).catch(() => undefined);
     } catch (e: any) {
       toast.error(e?.message || "Submission failed.");
     } finally {
       setBusy(null);
     }
-  }, [problem, busy, language, code]);
+  }, [problem, busy, language, code, contest]);
 
   // Keyboard shortcuts — refs keep Monaco's registered commands pointing at the latest handlers.
   const runRef = useRef(run);
@@ -279,8 +288,8 @@ export default function ProblemWorkspacePage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
         <p className="text-slate-600 dark:text-slate-300">{loadError}</p>
-        <Link href="/candidate/problems" className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-          Back to problems
+        <Link href={backHref} className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+          {contest ? "Back to the contest" : "Back to problems"}
         </Link>
       </div>
     );
@@ -299,10 +308,10 @@ export default function ProblemWorkspacePage() {
       {/* Top bar */}
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-800">
         <Link
-          href="/candidate/problems"
+          href={backHref}
           className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
         >
-          <ChevronLeft className="h-4 w-4" /> Problems
+          <ChevronLeft className="h-4 w-4" /> {contest ? "Contest" : "Problems"}
         </Link>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <StatusIcon status={problem.status} />
@@ -470,7 +479,13 @@ export default function ProblemWorkspacePage() {
               ) : (
                 <div className="flex flex-col items-center gap-2 py-10 text-center text-slate-500 dark:text-slate-400">
                   <Lock className="h-6 w-6" />
-                  <p>{problem.has_editorial ? "Solve this problem to unlock the editorial." : "No editorial has been written for this problem yet."}</p>
+                  <p>
+                    {!problem.has_editorial
+                      ? "No editorial has been written for this problem yet."
+                      : contest
+                        ? "Editorials unlock after the contest ends, once you have solved the problem."
+                        : "Solve this problem to unlock the editorial."}
+                  </p>
                 </div>
               )
             ) : submissions.length === 0 ? (

@@ -67,3 +67,4 @@ from app.models.practice import (  # noqa: E402
     ProblemDifficulty,
     Verdict,
 )
+from app.models.contest import Contest, ContestProblem, ContestRegistration  # noqa: E402

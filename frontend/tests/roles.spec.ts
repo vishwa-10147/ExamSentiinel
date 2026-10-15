@@ -188,3 +188,73 @@ test("reviewer and proctor dashboards load their queues", async ({ page }) => {
   await page.goto("/admin/interviews");
   await expect(page.getByRole("heading", { name: "Live Interviews" })).toBeVisible();
 });
+
+test("admin schedules a contest; candidate registers, solves and is ranked", async ({ page, request }) => {
+  const title = `Playwright Contest ${Date.now()}`;
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  try {
+    await login(page, "admin@sentinel.edu");
+    await page.goto("/admin/contests");
+    await page.getByRole("button", { name: "New contest" }).click();
+    await page.getByPlaceholder("Weekly Contest 1").fill(title);
+    // Started a minute ago, so it is running now.
+    const start = await page.evaluate(() => {
+      const d = new Date(Date.now() - 60_000);
+      const p = (n: number) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+    });
+    await page.locator('input[type="datetime-local"]').fill(start);
+    const picker = page.getByLabel("Problem to add");
+    const value = await picker.locator("option", { hasText: "Balanced Brackets" }).first().getAttribute("value");
+    await picker.selectOption(value!);
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByLabel("Published (visible to students)").check();
+    await page.getByRole("button", { name: "Save contest" }).click();
+    await expect(page.getByRole("table", { name: "Contests" }).getByText(title)).toBeVisible({ timeout: 15000 });
+
+    await login(page, "candidate@sentinel.edu");
+    await page.goto("/candidate/contests");
+    const card = page.getByRole("listitem").filter({ hasText: title });
+    await card.getByRole("button", { name: "Register" }).click();
+    await expect(card.getByText("Registered")).toBeVisible({ timeout: 15000 });
+    await card.getByRole("link", { name: "Enter" }).click();
+    await expect(page.getByRole("heading", { name: title })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole("timer")).toHaveText(/\d\d:\d\d:\d\d/);
+
+    await page.getByRole("link", { name: "A. Balanced Brackets" }).click();
+    await expect(page.getByRole("link", { name: "Contest", exact: true })).toBeVisible({ timeout: 20000 });
+    await setEditorCode(
+      page,
+      [
+        "class Solution:",
+        "    def isBalanced(self, s):",
+        "        pairs = {')': '(', ']': '[', '}': '{'}",
+        "        stack = []",
+        "        for ch in s:",
+        "            if ch in pairs:",
+        "                if not stack or stack.pop() != pairs[ch]:",
+        "                    return False",
+        "            else:",
+        "                stack.append(ch)",
+        "        return not stack",
+        "",
+      ].join("\n")
+    );
+    await page.getByRole("button", { name: "Submit" }).click();
+    await expect(page.getByText("Solution recorded in your submissions.")).toBeVisible({ timeout: 30000 });
+
+    await page.getByRole("link", { name: "Contest", exact: true }).click();
+    await page.getByRole("tab", { name: "Leaderboard" }).click();
+    const me = page.getByRole("table", { name: "Leaderboard" }).getByRole("row").filter({ hasText: "(you)" });
+    await expect(me).toContainText("Test Candidate", { timeout: 15000 });
+    await expect(me.getByRole("cell").nth(2)).toHaveText(/^[1-9]\d*$/); // a positive score
+  } finally {
+    // A running contest hides its problems from practice: always remove it.
+    const auth = await request.post(`${API}/api/auth/login`, { data: { email: "admin@sentinel.edu", password: PASSWORD } });
+    const headers = { Authorization: `Bearer ${(await auth.json()).access_token}` };
+    const contests = await (await request.get(`${API}/api/admin/contests`, { headers })).json();
+    for (const c of contests.filter((c: { slug: string }) => c.slug === slug)) {
+      await request.delete(`${API}/api/admin/contests/${c.id}`, { headers });
+    }
+  }
+});

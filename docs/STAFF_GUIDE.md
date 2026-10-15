@@ -115,6 +115,25 @@ Topic, difficulty and status filters, search by title or ID, an editor with **Ru
 custom input) and **Submit** (all tests), verdicts, submission history and per-topic progress.
 Hidden tests and reference solutions are never shown.
 
+### Contests
+
+*Admin → Contests* schedules a timed contest from practice problems.
+
+1. Select **New contest**, enter a title, the start time (in your local time), the duration and
+   the penalty for rejected attempts (default 5 minutes).
+2. Add problems in the order they should appear (A, B, C, …) and set their points; harder
+   problems default to more points. Problems that are unpublished in practice stay
+   contest-only.
+3. Tick **Published** when students should see the contest. They can register from then until
+   it ends.
+
+During the contest, students see a countdown, the problems, their score and a leaderboard that
+refreshes every 15 seconds. Problems stay hidden until the start, editorials stay hidden until
+the end, and submissions are accepted only from registered students inside the window. While a
+contest is published and not over, its problems are also removed from the practice problem set.
+After the start, the problems, points, timing and penalty are locked so results cannot be
+rewritten; the title, description and visibility can still change.
+
 ## Interviews
 
 *Admin → Interviews* schedules live interviews. Candidates give consent before the session;

@@ -9,6 +9,7 @@ platform and the code runner; the examples are real responses from a local insta
 - [Authentication](#authentication)
 - [Student endpoints](#student-endpoints)
 - [Admin endpoints](#admin-endpoints)
+- [Contests](#contests)
 - [Exam integration](#exam-integration)
 - [Errors](#errors)
 
@@ -50,6 +51,7 @@ development seeds.
 | POST | `/api/practice/problems/{slug}/submit` | judge against all tests; stored |
 | GET | `/api/practice/problems/{slug}/submissions` | your submissions for one problem (with code) |
 | GET | `/api/practice/submissions` | your whole submission history (no code), paginated |
+| GET | `/api/practice/submissions/{id}` | one of your submissions — poll while `verdict` is `PENDING` |
 | GET | `/api/practice/stats/me` | totals, per-difficulty, per-topic, streak, activity |
 | GET | `/api/practice/leaderboard` | weighted solved counts |
 | POST | `/api/sandbox/execute` | playground: run any program with stdin |
@@ -127,9 +129,15 @@ POST /api/practice/problems/lone-value/submit
 Judging stops at the first failing case. When that case is **hidden**, `input`,
 `expected` and `output` are `null` — only `case_number` is revealed.
 
+Submissions are queued. Under normal load the response above arrives within a few seconds.
+When many students submit at once the API answers **`202 Accepted`** with
+`"verdict": "PENDING"` after about 20 seconds; poll `GET /api/practice/submissions/{id}`
+(about every 1.5 s) until the verdict changes. A student can have one pending submission at a
+time (`429` otherwise).
+
 Verdicts: `ACCEPTED`, `WRONG_ANSWER`, `TIME_LIMIT_EXCEEDED`, `MEMORY_LIMIT_EXCEEDED`,
-`OUTPUT_LIMIT_EXCEEDED`, `RUNTIME_ERROR`, `COMPILE_ERROR`, `SYSTEM_ERROR` (engine
-unavailable — not stored as an attempt).
+`OUTPUT_LIMIT_EXCEEDED`, `RUNTIME_ERROR`, `COMPILE_ERROR`, `PENDING` (queued or being
+judged), `SYSTEM_ERROR` (engine unavailable after retries — not counted as an attempt).
 
 ### Submission history
 
@@ -194,6 +202,58 @@ The upsert body accepts `slug`, `number`, `topic`, `title`, `difficulty`, `tags`
 `reference_solution`, `time_limit_ms`, `memory_limit_mb`, `is_published`, `test_cases`.
 A `checker` field is ignored; `compare_mode: "checker"` is refused unless the problem
 already has a bank checker.
+
+## Contests
+
+A contest is a timed set of practice problems with a live leaderboard. Contest submissions are
+practice submissions tagged with the contest; they go through the same judging queue and are
+polled the same way (`GET /api/practice/submissions/{id}` while `PENDING`).
+
+| Method | Path | Who | Purpose |
+|---|---|---|---|
+| GET | `/api/contests` | signed in | published contests with `phase` (`upcoming` / `running` / `ended`), participants, `registered`, and `server_time` for countdowns |
+| GET | `/api/contests/{slug}` | signed in | details; `problems` is empty until the start (label, points, your status, solved-by count) |
+| POST | `/api/contests/{slug}/register` | signed in | register (allowed until the end; 409 after) |
+| GET | `/api/contests/{slug}/problems/{problem}` | signed in | problem detail, from the start; `editorial` is null until the contest ends |
+| POST | `/api/contests/{slug}/problems/{problem}/run` | signed in | run samples (not stored, not scored), from the start |
+| POST | `/api/contests/{slug}/problems/{problem}/submit` | registered | judge against every test; 403 before the start, after the end, or when not registered |
+| GET | `/api/contests/{slug}/problems/{problem}/submissions` | signed in | your submissions to one contest problem |
+| GET | `/api/contests/{slug}/submissions` | signed in | all your submissions in the contest |
+| GET | `/api/contests/{slug}/leaderboard` | signed in | ranked rows with per-problem cells (empty before the start) |
+| GET / POST | `/api/admin/contests` | admin | list / create |
+| GET / PUT / DELETE | `/api/admin/contests/{id}` | admin | read / update / delete |
+
+**Scoring.** Score is the sum of the points of solved problems. Ties are broken by penalty,
+the sum over solved problems of the minutes from the start to the first accepted submission,
+plus `penalty_minutes` (default 5) for each rejected submission before it; then by the time of
+the last accepted submission. Compile errors and engine errors are not penalised; submissions
+after the first accepted one on a problem are ignored.
+
+```json
+{
+  "contest_slug": "weekly-1", "phase": "running", "labels": ["A", "B", "C"],
+  "rows": [{
+    "rank": 1, "user_id": "…", "name": "Test Candidate", "score": 100, "solved": 1,
+    "penalty_minutes": 11, "is_me": true,
+    "problems": [
+      {"label": "A", "solved": true, "rejected": 1, "solved_at_minutes": 6},
+      {"label": "B", "solved": false, "rejected": 0, "solved_at_minutes": null},
+      {"label": "C", "solved": false, "rejected": 0, "solved_at_minutes": null}
+    ]
+  }]
+}
+```
+
+**Admin body** (`POST`/`PUT /api/admin/contests`): `slug`, `title`, `description` (Markdown),
+`starts_at` (ISO 8601; stored in UTC), `duration_minutes` (5 min – 7 days), `penalty_minutes`
+(0–60), `is_published`, and `problems`: 1–26 entries of `{problem_id, points}` in display
+order (labels A, B, …). Problems may be unpublished in practice to keep them contest-only.
+Once a contest has started, its problems, points, timing and penalty can no longer change
+(409); title, description and visibility can.
+
+**Visibility.** While a published contest has not ended, its problems are hidden from the
+practice list and practice endpoints (404) for everyone except admins, so they cannot be
+solved or looked up outside the contest. Afterwards, published problems return to practice.
 
 ## Exam integration
 

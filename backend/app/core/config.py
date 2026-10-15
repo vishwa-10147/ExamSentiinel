@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     COOKIE_SAMESITE: str = "lax"
     COOKIE_DOMAIN: Optional[str] = None
 
+    # Sign-ins per minute from one IP. A whole exam lab can share one NAT address, so this is
+    # generous; guessing one account's password is throttled separately (5 failures/minute).
+    LOGIN_RATE_LIMIT_PER_IP: int = 300
+
+    # Database connection pool (PostgreSQL). Each API worker process holds up to
+    # DB_POOL_SIZE + DB_MAX_OVERFLOW connections; size them against Postgres max_connections.
+    DB_POOL_SIZE: int = 10
+    DB_MAX_OVERFLOW: int = 20
+    DB_POOL_TIMEOUT: int = 30
+    SQL_ECHO: bool = False  # log every SQL statement (very noisy; development diagnosis only)
+
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5440/examsentinel"
     SYNC_DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5440/examsentinel"

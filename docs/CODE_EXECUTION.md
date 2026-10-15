@@ -65,10 +65,48 @@ submission sends every test case in one request.
 | Output shown | stdout, stderr, compile output, exit code | per-case input/expected/output for samples and custom input | verdict, passed/total, runtime; for a failing **hidden** case only its number |
 | Stored | no | no | yes (`practice_submissions`) |
 | Stops early | — | no | at the first failing case |
-| Rate limit (per IP, per path) | 30/min | 30/min | 10/min |
+| Queued | no | no | yes — see [Judging queue](#judging-queue) |
+| Rate limit (per student, per path) | 30/min | 30/min | 10/min, and one pending submission at a time |
 
 For custom input, the expected answer is computed by running the problem's reference
 solution on the same input (server-side); the reference code itself is never sent.
+
+Rate limits are keyed on the signed-in student, not the IP address: on exam day a whole lab
+shares one NAT address.
+
+### Judging queue
+
+Submissions go through a database-backed queue (`app/services/judge_queue.py`):
+
+1. Submit stores the submission with verdict `PENDING` and wakes the workers.
+2. Workers — `JUDGE_WORKERS` asyncio tasks per API process (default 8) — claim one pending
+   submission at a time with a conditional `UPDATE`, so several processes can share the queue.
+3. The request waits up to `SUBMIT_WAIT_SECONDS` (default 20) and returns the verdict. If
+   judging takes longer it returns **202** with `verdict: PENDING`; clients poll
+   `GET /api/practice/submissions/{id}` (the web app does this automatically).
+4. Engine outages are retried (up to 3 attempts) before the submission is marked
+   `SYSTEM_ERROR`; a submission whose worker died is reclaimed after 2 minutes. Pending work
+   survives restarts because the database is the queue.
+
+Pending and engine-error submissions are not counted as attempts in progress, acceptance
+rates or streaks.
+
+The API talks to the engine through one pooled keep-alive HTTP client per process. Opening a
+new connection per job used to cost 150-400 ms - ten times the engine's own run time for a
+typical problem - and capped judging at about 6 verdicts/s.
+
+**Measured capacity** (one API process, one Piston container, PostgreSQL 16, a 7-test Python
+problem, everyone submitting at the same moment):
+
+| Students | Accepted | Time to verdict p50 / p95 | Throughput |
+|---:|---:|---:|---:|
+| 200 | 200 / 200 | 3.7 s / 5.7 s | 29 verdicts/s |
+| 500 | 500 / 500 | 6.1 s / 13.2 s | 33 verdicts/s |
+
+One Piston container sustains about 75 judge runs per second for this problem (measured
+directly), so at this load a single API process is the limit, not the engine: scale out API
+processes/tasks first, then add engine instances. Reproduce with `scripts/load_test.py`
+([Testing](TESTING.md#load-test)).
 
 ## Judge modes
 

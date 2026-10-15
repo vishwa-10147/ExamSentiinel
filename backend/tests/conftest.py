@@ -41,6 +41,16 @@ test_async_session_maker = async_sessionmaker(
 test_async_session_maker.__test__ = False
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def judge_queue_on_test_db():
+    """Queue workers judge against the test database and stop with each test's event loop."""
+    from app.services.judge_queue import judge_queue
+
+    judge_queue.session_maker = test_async_session_maker
+    yield
+    await judge_queue.stop()
+
+
 @pytest.fixture(autouse=True)
 def reset_local_rate_limits():
     """In-process rate-limit windows (used without Redis) must not leak between tests."""

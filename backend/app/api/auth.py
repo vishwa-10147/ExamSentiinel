@@ -14,8 +14,8 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
-    get_password_hash,
-    verify_password,
+    get_password_hash_async,
+    verify_password_async,
 )
 from app.models.institution import Institution
 from app.models.refresh_token import RefreshToken
@@ -81,7 +81,7 @@ async def register_user(
         )
 
     # Hash password and create user - PUBLIC REGISTRATION FORCES CANDIDATE ROLE
-    hashed_pwd = get_password_hash(user_in.password)
+    hashed_pwd = await get_password_hash_async(user_in.password)
     user = User(
         email=user_in.email.lower(),
         hashed_password=hashed_pwd,
@@ -190,7 +190,7 @@ async def issue_login_session(db: AsyncSession, user: User, request: Request, me
     ))
 
 
-@router.post("/login", dependencies=[Depends(RateLimiter(calls=60, period=60, local_fallback=True))])
+@router.post("/login", dependencies=[Depends(RateLimiter(calls=settings.LOGIN_RATE_LIMIT_PER_IP, period=60, local_fallback=True))])
 async def login(
     credentials: UserLogin,
     request: Request,
@@ -199,12 +199,12 @@ async def login(
     """Authenticate user credentials and issue signed JWT access and refresh tokens."""
     clean_email = credentials.email.strip().lower()
     # Brute-force protection: 5 failed attempts per minute per (IP, account); the per-IP limit
-    # above (60/min) covers spraying many accounts.
+    # above (LOGIN_RATE_LIMIT_PER_IP) covers spraying many accounts.
     await failed_login_throttle.check(request, clean_email)
     result = await db.execute(select(User).where(User.email == clean_email))
     user = result.scalar_one_or_none()
 
-    if not user or not verify_password(credentials.password, user.hashed_password):
+    if not user or not await verify_password_async(credentials.password, user.hashed_password):
         await failed_login_throttle.record_failure(request, clean_email)
         # Log failed login attempt for audit trail and brute-force visibility
         await log_audit_event(
@@ -494,7 +494,7 @@ async def reset_password(
     if not user or not await otp_store.verify("password-reset", str(user.id), payload.otp_code, consume=True):
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 
-    user.hashed_password = get_password_hash(payload.new_password)
+    user.hashed_password = await get_password_hash_async(payload.new_password)
     # Sign out everywhere: a reset usually means the old password is compromised.
     user.current_session_id = None
     await db.execute(
