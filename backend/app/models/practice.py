@@ -52,7 +52,7 @@ class PracticeProblem(TimeStampedUUIDModel):
     slug: Mapped[str] = mapped_column(String(120), unique=True, index=True, nullable=False)
     # Stable public question number ("#12"); never reused or renumbered.
     number: Mapped[Optional[int]] = mapped_column(Integer, unique=True, index=True, nullable=True)
-    # Primary DSA topic (see practice_bank.TOPICS); finer-grained labels live in ``tags``.
+    # Primary DSA topic (see app.core.practice_topics.TOPICS); finer-grained labels live in ``tags``.
     topic: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
     input_format: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     output_format: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

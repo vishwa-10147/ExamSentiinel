@@ -273,12 +273,19 @@ The production stack runs the web app and API in containers on ECS, PostgreSQL o
 ElastiCache, evidence in S3, and the code-execution engine on a dedicated EC2 instance in a
 private subnet. Step-by-step instructions: [AWS deployment](docs/AWS_DEPLOYMENT.md).
 
+Before deploying, `deploy/rehearsal/` runs the production images in the same topology on one
+machine — two API replicas behind a TLS load balancer, PostgreSQL, Redis and the engine — and
+every check runs against it, including a rolling restart during a 250-student submission rush.
+Results, the operator checklist and known limitations: [Production readiness](docs/PRODUCTION_READINESS.md).
+
 ## Security
 
 - Untrusted code runs only in the sandbox; isolation and limits are verified by automated tests
 - Hidden tests, reference solutions and checkers are never sent to the browser
 - Browser sessions in httpOnly cookies with CSRF protection; tokens are never readable by page scripts
-- Role-based authorisation on every endpoint; rate limits on sign-in and code execution, with or without Redis
+- Role-based authorisation on every endpoint; rate limits on sign-in and code execution, with or without Redis;
+  client addresses cannot be forged with headers, and production refuses to start with unsafe settings
+- Strict Content-Security-Policy; the editor and face model are served by the app, not third-party CDNs
 - Secrets come from the environment; nothing secret is committed or exposed to the frontend
 
 Every control and the test that verifies it is listed in the [security policy](docs/SECURITY.md),
@@ -290,6 +297,7 @@ together with known limitations. Please report vulnerabilities privately.
 |---|---|
 | [Installation](docs/INSTALLATION.md) | Native and Docker setup, troubleshooting |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data model, request flow |
+| [Production readiness](docs/PRODUCTION_READINESS.md) | Rehearsal results, operator checklist, known limitations |
 | [API reference](docs/API.md) | Practice and code-execution endpoints with examples |
 | [Code execution](docs/CODE_EXECUTION.md) | Sandbox, judge modes, verdicts, limits |
 | [Question bank](docs/DSA_QUESTION_BANK.md) | Problem index and authoring guide |
@@ -308,6 +316,8 @@ together with known limitations. Please report vulnerabilities privately.
 - [x] httpOnly cookie sessions with CSRF protection; brute-force throttling without Redis
 - [x] Queued judging, load-tested with 500 simultaneous students (all judged, p95 13 s)
 - [x] Timed contests with registration, scoring with penalties and a live leaderboard
+- [x] Runs as several API processes; production rehearsal of the AWS topology passes every check
+- [ ] First AWS staging deployment (see the [operator checklist](docs/PRODUCTION_READINESS.md#operator-checklist))
 - [ ] Curated study plans
 
 ## Contributing

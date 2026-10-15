@@ -60,7 +60,8 @@ export default function FaceTracker({ onEventDetected, onAnalysis, enabled, sess
     const initModel = async () => {
       try {
         await tf.ready();
-        setModel(await blazeface.load());
+        // Served by this app (scripts/fetch-blazeface.mjs), not tfhub.dev: exams must not depend on a third-party host.
+        setModel(await blazeface.load({ modelUrl: "/models/blazeface/model.json" }));
       } catch (err) {
         console.error("Failed to load BlazeFace model", err);
         setError("Failed to load AI tracking model.");

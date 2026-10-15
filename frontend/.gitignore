@@ -4,3 +4,5 @@ playwright-report/
 test-results/
 blob-report/
 
+# Copied from node_modules by scripts/copy-monaco.mjs
+public/monaco/

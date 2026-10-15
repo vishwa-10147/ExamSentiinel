@@ -20,7 +20,7 @@ import {
 } from "@/services/practiceService";
 import Markdown from "@/components/practice/Markdown";
 
-const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+const Editor = dynamic(() => import("@/components/CodeEditor"), { ssr: false });
 
 const TYPES = ["int", "long", "double", "bool", "string", "int[]", "long[]", "double[]", "bool[]", "string[]", "int[][]", "string[][]", "ListNode", "TreeNode"];
 const TOPICS = [

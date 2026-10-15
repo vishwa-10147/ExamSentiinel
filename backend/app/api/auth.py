@@ -503,4 +503,5 @@ async def reset_password(
     await log_audit_event(db=db, action="PASSWORD_RESET", resource_type="user", resource_id=str(user.id),
                           details={}, user_id=user.id, institution_id=user.institution_id)
     await db.commit()
+    await failed_login_throttle.clear_account(user.email)
     return {"status": "success", "message": "Password reset successfully."}

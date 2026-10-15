@@ -1,8 +1,8 @@
-from typing import List, Optional, Union
+from typing import Annotated, List, Optional, Union
 
 from dotenv import load_dotenv
 from pydantic import field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # Several services read optional integrations straight from os.environ
 # (PISTON_URL, AWS_*, SMTP_*, *_API_KEY). Load .env into the process
@@ -34,10 +34,21 @@ class Settings(BaseSettings):
     # generous; guessing one account's password is throttled separately (5 failures/minute).
     LOGIN_RATE_LIMIT_PER_IP: int = 300
 
-    # Database connection pool (PostgreSQL). Each API worker process holds up to
-    # DB_POOL_SIZE + DB_MAX_OVERFLOW connections; size them against Postgres max_connections.
-    DB_POOL_SIZE: int = 10
-    DB_MAX_OVERFLOW: int = 20
+    # Proxies whose X-Forwarded-For is trusted to identify the client (uvicorn
+    # --forwarded-allow-ips; read by docker-entrypoint.sh). Behind an AWS ALB use the VPC CIDR,
+    # e.g. "10.0.0.0/16". Never "*": the client could then choose its own IP address.
+    FORWARDED_ALLOW_IPS: str = "127.0.0.1"
+    # Optional single header carrying the client IP, set by a proxy that strips client copies
+    # (e.g. "CF-Connecting-IP"). Leave empty behind an ALB.
+    CLIENT_IP_HEADER: Optional[str] = None
+
+    # Database connection pool (PostgreSQL), per API worker process. The total
+    #   tasks x WEB_CONCURRENCY x (DB_POOL_SIZE + DB_MAX_OVERFLOW)  (+ migrations, admin tools)
+    # must stay below the server's max_connections (PostgreSQL default 100; on RDS it depends on
+    # the instance size). Requests hold a connection only briefly - submissions and judging do
+    # not keep one while code runs - so 10 per process sustained 250 simultaneous students.
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 5
     DB_POOL_TIMEOUT: int = 30
     SQL_ECHO: bool = False  # log every SQL statement (very noisy; development diagnosis only)
 
@@ -66,8 +77,9 @@ class Settings(BaseSettings):
 
 
 
-    # CORS
-    CORS_ORIGINS: List[str] = [
+    # CORS. From the environment: comma-separated ("https://a,https://b") or a JSON list.
+    # NoDecode: without it pydantic-settings JSON-decodes the value first and a plain URL fails.
+    CORS_ORIGINS: Annotated[List[str], NoDecode] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8000", "https://examsentinel-frontend.onrender.com", 
@@ -89,12 +101,9 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_security(self):
         if self.ENVIRONMENT.lower() == "production":
-            if self.DEBUG:
-                raise ValueError("DEBUG must be false in production")
-            if self.SECRET_KEY.startswith("examsentinel_super_secret"):
-                raise ValueError("SECRET_KEY must be replaced in production")
-            if not self.CORS_ORIGINS:
-                raise ValueError("CORS_ORIGINS must contain the deployed frontend origin")
+            problems = production_problems(self)
+            if problems:
+                raise ValueError("Unsafe production settings:\n- " + "\n- ".join(problems))
         return self
 
     model_config = SettingsConfigDict(
@@ -103,6 +112,45 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+
+
+def production_problems(s: "Settings") -> list[str]:
+    """Every reason these settings are unsafe for production (empty list = OK).
+
+    Checked at start-up when ENVIRONMENT=production, so a misconfigured task fails to start
+    instead of serving exams with development defaults.
+    """
+    import os
+
+    problems = []
+    if s.DEBUG:
+        problems.append("DEBUG must be false (it exposes /docs and detailed errors)")
+    if s.SECRET_KEY.startswith("examsentinel_super_secret") or len(s.SECRET_KEY) < 32:
+        problems.append("SECRET_KEY must be a random value of at least 32 characters (openssl rand -hex 32)")
+    if not s.CORS_ORIGINS:
+        problems.append("CORS_ORIGINS must list the public frontend origin")
+    from urllib.parse import urlsplit
+
+    for origin in s.CORS_ORIGINS:
+        if origin == "*" or not origin.startswith("https://") or urlsplit(origin).hostname in _LOCAL_HOSTS:
+            problems.append(f"CORS_ORIGINS entry {origin!r} must be the https:// origin of the deployed frontend")
+    if s.DATABASE_URL.startswith("sqlite"):
+        problems.append("DATABASE_URL must point to PostgreSQL, not SQLite")
+    elif "postgres:postgres@localhost" in s.DATABASE_URL:
+        problems.append("DATABASE_URL still has the development default")
+    if s.COOKIE_SECURE is False:
+        problems.append("COOKIE_SECURE must not be false (session cookies would travel over plain HTTP)")
+    if s.COOKIE_SAMESITE.lower() not in ("lax", "strict"):
+        problems.append("COOKIE_SAMESITE must be lax or strict (the CSRF protection relies on it)")
+    if s.FORWARDED_ALLOW_IPS.strip() == "*":
+        problems.append('FORWARDED_ALLOW_IPS must list the load balancer network, not "*" (clients could fake their IP)')
+    piston = os.getenv("PISTON_URL", "")
+    if "emkc.org" in piston:
+        problems.append("PISTON_URL must point at your own code-execution engine, not the public emkc.org API")
+    return problems
 
 
 settings = Settings()

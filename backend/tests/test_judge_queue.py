@@ -162,3 +162,31 @@ async def test_code_execution_limits_are_per_student_not_per_ip(async_client: As
     codes_first = [(await run(first)).status_code for _ in range(31)]
     assert codes_first[:30] == [200] * 30 and codes_first[30] == 429
     assert (await run(second)).status_code == 200, "another student on the same IP is not throttled"
+
+
+async def test_shutdown_hands_unfinished_jobs_back_to_the_queue(async_client: AsyncClient, seed_users, engine, monkeypatch):
+    """A deploy stops a task mid-judge: the job must be judged elsewhere at once, not after the
+    stale-job timeout, and the interrupted attempt must not count."""
+    await _publish(async_client, seed_users)
+    monkeypatch.setattr(practice_api, "SUBMIT_WAIT_SECONDS", 0.2)
+    engine.delay = 30.0  # judging is in progress when the task stops
+    headers = auth_header(_user(seed_users, UserRole.CANDIDATE))
+    r = await async_client.post("/api/practice/problems/add-up/submit", headers=headers, json={"language": "python", "code": "x"})
+    sid = uuid.UUID(r.json()["id"])
+    async with test_async_session_maker() as db:
+        row = await db.get(PracticeSubmission, sid)
+        assert row.judge_started_at is not None and row.judge_attempts == 1
+
+    await judge_queue.stop()
+    async with test_async_session_maker() as db:
+        row = await db.get(PracticeSubmission, sid)
+        assert row.verdict == Verdict.PENDING and row.judge_started_at is None and row.judge_attempts == 0
+
+    engine.delay = 0.0  # another task picks it up straight away
+    judge_queue.ensure_started()
+    judge_queue.track(sid)
+    judge_queue.notify()
+    await judge_queue.wait_for(sid, timeout=5)
+    async with test_async_session_maker() as db:
+        row = await db.get(PracticeSubmission, sid)
+        assert row.verdict == Verdict.ACCEPTED and row.judge_attempts == 1

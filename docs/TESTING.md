@@ -58,12 +58,13 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | `test_practice_bank.py` | 247 | At least 100 DSA problems, topic minimums, unique and stable IDs, required fields, harness generation in every language, checkers, idempotent seeding |
 | `test_sandbox_engine.py` | 183 | Programs in five languages with stdin, stdout and stderr; compile and runtime errors; isolation and limits; solutions in Java, C++, JavaScript and C; a round trip of every type through the C harness; every reference solution |
 | `test_practice.py` | 35 | Verdict logic, harness generation, authoring, hidden-data redaction, SQL judging, practice problems in exams |
-| `test_judge_queue.py` | 6 | Verdict within the wait, 202 then polling, one pending submission per student, engine-outage retries, recovery of an orphaned job, bounded engine concurrency, per-student (not per-IP) limits |
-| `test_cookie_sessions.py` | 7 | httpOnly cookie sign-in and refresh, CSRF header, logout, bearer clients unchanged, failed-login throttle, WebSocket origin check |
-| `test_resilience.py` | 5 | Half-open Redis circuit breaker (one probe at a time, cool-down, healthy Redis stays closed, a successful call ends the probe); one pooled HTTP client for the engine |
+| `test_judge_queue.py` | 7 | Verdict within the wait, 202 then polling, one pending submission per student, engine-outage retries, recovery of an orphaned job, bounded engine concurrency, per-student (not per-IP) limits; a stopping process hands unfinished jobs back to the queue |
+| `test_cookie_sessions.py` | 8 | httpOnly cookie sign-in and refresh, CSRF header, logout, bearer clients unchanged, failed-login throttle, WebSocket origin check; a per-account limit for guessers who rotate IP addresses |
+| `test_resilience.py` | 7 | Half-open Redis circuit breaker (one probe at a time, cool-down, healthy Redis stays closed, a successful call ends the probe); one pooled HTTP client for the engine; a saturated database answers 503 with Retry-After; the API never imports the problem bank |
 | `test_contests.py` | 7 | Problems hidden before the start (also from practice), registration, the submission window, scoring and penalties, tie-breaks, editorial hiding until the end, admin rules after the start, SQLite dev-database column upgrades |
 | `test_multi_instance.py` | 11 | Several API processes sharing Redis (simulated with an in-memory fake): interview signalling between processes, seat replacement on reconnect, a seat joined during a Redis outage joining the shared room later, monitoring events delivered once on every process, the listener surviving idle periods, one run per student across processes, and the single-process fallbacks |
 | `test_log_redaction.py` | 4 | Tokens, tickets and OAuth codes in logged URLs are redacted; other query strings are kept |
+| `test_production_config.py` | 23 | Production start-up refuses every unsafe setting (and lists them together); `CORS_ORIGINS` from the environment; client IP headers cannot be forged; uvicorn behind a trusted load balancer |
 | `test_practice_dsa_api.py` | 8 | IDs, topics, sorting and search; editorial gating; checker protection; history and progress; playground limits; rate limiting |
 | Other `test_*.py` | 116 | Authentication, RBAC, SSO, password reset, exams, proctoring and AI, interviews, IRT, adversarial and security checks |
 
@@ -74,6 +75,7 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | `dashboard.spec.ts` | Login and registration pages render; dashboard requires authentication |
 | `protected-routes.spec.ts` | Every protected route redirects anonymous users; login works on a mobile viewport |
 | `roles.spec.ts` | Solving a problem (Run and Submit), browsing by topic and ID, a C++ linked-list solution unlocking the editorial, a C solution with LeetCode-style signatures, the progress page, a C program in the playground, staff areas closed to candidates, user creation, problem authoring, reviewer and proctor dashboards, scheduling a contest and solving inside it |
+| `production.spec.ts` | Production build only: no Content-Security-Policy violations and no request leaving the app or its API on the main candidate pages; the exam page loads the self-hosted face model and starts the camera (Chromium's fake device) |
 
 ## Latest results
 
@@ -82,8 +84,8 @@ was skipped. Re-run the suites after any change rather than relying on these fig
 
 | Suite | Result |
 |---|---|
-| Backend | **629 passed**, 0 failed, 0 skipped |
-| Browser | **27 passed** |
+| Backend | **656 passed**, 0 failed, 0 skipped |
+| Browser | **29 passed** against the production build (rehearsal stack); the 27 non-production specs also pass against the development server |
 | End to end | **73 / 73** steps passed |
 | Type check, lint, production build | No errors or warnings |
 
@@ -116,6 +118,12 @@ waiting for verdicts; password hashing blocked the event loop; every request in 
 to reconnect to a missing Redis (100 sign-ins took 51 s, now 1.6 s); code-execution limits were
 per IP although a whole lab shares one; and a new HTTP connection per engine call cost
 150-400 ms (judging rose from 6 to 29-33 verdicts/s once the client was pooled).
+
+## Production rehearsal
+
+`deploy/rehearsal/` runs the production images in the AWS topology on one machine and every
+check above runs against it; see its README for the commands and
+[Production readiness](PRODUCTION_READINESS.md#rehearsal-results) for the latest results.
 
 ## Several API processes
 

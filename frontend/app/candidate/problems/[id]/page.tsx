@@ -37,7 +37,7 @@ import {
 import Markdown from "@/components/practice/Markdown";
 import { DifficultyBadge, StatusIcon, VerdictText, verdictColor } from "@/components/practice/badges";
 
-const Editor = dynamic(() => import("@monaco-editor/react"), {
+const Editor = dynamic(() => import("@/components/CodeEditor"), {
   ssr: false,
   loading: () => <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading editor…</div>,
 });

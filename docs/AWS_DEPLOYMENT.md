@@ -14,6 +14,7 @@ ExamSentinel supports two production topologies on AWS:
 
 ## Contents
 
+- [Before the first deployment](#before-the-first-deployment)
 - [Option A architecture](#option-a-architecture)
 - [1. Build and push images (ECR)](#1-build-and-push-images-ecr)
 - [2. Data stores](#2-data-stores)
@@ -23,6 +24,14 @@ ExamSentinel supports two production topologies on AWS:
 - [6. ECS services](#6-ecs-services)
 - [Option B: single EC2 host](#option-b-single-ec2-host)
 - [Post-deployment checks](#post-deployment-checks)
+
+## Before the first deployment
+
+Rehearse on one machine first: `deploy/rehearsal/` runs the production images with
+`ENVIRONMENT=production` in this topology (two API replicas behind a TLS load balancer,
+PostgreSQL, Redis, the code engine) and every check below runs against it. See
+[Production readiness](PRODUCTION_READINESS.md) for what the rehearsal verified and what remains
+for the operator.
 
 ## Option A architecture
 
@@ -91,13 +100,17 @@ Plain environment variables:
 
 | Variable | Value |
 |---|---|
-| `ENVIRONMENT` | `production` (startup fails if `DEBUG`, default `SECRET_KEY` or empty CORS) |
-| `DEBUG` | `false` (error responses then hide internal details) |
-| `CORS_ORIGINS` | `https://exam.example.edu` |
+| `ENVIRONMENT` | `production`. Start-up refuses unsafe settings and lists all of them: `DEBUG` on, a default or short `SECRET_KEY`, a CORS origin that is not public `https://`, SQLite or the development database URL, `COOKIE_SECURE=false`, `FORWARDED_ALLOW_IPS="*"`, the public emkc.org engine |
+| `DEBUG` | `false` (error responses then hide internal details; `/docs` is off) |
+| `CORS_ORIGINS` | `https://exam.example.edu` (comma-separated for several) |
+| `FORWARDED_ALLOW_IPS` | the **ALB subnets' CIDRs**, e.g. `10.0.0.0/24,10.0.1.0/24`. Only these proxies' `X-Forwarded-For` identifies the client; per-IP sign-in limits depend on it. Never `*` |
+| `CLIENT_IP_HEADER` | leave empty behind an ALB |
 | `PISTON_URL` | `http://piston.internal:2000/api/v2/execute` |
 | `AWS_REGION`, `AWS_BUCKET_NAME` | evidence bucket |
 | `ADMIN_EMAIL` | first admin, created once by `migrate` |
 | `WEB_CONCURRENCY` | uvicorn workers per task (≈ vCPUs) |
+| `DB_POOL_SIZE`, `DB_MAX_OVERFLOW` | per worker process, default 5 + 5. Keep **tasks × `WEB_CONCURRENCY` × (pool + overflow)** plus ~10 for migrations and tools below RDS `max_connections` (about 110 on `db.t4g.micro`, 225 on `db.t4g.small`, 450 on `db.t4g.medium`; check `SHOW max_connections`). When the database is saturated the API answers 503 with `Retry-After`, not 500 |
+| `GRACEFUL_SHUTDOWN_SECONDS` | default 20; keep below the ECS `stopTimeout` (default 30 s) |
 | `PHONE_CONFIDENCE_THRESHOLD` | optional, default `0.45` |
 
 No AWS access keys: the **task role** grants S3 access.
@@ -176,14 +189,21 @@ Security notes for the code runner (details and the tests behind them: [SECURITY
 
 - Backend autoscaling on CPU (target 60%). Each frame analysis is ~50 ms of CPU; one candidate sends
   one frame per 10 s, so a 2-vCPU task handles roughly 200 concurrent webcams.
-- ALB target groups: idle timeout **300 s** (live-proctoring WebSockets at `/api/ws/*`).
+- ALB target groups: idle timeout **300 s** (live-proctoring WebSockets at `/api/ws/*`);
+  deregistration delay **30 s** for the backend (requests in flight finish; the default 300 s only
+  slows deploys).
+- Rolling deploys: minimum healthy 100 %, maximum 200 %. On `SIGTERM` a task stops accepting
+  connections, finishes requests in flight for up to `GRACEFUL_SHUTDOWN_SECONDS`, and hands any
+  submission it was still judging back to the queue for another task. Verified in the rehearsal:
+  a replica restarted in the middle of a 250-student submission rush lost nothing.
 - Logs: `awslogs` driver → CloudWatch (the backend logs JSON with a correlation ID per request).
 
 ### Deploying a new version
 
 1. Push images.
 2. Run migrations as a **one-off task** with the backend image and command `["migrate"]`
-   (applies Alembic migrations and bootstraps the first admin if none exists).
+   (applies Alembic migrations and bootstraps the first admin if none exists). CI checks that
+   the migrations build exactly the schema the models describe (`backend/check_migrations.py`).
 3. Update the services. Never set `RUN_MIGRATIONS_ON_START=true` with more than one task.
 4. Seed or update the practice problem bank when it changes: one-off task with command
    `["python", "seed_practice.py"]` (idempotent).
@@ -206,8 +226,13 @@ Use an instance with ≥ 4 vCPU / 8 GB (e.g. `t3.xlarge`) when `WITH_AI=true`.
 - Sign in as the bootstrap admin, open **Practice Problems** and run the shield (validate) action on a
   problem: proves backend → Piston works.
 - Open **AI Test** (`/admin/ai-test`) with a webcam and hold up a phone: proves the vision model loaded.
-- On a **staging** stack seeded with demo users (non-production), run
-  `E2E_BASE_URL=https://api.staging… python scripts/e2e_roles_smoke.py`.
+- On a **staging** stack (never production: these create test data), run
+  `E2E_BASE_URL=https://api.staging… python scripts/e2e_roles_smoke.py`,
+  `python scripts/multi_process_check.py --a https://api.staging… --b https://api.staging…`
+  and the browser checks of the production build
+  (`PLAYWRIGHT_BASE_URL=https://staging… npx playwright test tests/production.spec.ts`).
+- Send a request with a forged `X-Forwarded-For` and confirm the API logs your real address
+  (`client_ip` in CloudWatch): proves `FORWARDED_ALLOW_IPS` is right.
 
 ---
 

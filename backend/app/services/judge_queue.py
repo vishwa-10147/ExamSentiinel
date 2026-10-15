@@ -42,6 +42,7 @@ class JudgeQueue:
         self._tasks: list[asyncio.Task] = []
         self._wake: Optional[asyncio.Event] = None
         self._done: dict[uuid.UUID, asyncio.Event] = {}
+        self._active: set[uuid.UUID] = set()  # claimed by this process, not finished yet
 
     # ---- lifecycle -------------------------------------------------------------------------
 
@@ -56,10 +57,28 @@ class JudgeQueue:
         logger.info("judge_queue.started", workers=self.workers)
 
     async def stop(self) -> None:
+        """Stop the workers and hand back jobs they were judging (graceful shutdown).
+
+        Without this, a job interrupted by a deploy would wait STALE_AFTER_SECONDS for the
+        reclaimer of another process. The interrupted attempt is not counted.
+        """
+        unfinished = list(self._active)  # before cancelling: workers drop jobs as they unwind
         for task in self._tasks:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
-        self._tasks, self._loop = [], None
+        self._tasks, self._loop, self._active = [], None, set()
+        if unfinished:
+            try:
+                async with self.session_maker() as db:
+                    await db.execute(
+                        update(PracticeSubmission)
+                        .where(PracticeSubmission.id.in_(unfinished), PracticeSubmission.verdict == Verdict.PENDING)
+                        .values(judge_started_at=None, judge_attempts=PracticeSubmission.judge_attempts - 1)
+                    )
+                    await db.commit()
+                logger.info("judge_queue.released_on_shutdown", count=len(unfinished))
+            except Exception as exc:  # the reclaimer of another process will pick them up
+                logger.error("judge_queue.release_failed", error=str(exc))
 
     # ---- producer side ---------------------------------------------------------------------
 
@@ -154,7 +173,11 @@ class JudgeQueue:
                     except asyncio.TimeoutError:
                         pass
                     continue
-                await self._run(job)
+                self._active.add(job)
+                try:
+                    await self._run(job)
+                finally:
+                    self._active.discard(job)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:

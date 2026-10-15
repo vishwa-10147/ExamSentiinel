@@ -114,3 +114,24 @@ async def test_websocket_cookie_auth_requires_an_allowed_origin(async_client: As
     # but never for the origin).
     await monitoring._authenticate_ws(ok)
     assert not (ok.closed and "Origin" in ok.closed[1])
+
+
+async def test_guessing_from_many_ips_hits_the_per_account_limit(async_client: AsyncClient, seed_users, monkeypatch):
+    """Rotating IP addresses (a botnet, or a proxy trusted too widely) must not allow unlimited
+    guesses at one account."""
+    from app.api import deps
+
+    import itertools
+
+    counter = itertools.count()  # a different address every time the API asks
+    monkeypatch.setattr(deps, "extract_client_ip", lambda request: f"203.0.{next(counter) % 250}.{next(counter) % 250}")
+    wrong = {"email": ADMIN["email"], "password": "not-the-password"}
+    codes = [(await async_client.post("/api/auth/login", json=wrong)).status_code for _ in range(31)]
+    assert codes[:30] == [401] * 30 and codes[30] == 429
+    assert "this account" in (await async_client.post("/api/auth/login", json=ADMIN)).json()["detail"]
+    # Other accounts are unaffected.
+    assert (await async_client.post("/api/auth/login", json={"email": "proctor@sentinel.edu", "password": "x"})).status_code == 401
+
+    # The owner can get back in at once by resetting the password.
+    await deps.failed_login_throttle.clear_account(ADMIN["email"])
+    assert (await async_client.post("/api/auth/login", json=ADMIN)).status_code == 200

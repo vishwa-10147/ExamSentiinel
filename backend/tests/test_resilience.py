@@ -67,3 +67,43 @@ def test_a_successful_call_ends_the_probe_early(monkeypatch):
     breaker.trip()
     breaker.succeeded()  # a stale success during the cool-down changes nothing
     assert breaker.is_open is True
+
+
+def test_the_api_never_imports_the_problem_bank():
+    """Importing practice_bank builds the whole bank (~6 s of CPU in production). Done inside a
+    request it froze every request of that API process on its first progress page."""
+    import subprocess
+    import sys
+
+    code = "import sys, app.main; print('practice_bank' in sys.modules)"
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
+    assert result.stdout.strip().splitlines()[-1] == "False", result.stderr[-2000:]
+
+
+async def test_a_saturated_database_answers_503_with_retry_after(async_client, seed_users, monkeypatch):
+    """PostgreSQL out of connections (or the pool wait timing out) is "busy, retry", not a 500."""
+    from sqlalchemy.exc import DBAPIError, TimeoutError as PoolTimeout
+
+    from app.api import practice
+    from app.models.user import UserRole
+    from tests.test_exam_engine import auth_header
+
+    headers = auth_header(next(u for u in seed_users if u.role == UserRole.CANDIDATE))
+    failures = [
+        DBAPIError("SELECT 1", {}, Exception("sorry, too many clients already")),
+        PoolTimeout("QueuePool limit of size 5 overflow 5 reached, connection timed out"),
+    ]
+    for failure in failures:
+        async def broken(*args, **kwargs):
+            raise failure
+
+        monkeypatch.setattr(practice, "_topic_progress", broken)
+        r = await async_client.get("/api/practice/topics", headers=headers)
+        assert r.status_code == 503 and r.headers["retry-after"] == "5", r.text
+        assert "busy" in r.json()["detail"]
+
+    async def bug(*args, **kwargs):
+        raise ValueError("an ordinary bug")
+
+    monkeypatch.setattr(practice, "_topic_progress", bug)
+    assert (await async_client.get("/api/practice/topics", headers=headers)).status_code == 500

@@ -69,6 +69,13 @@ async def lifespan(app: FastAPI):
     warm_up = asyncio.create_task(asyncio.to_thread(computer_vision_service.warm_up))
     yield
     warm_up.cancel()
+    # Hand unfinished judging back to the queue and stop background listeners.
+    from app.services.judge_queue import judge_queue
+    from app.websocket.manager import manager
+
+    await judge_queue.stop()
+    if manager.listener_task is not None:
+        manager.listener_task.cancel()
     # Shutdown tasks
     logger.info("ExamSentinel backend service shutting down")
 
@@ -138,6 +145,16 @@ async def correlation_id_and_logging_middleware(request: Request, call_next):
         return response
     except Exception as exc:
         process_time_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        if _is_database_overload(exc):
+            # Saturated database (pool wait timed out / server connection limit): tell clients to
+            # retry shortly instead of reporting a server fault.
+            logger.warning("http_request_database_busy", method=request.method, path=request.url.path,
+                           duration_ms=process_time_ms, error=str(exc)[:300])
+            return _with_cors(request, JSONResponse(
+                status_code=503,
+                content={"detail": "The service is busy. Please try again in a few seconds.", "correlation_id": corr_id},
+                headers={"Retry-After": "5", "X-Correlation-ID": corr_id},
+            ))
         logger.exception(
             "http_request_unhandled_exception",
             method=request.method,
@@ -147,14 +164,28 @@ async def correlation_id_and_logging_middleware(request: Request, call_next):
         )
         # Exception text can contain SQL, paths or secrets: show it only in DEBUG.
         detail = str(exc) if settings.DEBUG else "Internal server error. Quote the reference ID when reporting this."
-        headers = {"X-Correlation-ID": corr_id}
-        # This response bypasses CORSMiddleware, so apply the same allow-list here.
-        origin = request.headers.get("origin")
-        if origin and origin in settings.CORS_ORIGINS:
-            headers["Access-Control-Allow-Origin"] = origin
-            headers["Access-Control-Allow-Credentials"] = "true"
-            headers["Vary"] = "Origin"
-        return JSONResponse(status_code=500, content={"detail": detail, "correlation_id": corr_id}, headers=headers)
+        return _with_cors(request, JSONResponse(
+            status_code=500, content={"detail": detail, "correlation_id": corr_id}, headers={"X-Correlation-ID": corr_id},
+        ))
+
+
+def _with_cors(request: Request, response: Response) -> Response:
+    """Responses built here bypass CORSMiddleware, so apply the same allow-list."""
+    origin = request.headers.get("origin")
+    if origin and origin in settings.CORS_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
+    return response
+
+
+def _is_database_overload(exc: Exception) -> bool:
+    from sqlalchemy.exc import DBAPIError, TimeoutError as PoolTimeout
+
+    if isinstance(exc, PoolTimeout):  # every pooled connection busy for DB_POOL_TIMEOUT seconds
+        return True
+    text = str(getattr(exc, "orig", "") or exc).lower() if isinstance(exc, DBAPIError) else ""
+    return "too many clients" in text or "too many connections" in text or "remaining connection slots" in text
 
 
 # Mount the combined API router
