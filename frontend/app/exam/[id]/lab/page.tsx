@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import FaceTracker from "@/components/FaceTracker";
-import Editor from "@monaco-editor/react";
+import Editor from "@/components/CodeEditor";
 import { Play, Terminal, Code2, AlertTriangle, CheckCircle } from "lucide-react";
 import { apiClient } from "@/services/apiClient";
 import toast from "react-hot-toast";

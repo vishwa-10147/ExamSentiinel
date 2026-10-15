@@ -8,7 +8,7 @@ import { apiClient } from "@/services/apiClient";
 import Markdown from "@/components/practice/Markdown";
 
 // Lazy load Monaco Editor (massive bundle) only when needed, disable SSR
-const Editor = dynamic(() => import("@monaco-editor/react"), { 
+const Editor = dynamic(() => import("@/components/CodeEditor"), { 
   ssr: false, 
   loading: () => <div className="w-full h-full flex items-center justify-center text-slate-500 dark:text-slate-400 text-sm">Loading IDE...</div>
 });

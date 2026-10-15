@@ -24,6 +24,7 @@ here, do not assume it exists.
 - [Code execution sandbox](#code-execution-sandbox)
 - [Sessions and authentication](#sessions-and-authentication)
 - [API controls](#api-controls)
+- [Web app](#web-app)
 - [Secrets](#secrets)
 - [Known gaps](#known-gaps)
 
@@ -77,6 +78,9 @@ run memory, 64 processes, 8 MB output); per-request limits are set by
 | WebSockets accept the session cookie only from an allowed page `Origin` (cross-site WebSocket hijacking) | `_authenticate_ws` in `app/api/monitoring.py` | `test_websocket_cookie_auth_requires_an_allowed_origin` |
 | Logout revokes refresh tokens and clears the cookies | `logout` in `app/api/auth.py` | `test_cookie_requests_that_change_state_need_the_csrf_header`, `test_bearer_clients_are_unchanged` |
 | Failed sign-ins: 5 per minute per (IP, account), then 429 — successful sign-ins are not counted; plus `LOGIN_RATE_LIMIT_PER_IP` sign-ins per minute per IP (default 300, sized for a lab behind one NAT address). Enforced by Redis **with an in-process fallback** | `FailedLoginThrottle`, `RateLimiter(..., local_fallback=True)` | `test_failed_logins_are_throttled_per_account_without_redis`, `test_successful_logins_are_not_throttled` |
+| Failed sign-ins per account **from any IP**: 30 per 15 minutes, then 429 — bounds guessing by an attacker who rotates addresses; a password reset lifts it at once | `FailedLoginThrottle` (`account_max_failures`), `clear_account` in `reset_password` | `test_guessing_from_many_ips_hits_the_per_account_limit` |
+| The client IP used by every limit cannot be chosen by the client: request headers (`X-Forwarded-For`, `X-Real-IP`, `CF-Connecting-IP`, `True-Client-IP`) are ignored; only proxies listed in `FORWARDED_ALLOW_IPS` may identify the client, and production refuses `*` | `extract_client_ip`, `docker-entrypoint.sh`, `production_problems` | `test_client_supplied_ip_headers_are_ignored`, `test_uvicorn_resolves_the_client_behind_a_trusted_load_balancer`; in the production rehearsal, 7 guesses with a different forged address each were throttled after 5 |
+| Production start-up refuses unsafe settings (debug mode, default or short secret key, non-https or local CORS origins, SQLite, insecure cookies, `FORWARDED_ALLOW_IPS="*"`, the public engine) | `production_problems` in `app/core/config.py` | `test_production_config.py` |
 | Registration (3/hour per IP) and password-reset limits hold without Redis | `RateLimiter(..., local_fallback=True)` in `app/api/auth.py` | `test_concurrency_duplicate_registration` |
 | Bearer tokens remain available for API clients and scripts (no cookies set for them) | `session_response` | `test_bearer_clients_are_unchanged` |
 
@@ -86,7 +90,7 @@ run memory, 64 processes, 8 MB output); per-request limits are set by
 |---|---|---|
 | Source size ≤ 50 000 chars; custom stdin ≤ 64 000 (playground) / 20 000 (judge custom input) | Pydantic schemas (`app/api/sandbox.py`, `app/schemas/practice.py`) | `test_playground_runs_programs_with_limits` |
 | Rate limits on code execution: run/exam-run/playground 30/min, submit 10/min **per student** (not per IP — a lab shares one address) and one pending submission at a time. Enforced by Redis, **with an in-process fallback when Redis is down** | `RateLimiter(..., local_fallback=True, per_user=True)` in `app/api/deps.py` | `test_code_execution_is_rate_limited_without_redis`, `test_code_execution_limits_are_per_student_not_per_ip`, `test_slow_judging_returns_202_and_the_result_can_be_polled` |
-| One judge job per user at a time (429 otherwise) | `_JudgeSlot` (practice), `_users_running` (playground) | Code review; not load-tested |
+| One code run per student at a time, across every API process (429 otherwise) | `UserSlot` in `app/core/user_slots.py` (Redis owner-token key, in-process fallback) | `test_one_run_per_user_across_processes`; `scripts/multi_process_check.py` against two real processes |
 | Hidden tests never sent to students: list/detail return samples only; a failing hidden case reports only its number | `_case_out(reveal_hidden=False)` | `test_admin_creates_problem_and_students_never_see_hidden_tests`, `test_submit_records_submission_and_hides_hidden_failure`, `test_detail_exposes_formats_but_never_checker_or_unearned_editorial` |
 | Reference solutions and checkers never returned to students; checkers never returned at all | Response schemas omit them | Same tests |
 | Editorials hidden until the student has an accepted submission | `get_problem` | `test_detail_exposes_formats_but_never_checker_or_unearned_editorial` |
@@ -110,6 +114,14 @@ DOMPurify for exam HTML, audit logging) are covered by `test_auth.py`, `test_rba
   `token`, `access_token`, `refresh_token`, `ticket` and `code` query values replaced with
   `[REDACTED]` (`RedactSecretsFilter` in `app/core/logging.py`; `test_log_redaction.py`, and
   checked in real server logs). Browsers never put a token in a URL; scripts may.
+
+### Web app
+
+| Control | Where | Verified by |
+|---|---|---|
+| Content-Security-Policy: scripts, styles, fonts, workers and connections only from the app and its API; no framing; `object-src 'none'` | `frontend/next.config.js` | `tests/production.spec.ts` on the production build (no violations on the problem, contest, progress, playground and exam pages); a probe confirmed third-party scripts and connections are blocked |
+| The code editor (Monaco) and the face-detection model are served by the app, not CDNs, so exams do not depend on third-party hosts | `components/CodeEditor.tsx`, `scripts/copy-monaco.mjs`, `public/models/blazeface` | `tests/production.spec.ts` (no request leaves the app or API; the exam page loads the model and starts the camera) |
+| `Strict-Transport-Security`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, a `Permissions-Policy` limiting camera and microphone to the site; no `X-Powered-By` | `frontend/next.config.js` | Checked on the production build |
 
 ### Known gaps
 

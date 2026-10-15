@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import RateLimiter, get_current_user, log_audit_event, require_roles
 from app.core.database import get_db
 from app.core.logging import logger
+from app.core.practice_topics import EXTRA_TOPICS, TOPICS
 from app.core.user_slots import UserSlot
 from app.models.contest import Contest, ContestProblem
 from app.models.practice import (
@@ -260,7 +261,6 @@ async def list_topics(db: AsyncSession = Depends(get_db), current_user: User = D
 
 
 async def _topic_progress(db: AsyncSession, user_id: uuid.UUID) -> list[TopicProgress]:
-    from practice_bank.common import EXTRA_TOPICS, TOPICS
 
     problems = (await db.execute(
         select(PracticeProblem.id, PracticeProblem.topic).where(PracticeProblem.is_published.is_(True))
@@ -409,6 +409,10 @@ async def _judge_submission(db: AsyncSession, submission: PracticeSubmission) ->
         select(PracticeProblem).options(selectinload(PracticeProblem.test_cases)).where(PracticeProblem.id == submission.problem_id)
     )).scalar_one()
     cases = _judge_cases(problem, samples_only=False)
+    # Give the connection back while the engine runs (seconds per job, JUDGE_WORKERS jobs per
+    # process); the session reconnects to store the verdict. expire_on_commit=False keeps the
+    # loaded problem and submission usable.
+    await db.commit()
     outcome = await judge(problem, submission.language, submission.source_code, cases, stop_on_failure=True)
 
     failure = None

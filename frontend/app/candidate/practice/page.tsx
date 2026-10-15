@@ -9,7 +9,7 @@ import { Code2, Loader2, Play, RotateCcw } from "lucide-react";
 import { apiClient } from "@/services/apiClient";
 import { LANGUAGE_LABELS, MONACO_LANGUAGE, PracticeLanguage } from "@/services/practiceService";
 
-const Editor = dynamic(() => import("@monaco-editor/react"), {
+const Editor = dynamic(() => import("@/components/CodeEditor"), {
   ssr: false,
   loading: () => <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading editor…</div>,
 });

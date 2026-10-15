@@ -9,3 +9,4 @@ e2e
 playwright-report
 test-results
 .vscode
+public/monaco

@@ -22,6 +22,10 @@ services:
           property: connectionString
       - key: ENVIRONMENT
         value: production
+      - key: DEBUG
+        value: "false"
+      - key: CORS_ORIGINS
+        value: https://examsentinel-frontend.onrender.com
       - key: BACKEND_PORT
         value: 8000
       - key: SECRET_KEY

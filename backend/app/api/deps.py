@@ -1,4 +1,3 @@
-import ipaddress
 from collections import deque
 from typing import AsyncGenerator, Callable, List, Optional
 import uuid
@@ -20,44 +19,23 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def extract_client_ip(request: Optional[Request]) -> Optional[str]:
-    """Extract real client IP address robustly across Cloudflare, AWS, Nginx, and reverse proxies."""
+    """The client's IP address, as used for rate limits, sign-in throttling and audit logs.
+
+    Headers sent by the client are never trusted on their own: anyone can send
+    ``X-Forwarded-For`` or ``X-Real-IP`` with a different address on every request and so
+    escape per-IP limits. Behind a load balancer, uvicorn's proxy-headers middleware resolves
+    the client from ``X-Forwarded-For``, trusting only the proxies listed in
+    ``FORWARDED_ALLOW_IPS`` (see docker-entrypoint.sh), and that result is ``request.client``.
+    ``CLIENT_IP_HEADER`` names one header to use instead, for a proxy that sets it and strips
+    any client-supplied copy (e.g. ``CF-Connecting-IP`` when only Cloudflare can reach the API).
+    """
     if not request:
         return None
-
-    # Priority 1: Cloudflare CDN / WAF header
-    cf_ip = request.headers.get("CF-Connecting-IP")
-    if cf_ip and cf_ip.strip():
-        return cf_ip.strip()
-
-    # Priority 2: Akamai / Enterprise Proxy header
-    true_client_ip = request.headers.get("True-Client-IP")
-    if true_client_ip and true_client_ip.strip():
-        return true_client_ip.strip()
-
-    # Priority 3: Nginx / HAProxy / Traefik header
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip and real_ip.strip():
-        return real_ip.strip()
-
-    # Priority 4: X-Forwarded-For header (comma separated proxy chain)
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
-        for ip in parts:
-            try:
-                ip_obj = ipaddress.ip_address(ip)
-                if not ip_obj.is_private and not ip_obj.is_loopback and not ip_obj.is_link_local:
-                    return ip
-            except ValueError:
-                continue
-        if parts:
-            return parts[0]
-
-    # Priority 5: Direct TCP socket client host
-    if request.client:
-        return request.client.host
-
-    return None
+    if settings.CLIENT_IP_HEADER:
+        value = (request.headers.get(settings.CLIENT_IP_HEADER) or "").split(",")[0].strip()
+        if value:
+            return value
+    return request.client.host if request.client else None
 
 
 async def get_current_user(
@@ -312,47 +290,78 @@ def RateLimiter(calls: int, period: int, local_fallback: bool = False, per_user:
 
 
 class FailedLoginThrottle:
-    """Limits *failed* sign-in attempts per (client IP, email) — brute-force protection that does
-    not lock out a user who signs in successfully many times. Uses Redis when it is reachable and
-    the in-process window otherwise (same windows as ``RateLimiter(local_fallback=True)``)."""
+    """Limits *failed* sign-in attempts - brute-force protection that never counts successful
+    sign-ins. Two windows:
 
-    def __init__(self, max_failures: int = 5, period: int = 60):
+    - per (client IP, account): ``max_failures`` per ``period`` - stops one machine guessing;
+    - per account, from any IP: ``account_max_failures`` per ``account_period`` - stops a
+      guesser who rotates IP addresses (a botnet, or a misconfigured proxy trust). It is set
+      high enough that a student mistyping cannot hit it, and its lock is short.
+
+    Uses Redis when it is reachable and the in-process window otherwise (same windows as
+    ``RateLimiter(local_fallback=True)``)."""
+
+    def __init__(self, max_failures: int = 5, period: int = 60,
+                 account_max_failures: int = 30, account_period: int = 900):
         self.max_failures, self.period = max_failures, period
+        self.account_max_failures, self.account_period = account_max_failures, account_period
 
-    def _key(self, request: Request, email: str) -> str:
-        return f"login_failures:{extract_client_ip(request) or '127.0.0.1'}:{email.strip().lower()[:254]}"
+    def _keys(self, request: Request, email: str) -> tuple[str, str]:
+        account = email.strip().lower()[:254]
+        return f"login_failures:{extract_client_ip(request) or '127.0.0.1'}:{account}", f"login_failures_account:{account}"
 
-    async def _count(self, key: str, now: float, add: bool) -> int:
+    async def _count(self, key: str, now: float, add: bool, period: int) -> int:
         if not redis_breaker.is_open:
             try:
                 async with redis_client.pipeline(transaction=True) as pipe:
-                    pipe.zremrangebyscore(key, 0, now - self.period)
+                    pipe.zremrangebyscore(key, 0, now - period)
                     if add:
                         pipe.zadd(key, {str(now): now})
                     pipe.zcard(key)
-                    pipe.expire(key, self.period)
+                    pipe.expire(key, period)
                     results = await pipe.execute()
                 redis_breaker.succeeded()
                 return int(results[2] if add else results[1])
             except Exception:
                 redis_breaker.trip()
         window = _local_windows.setdefault(key, deque())
-        while window and window[0] <= now - self.period:
+        while window and window[0] <= now - period:
             window.popleft()
         if add:
             window.append(now)
         return len(window)
 
     async def check(self, request: Request, email: str) -> None:
-        if await self._count(self._key(request, email), time.time(), add=False) >= self.max_failures:
+        per_ip, per_account = self._keys(request, email)
+        now = time.time()
+        if await self._count(per_ip, now, add=False, period=self.period) >= self.max_failures:
             logger.warning("login_throttled", ip=extract_client_ip(request))
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Too many failed sign-in attempts. Please wait a minute and try again.",
             )
+        if await self._count(per_account, now, add=False, period=self.account_period) >= self.account_max_failures:
+            logger.warning("login_throttled_account", ip=extract_client_ip(request))
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed sign-in attempts for this account. Please wait 15 minutes or reset your password.",
+            )
 
     async def record_failure(self, request: Request, email: str) -> None:
-        await self._count(self._key(request, email), time.time(), add=True)
+        per_ip, per_account = self._keys(request, email)
+        now = time.time()
+        await self._count(per_ip, now, add=True, period=self.period)
+        await self._count(per_account, now, add=True, period=self.account_period)
+
+    async def clear_account(self, email: str) -> None:
+        """Lift the per-account lock, e.g. after the owner proved control with a reset code."""
+        key = f"login_failures_account:{email.strip().lower()[:254]}"
+        _local_windows.pop(key, None)
+        if not redis_breaker.is_open:
+            try:
+                await redis_client.delete(key)
+            except Exception:
+                redis_breaker.trip()
 
 
 failed_login_throttle = FailedLoginThrottle()

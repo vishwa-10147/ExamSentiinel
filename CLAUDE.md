@@ -37,6 +37,12 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
   interview rooms (`services/interview_hub.py`) and run slots (`core/user_slots.py`). Pub/sub readers must poll
   `get_message(timeout=PUBSUB_POLL_SECONDS)` — `listen()` dies on the client's 2 s socket timeout. Real check:
   `scripts/multi_process_check.py --a URL --b URL`.
+- Production: `production_problems` in `app/core/config.py` refuses unsafe settings at start-up. Client IP =
+  `request.client` only (uvicorn resolves it from `FORWARDED_ALLOW_IPS`); never read IP headers directly. Never
+  import `practice_bank` from the API (5.8 s of CPU; topics live in `app/core/practice_topics.py`). Judging must not
+  hold a DB connection while the engine runs. Monaco and the BlazeFace model are self-hosted (CSP in
+  `frontend/next.config.js`). Rehearsal of the AWS topology: `deploy/rehearsal/`; schema check:
+  `backend/check_migrations.py`; readiness status: `docs/PRODUCTION_READINESS.md`.
 - Local SQLite: `create_all` plus `_sqlite_add_missing_columns` (app/main.py) adds new nullable/defaulted columns
   to an older dev database; Postgres still needs the Alembic migration.
 - `frontend/services/apiClient.ts` — the single API client. Browser sessions are httpOnly cookies (`app/core/auth_cookies.py`): requests send `credentials: "include"`, `X-Auth-Mode: cookie` and `X-Requested-With` (required for cookie-authenticated writes); tokens never touch localStorage. Scripts/tests may still use `Authorization: Bearer`. `components/RoleAreaLayout.tsx` guards each role area in the UI; the API enforces roles regardless.

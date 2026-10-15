@@ -23,6 +23,7 @@ Reference documentation for running, operating and extending ExamSentinel. Start
 
 | Document | Description |
 |---|---|
+| [Production readiness](PRODUCTION_READINESS.md) | What the production rehearsal verified, the operator checklist and known limitations |
 | [AWS deployment](AWS_DEPLOYMENT.md) | Production deployment on ECS, EC2, RDS, ElastiCache and S3 |
 | [Security](SECURITY.md) | Verified security controls, deployment requirements and known gaps |
 | [Testing](TESTING.md) | Test suites, how to run them and latest results |

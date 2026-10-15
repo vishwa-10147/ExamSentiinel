@@ -17,6 +17,8 @@ x-backend-env: &backend-env
   DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/examsentinel}
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
   CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS to the public frontend URL}
+  # The reverse proxy on the host reaches the container from the Docker bridge network.
+  FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-172.16.0.0/12}
   PISTON_URL: http://piston:2000/api/v2/execute
   AWS_REGION: ${AWS_REGION:-us-east-1}
   AWS_BUCKET_NAME: ${AWS_BUCKET_NAME:-}

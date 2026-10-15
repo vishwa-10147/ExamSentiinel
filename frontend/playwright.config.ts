@@ -11,6 +11,8 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3110',
     trace: 'on-first-retry',
     headless: true,
+    // For a staging stack with a self-signed certificate (deploy/rehearsal).
+    ignoreHTTPSErrors: !!process.env.PLAYWRIGHT_IGNORE_HTTPS_ERRORS,
   },
   // Start a dev server only when not pointed at a running app. Two `next dev`
   // processes must never share one .next directory: they corrupt each other's chunks.
