@@ -12,7 +12,8 @@ export type Verdict =
   | "OUTPUT_LIMIT_EXCEEDED"
   | "RUNTIME_ERROR"
   | "COMPILE_ERROR"
-  | "SYSTEM_ERROR";
+  | "SYSTEM_ERROR"
+  | "PENDING";
 
 export interface FunctionSpec {
   name: string;
@@ -243,6 +244,7 @@ export const VERDICT_LABELS: Record<Verdict, string> = {
   RUNTIME_ERROR: "Runtime Error",
   COMPILE_ERROR: "Compile Error",
   SYSTEM_ERROR: "System Error",
+  PENDING: "Judging…",
 };
 
 class PracticeService {
@@ -274,8 +276,22 @@ class PracticeService {
       custom_input: customInput || null,
     });
   }
-  submit(slug: string, language: PracticeLanguage, code: string) {
-    return apiClient.post<Submission>(`/api/practice/problems/${encodeURIComponent(slug)}/submit`, { language, code });
+  /**
+   * Submit for judging. The API usually answers with the verdict; under heavy load it answers
+   * PENDING (202) and the submission is polled until it has been judged.
+   */
+  async submit(slug: string, language: PracticeLanguage, code: string, onPending?: () => void): Promise<Submission> {
+    let s = await apiClient.post<Submission>(`/api/practice/problems/${encodeURIComponent(slug)}/submit`, { language, code });
+    const deadline = Date.now() + 5 * 60 * 1000;
+    if (s.verdict === "PENDING") onPending?.();
+    while (s.verdict === "PENDING" && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      s = await this.submission(s.id);
+    }
+    return s;
+  }
+  submission(id: string) {
+    return apiClient.get<Submission>(`/api/practice/submissions/${encodeURIComponent(id)}`);
   }
   submissions(slug: string) {
     return apiClient.get<Submission[]>(`/api/practice/problems/${encodeURIComponent(slug)}/submissions`);

@@ -30,7 +30,7 @@ export function StatusIcon({ status }: { status: ProblemStatus }) {
 
 export function verdictColor(verdict: Verdict): string {
   if (verdict === "ACCEPTED") return "text-emerald-600 dark:text-emerald-400";
-  if (verdict === "SYSTEM_ERROR") return "text-slate-500";
+  if (verdict === "SYSTEM_ERROR" || verdict === "PENDING") return "text-slate-500 dark:text-slate-400";
   if (verdict === "COMPILE_ERROR") return "text-amber-600 dark:text-amber-400";
   return "text-rose-600 dark:text-rose-400";
 }

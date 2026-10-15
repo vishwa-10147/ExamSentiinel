@@ -50,6 +50,7 @@ development seeds.
 | POST | `/api/practice/problems/{slug}/submit` | judge against all tests; stored |
 | GET | `/api/practice/problems/{slug}/submissions` | your submissions for one problem (with code) |
 | GET | `/api/practice/submissions` | your whole submission history (no code), paginated |
+| GET | `/api/practice/submissions/{id}` | one of your submissions — poll while `verdict` is `PENDING` |
 | GET | `/api/practice/stats/me` | totals, per-difficulty, per-topic, streak, activity |
 | GET | `/api/practice/leaderboard` | weighted solved counts |
 | POST | `/api/sandbox/execute` | playground: run any program with stdin |
@@ -127,9 +128,15 @@ POST /api/practice/problems/lone-value/submit
 Judging stops at the first failing case. When that case is **hidden**, `input`,
 `expected` and `output` are `null` — only `case_number` is revealed.
 
+Submissions are queued. Under normal load the response above arrives within a few seconds.
+When many students submit at once the API answers **`202 Accepted`** with
+`"verdict": "PENDING"` after about 20 seconds; poll `GET /api/practice/submissions/{id}`
+(about every 1.5 s) until the verdict changes. A student can have one pending submission at a
+time (`429` otherwise).
+
 Verdicts: `ACCEPTED`, `WRONG_ANSWER`, `TIME_LIMIT_EXCEEDED`, `MEMORY_LIMIT_EXCEEDED`,
-`OUTPUT_LIMIT_EXCEEDED`, `RUNTIME_ERROR`, `COMPILE_ERROR`, `SYSTEM_ERROR` (engine
-unavailable — not stored as an attempt).
+`OUTPUT_LIMIT_EXCEEDED`, `RUNTIME_ERROR`, `COMPILE_ERROR`, `PENDING` (queued or being
+judged), `SYSTEM_ERROR` (engine unavailable after retries — not counted as an attempt).
 
 ### Submission history
 

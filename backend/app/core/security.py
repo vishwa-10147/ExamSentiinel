@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 import uuid
 import jwt
+import anyio
 import bcrypt
 
 # Fix for passlib + bcrypt 4.0+ issue
@@ -31,6 +32,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """Hash password using bcrypt."""
     return pwd_context.hash(password)
+
+
+async def verify_password_async(plain_password: str, hashed_password: str) -> bool:
+    """bcrypt is deliberately slow (~0.2 s): run it in a worker thread so concurrent sign-ins
+    do not block the event loop (and every other request) one after another."""
+    return await anyio.to_thread.run_sync(verify_password, plain_password, hashed_password)
+
+
+async def get_password_hash_async(password: str) -> str:
+    return await anyio.to_thread.run_sync(get_password_hash, password)
 
 
 def create_access_token(

@@ -17,7 +17,7 @@ cd backend && ../.venv/Scripts/python.exe -m pytest -q -p no:cacheprovider
 - `tests/test_practice.py` fakes the sandbox; its `test_real_engine_*` cases and all of `tests/test_sandbox_engine.py` (183 tests: isolation, limits, C harness, every bank reference) run only when Piston is up on :2000 (or `PISTON_URL`).
 - `-p no:cacheprovider` avoids a permission error writing `backend/.pytest_cache`.
 - Never set `DATABASE_URL=` to an empty string — config will fail to parse it.
-- Baseline: 589 passed, 0 skipped (2026-10-15, ~9.5 min), with Piston up and requirements-ai.txt installed (real-engine / Whisper tests skip otherwise).
+- Baseline: 605 passed, 0 skipped (2026-10-15, ~10 min), with Piston up and requirements-ai.txt installed (real-engine / Whisper tests skip otherwise).
 
 ## End-to-end (live servers)
 

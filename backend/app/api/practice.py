@@ -2,11 +2,13 @@
 
 from collections import defaultdict
 import json
+import os
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,6 +52,7 @@ from app.schemas.practice import (
     SubmitResponse,
     ValidationReport,
 )
+from app.services.judge_queue import judge_queue
 from app.services.practice_judge import (
     MAX_STDIO_INPUT_BYTES,
     SUPPORTED_LANGUAGES,
@@ -98,13 +101,17 @@ async def _get_problem(db: AsyncSession, slug: str, *, published_only: bool) -> 
     return problem
 
 
+# Queued submissions and engine outages are not the student's attempts.
+_NOT_ATTEMPTS = (Verdict.PENDING, Verdict.SYSTEM_ERROR)
+
+
 async def _user_status_map(db: AsyncSession, user_id: uuid.UUID) -> dict[uuid.UUID, str]:
     rows = await db.execute(
         select(
             PracticeSubmission.problem_id,
             func.max(case((PracticeSubmission.verdict == Verdict.ACCEPTED, 1), else_=0)),
         )
-        .where(PracticeSubmission.user_id == user_id)
+        .where(PracticeSubmission.user_id == user_id, PracticeSubmission.verdict.not_in(_NOT_ATTEMPTS))
         .group_by(PracticeSubmission.problem_id)
     )
     return {pid: ("solved" if solved else "attempted") for pid, solved in rows.all()}
@@ -116,7 +123,9 @@ async def _acceptance_map(db: AsyncSession) -> dict[uuid.UUID, tuple[int, int]]:
             PracticeSubmission.problem_id,
             func.count(PracticeSubmission.id),
             func.sum(case((PracticeSubmission.verdict == Verdict.ACCEPTED, 1), else_=0)),
-        ).group_by(PracticeSubmission.problem_id)
+        )
+        .where(PracticeSubmission.verdict.not_in(_NOT_ATTEMPTS))
+        .group_by(PracticeSubmission.problem_id)
     )
     return {pid: (int(total), int(accepted or 0)) for pid, total, accepted in rows.all()}
 
@@ -320,7 +329,7 @@ async def get_problem(slug: str, db: AsyncSession = Depends(get_db), current_use
     )
 
 
-@router.post("/problems/{slug}/run", response_model=RunResponse, dependencies=[Depends(RateLimiter(30, 60, local_fallback=True))])
+@router.post("/problems/{slug}/run", response_model=RunResponse, dependencies=[Depends(RateLimiter(30, 60, local_fallback=True, per_user=True))])
 async def run_code(
     slug: str,
     payload: RunRequest,
@@ -368,26 +377,34 @@ async def run_code(
     )
 
 
-@router.post("/problems/{slug}/submit", response_model=SubmitResponse, dependencies=[Depends(RateLimiter(10, 60, local_fallback=True))])
-async def submit_code(
-    slug: str,
-    payload: SubmitRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Judge against every test case (stops at the first failure) and record the submission."""
-    problem = await _get_problem(db, slug, published_only=current_user.role != UserRole.ADMIN)
-    if payload.language not in _languages(problem):
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{payload.language} is not available for this problem")
-    cases = _judge_cases(problem, samples_only=False)
-    if not cases:
-        raise HTTPException(status.HTTP_409_CONFLICT, "This problem has no test cases yet")
+SUBMIT_WAIT_SECONDS = float(os.getenv("SUBMIT_WAIT_SECONDS", "20"))
 
-    with _JudgeSlot(current_user.id):
-        try:
-            outcome = await judge(problem, payload.language, payload.code, cases, stop_on_failure=True)
-        except JudgeSpecError as exc:
-            _raise_spec_error(exc)
+
+def _submission_response(problem_id: uuid.UUID, submission: PracticeSubmission) -> SubmitResponse:
+    compile_output = None
+    if submission.verdict == Verdict.COMPILE_ERROR and submission.failure:
+        compile_output = submission.failure.get("error")
+    return SubmitResponse(
+        id=submission.id,
+        problem_id=problem_id,
+        language=submission.language,
+        verdict=submission.verdict,
+        passed_count=submission.passed_count,
+        total_count=submission.total_count,
+        runtime_ms=submission.runtime_ms,
+        failure=submission.failure,
+        created_at=submission.created_at,
+        compile_output=compile_output,
+    )
+
+
+async def _judge_submission(db: AsyncSession, submission: PracticeSubmission) -> Verdict:
+    """Queue handler: judge one submission against every test (stopping at the first failure)."""
+    problem = (await db.execute(
+        select(PracticeProblem).options(selectinload(PracticeProblem.test_cases)).where(PracticeProblem.id == submission.problem_id)
+    )).scalar_one()
+    cases = _judge_cases(problem, samples_only=False)
+    outcome = await judge(problem, submission.language, submission.source_code, cases, stop_on_failure=True)
 
     failure = None
     if outcome.failed_index is not None:
@@ -400,39 +417,88 @@ async def submit_code(
         }
     elif outcome.verdict in (Verdict.COMPILE_ERROR, Verdict.SYSTEM_ERROR):
         failure = {"error": (outcome.compile_output or outcome.error or "")[:4000]}
+    if outcome.verdict == Verdict.SYSTEM_ERROR:
+        logger.error("practice.submit_system_error", problem=problem.slug, error=outcome.error)
+        failure = {"error": "The code execution engine is unavailable. Please try again shortly."}
+
+    submission.verdict = outcome.verdict
+    submission.passed_count = outcome.passed_count
+    submission.total_count = outcome.total_count
+    submission.runtime_ms = outcome.runtime_ms if outcome.verdict == Verdict.ACCEPTED else None
+    submission.failure = failure
+    return outcome.verdict
+
+
+judge_queue.handler = _judge_submission
+
+
+@router.post(
+    "/problems/{slug}/submit",
+    response_model=SubmitResponse,
+    dependencies=[Depends(RateLimiter(10, 60, local_fallback=True, per_user=True))],
+    responses={202: {"model": SubmitResponse, "description": "Queued: poll GET /api/practice/submissions/{id}"}},
+)
+async def submit_code(
+    slug: str,
+    payload: SubmitRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Queue the submission for judging against every test case and wait briefly for the verdict.
+
+    Usually the verdict is ready within the wait (200). Under heavy load the response is
+    202 with ``verdict: PENDING``; poll ``GET /api/practice/submissions/{id}`` for the result.
+    """
+    problem = await _get_problem(db, slug, published_only=current_user.role != UserRole.ADMIN)
+    if payload.language not in _languages(problem):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{payload.language} is not available for this problem")
+    if not problem.test_cases:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This problem has no test cases yet")
+    pending = (await db.execute(
+        select(func.count(PracticeSubmission.id)).where(
+            PracticeSubmission.user_id == current_user.id, PracticeSubmission.verdict == Verdict.PENDING,
+        )
+    )).scalar_one()
+    if pending:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Your previous submission is still being judged. Please wait for it.")
 
     submission = PracticeSubmission(
         problem_id=problem.id,
         user_id=current_user.id,
         language=payload.language,
         source_code=payload.code,
-        verdict=outcome.verdict,
-        passed_count=outcome.passed_count,
-        total_count=outcome.total_count,
-        runtime_ms=outcome.runtime_ms if outcome.verdict == Verdict.ACCEPTED else None,
-        failure=failure,
+        verdict=Verdict.PENDING,
+        passed_count=0,
+        total_count=len(problem.test_cases),
     )
-    if outcome.verdict != Verdict.SYSTEM_ERROR:  # engine outages are not the student's attempt
-        db.add(submission)
-        await db.commit()
-        await db.refresh(submission)
-    else:
-        logger.error("practice.submit_system_error", problem=problem.slug, error=outcome.error)
-        submission.id = uuid.uuid4()
-        submission.created_at = datetime.now(timezone.utc)
+    db.add(submission)
+    await db.commit()
+    submission_id, problem_id = submission.id, problem.id
+    # Give the connection back to the pool while waiting: hundreds of students may be waiting
+    # at once, and a held connection each would exhaust the pool.
+    await db.close()
 
-    return SubmitResponse(
-        id=submission.id,
-        problem_id=problem.id,
-        language=submission.language,
-        verdict=submission.verdict,
-        passed_count=submission.passed_count,
-        total_count=submission.total_count,
-        runtime_ms=submission.runtime_ms,
-        failure=submission.failure,
-        created_at=submission.created_at,
-        compile_output=outcome.compile_output,
-    )
+    judge_queue.ensure_started()
+    judge_queue.track(submission_id)
+    judge_queue.notify()
+    await judge_queue.wait_for(submission_id, timeout=SUBMIT_WAIT_SECONDS)
+
+    submission = await db.get(PracticeSubmission, submission_id, populate_existing=True)
+    body = _submission_response(problem_id, submission)
+    if submission.verdict == Verdict.PENDING:
+        return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content=body.model_dump(mode="json"))
+    return body
+
+
+@router.get("/submissions/{submission_id}", response_model=SubmitResponse)
+async def get_my_submission(
+    submission_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user),
+):
+    """One of your submissions - poll this while ``verdict`` is ``PENDING``."""
+    submission = await db.get(PracticeSubmission, submission_id)
+    if submission is None or submission.user_id != current_user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Submission not found")
+    return _submission_response(submission.problem_id, submission)
 
 
 @router.get("/problems/{slug}/submissions", response_model=list[SubmissionOut])
@@ -441,7 +507,11 @@ async def my_submissions(slug: str, db: AsyncSession = Depends(get_db), current_
     rows = (
         await db.execute(
             select(PracticeSubmission)
-            .where(PracticeSubmission.problem_id == problem.id, PracticeSubmission.user_id == current_user.id)
+            .where(
+                PracticeSubmission.problem_id == problem.id,
+                PracticeSubmission.user_id == current_user.id,
+                PracticeSubmission.verdict != Verdict.SYSTEM_ERROR,
+            )
             .order_by(PracticeSubmission.created_at.desc())
             .limit(50)
         )
@@ -458,7 +528,7 @@ async def my_submission_history(
     current_user: User = Depends(get_current_user),
 ):
     """All of the current user's practice submissions, newest first (source code omitted)."""
-    conditions = [PracticeSubmission.user_id == current_user.id]
+    conditions = [PracticeSubmission.user_id == current_user.id, PracticeSubmission.verdict != Verdict.SYSTEM_ERROR]
     if verdict:
         conditions.append(PracticeSubmission.verdict == verdict)
     total = (await db.execute(select(func.count(PracticeSubmission.id)).where(*conditions))).scalar_one()
@@ -500,7 +570,11 @@ async def my_stats(db: AsyncSession = Depends(get_db), current_user: User = Depe
     subs = (await db.execute(
         select(PracticeSubmission.created_at, PracticeSubmission.verdict, PracticeProblem.title, PracticeProblem.slug, PracticeSubmission.language)
         .join(PracticeProblem, PracticeProblem.id == PracticeSubmission.problem_id)
-        .where(PracticeSubmission.user_id == current_user.id, PracticeSubmission.created_at >= since)
+        .where(
+            PracticeSubmission.user_id == current_user.id,
+            PracticeSubmission.created_at >= since,
+            PracticeSubmission.verdict.not_in(_NOT_ATTEMPTS),
+        )
         .order_by(PracticeSubmission.created_at.desc())
     )).all()
     activity: dict[str, int] = defaultdict(int)
@@ -793,7 +867,7 @@ async def admin_problem_to_exam(
     return {"question_id": str(question.id), "exam_id": str(payload.exam_id) if payload.exam_id else None, "title": question.title}
 
 
-@router.post("/exam-run", response_model=RunResponse, dependencies=[Depends(RateLimiter(30, 60, local_fallback=True))])
+@router.post("/exam-run", response_model=RunResponse, dependencies=[Depends(RateLimiter(30, 60, local_fallback=True, per_user=True))])
 async def exam_run_samples(
     payload: ExamRunRequest,
     db: AsyncSession = Depends(get_db),

@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, log_audit_event, require_roles
-from app.core.security import get_password_hash, verify_password
+from app.core.security import get_password_hash_async, verify_password_async
 from app.models.institution import Institution
 from app.models.user import User, UserRole
 from app.models.audit_log import AuditLog
@@ -56,7 +56,7 @@ async def create_user_by_admin(
     from app.services.password_policy import generate_random_password
 
     temporary_password = None if user_in.password else generate_random_password(14)
-    hashed_pwd = get_password_hash(user_in.password or temporary_password)
+    hashed_pwd = await get_password_hash_async(user_in.password or temporary_password)
     new_user = User(
         email=user_in.email.lower(),
         hashed_password=hashed_pwd,
@@ -137,7 +137,7 @@ async def bulk_import_users(
             continue
             
         plain_pwd = generate_sequential_password(password_prefix, idx + 1)
-        hashed_pwd = get_password_hash(plain_pwd)
+        hashed_pwd = await get_password_hash_async(plain_pwd)
         
         new_user = User(
             email=email,
@@ -323,13 +323,13 @@ async def update_password_me(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not verify_password(user_in.current_password, current_user.hashed_password):
+    if not await verify_password_async(user_in.current_password, current_user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect current password"
         )
     
-    current_user.hashed_password = get_password_hash(user_in.new_password)
+    current_user.hashed_password = await get_password_hash_async(user_in.new_password)
     db.add(current_user)
     await db.commit()
     return {"status": "success", "message": "Password updated successfully"}
@@ -362,7 +362,7 @@ async def admin_update_user(
     if "roll_no" in user_in:
         user.roll_no = user_in["roll_no"]
     if "password" in user_in and user_in["password"]:
-        user.hashed_password = get_password_hash(user_in["password"])
+        user.hashed_password = await get_password_hash_async(user_in["password"])
         
     db.add(user)
 

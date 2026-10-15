@@ -195,7 +195,9 @@ export default function ProblemWorkspacePage() {
     setConsoleOpen(true);
     setConsoleTab("result");
     try {
-      const s = await practiceService.submit(problem.slug, language, code);
+      const s = await practiceService.submit(problem.slug, language, code, () =>
+        toast("Many submissions are being judged right now - yours is queued.", { icon: "⏳" })
+      );
       const f = s.failure;
       const cases: CaseResult[] =
         f && f.is_sample !== undefined && f.case_number

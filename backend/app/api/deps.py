@@ -241,7 +241,20 @@ def _local_rate_limit(key: str, calls: int, period: int, now: float) -> None:
     window.append(now)
 
 
-def RateLimiter(calls: int, period: int, local_fallback: bool = False):
+def _user_key(request: Request) -> Optional[str]:
+    """The user id from the request's access token (header or cookie), without a DB lookup."""
+    header = request.headers.get("authorization", "")
+    token = header[7:] if header.lower().startswith("bearer ") else access_token_from_cookie(request)
+    if not token:
+        return None
+    try:
+        payload = decode_token(token)
+    except jwt.InvalidTokenError:
+        return None
+    return str(payload.get("user_id")) if payload.get("type") == "access" and payload.get("user_id") else None
+
+
+def RateLimiter(calls: int, period: int, local_fallback: bool = False, per_user: bool = False):
     """
     Returns a FastAPI dependency that implements a sliding window rate limit using Redis.
     Uses MULTI/EXEC pipeline to ensure atomicity.
@@ -250,10 +263,14 @@ def RateLimiter(calls: int, period: int, local_fallback: bool = False):
     per-process window enforces it (used for code execution and authentication, which
     must stay limited even when Redis is down; with N workers the effective limit is
     N x calls). Failed sign-ins are throttled separately by ``FailedLoginThrottle``.
+
+    ``per_user`` keys the window on the signed-in user instead of the client IP - needed for
+    exam-day traffic, where a whole lab of students shares one NAT address.
     """
     async def rate_limit_dependency(request: Request):
         client_ip = extract_client_ip(request) or "127.0.0.1"
-        key = f"rate_limit:{request.url.path}:{client_ip}"
+        identity = (_user_key(request) if per_user else None) or client_ip
+        key = f"rate_limit:{request.url.path}:{identity}"
         now = time.time()
         if redis_breaker.is_open:
             if local_fallback:

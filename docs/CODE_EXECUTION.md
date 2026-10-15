@@ -65,10 +65,38 @@ submission sends every test case in one request.
 | Output shown | stdout, stderr, compile output, exit code | per-case input/expected/output for samples and custom input | verdict, passed/total, runtime; for a failing **hidden** case only its number |
 | Stored | no | no | yes (`practice_submissions`) |
 | Stops early | — | no | at the first failing case |
-| Rate limit (per IP, per path) | 30/min | 30/min | 10/min |
+| Queued | no | no | yes — see [Judging queue](#judging-queue) |
+| Rate limit (per student, per path) | 30/min | 30/min | 10/min, and one pending submission at a time |
 
 For custom input, the expected answer is computed by running the problem's reference
 solution on the same input (server-side); the reference code itself is never sent.
+
+Rate limits are keyed on the signed-in student, not the IP address: on exam day a whole lab
+shares one NAT address.
+
+### Judging queue
+
+Submissions go through a database-backed queue (`app/services/judge_queue.py`):
+
+1. Submit stores the submission with verdict `PENDING` and wakes the workers.
+2. Workers — `JUDGE_WORKERS` asyncio tasks per API process (default 4) — claim one pending
+   submission at a time with a conditional `UPDATE`, so several processes can share the queue.
+3. The request waits up to `SUBMIT_WAIT_SECONDS` (default 20) and returns the verdict. If
+   judging takes longer it returns **202** with `verdict: PENDING`; clients poll
+   `GET /api/practice/submissions/{id}` (the web app does this automatically).
+4. Engine outages are retried (up to 3 attempts) before the submission is marked
+   `SYSTEM_ERROR`; a submission whose worker died is reclaimed after 2 minutes. Pending work
+   survives restarts because the database is the queue.
+
+Pending and engine-error submissions are not counted as attempts in progress, acceptance
+rates or streaks.
+
+**Measured capacity** (one API process, one Piston container, PostgreSQL, a 7-test Python
+problem): 200 students submitting at the same moment were all judged; 25 % received 202 and
+were polled; time to verdict p50 18 s, p95 32 s. Throughput was about 6 verdicts/s and did not
+change with 8 workers instead of 4 — the engine is the bottleneck, so scale by adding Piston
+instances (see [AWS deployment](AWS_DEPLOYMENT.md#4-code-runner-piston-on-ec2)).
+Reproduce with `scripts/load_test.py` ([Testing](TESTING.md#load-test)).
 
 ## Judge modes
 

@@ -46,7 +46,7 @@ class CodeExecutionResponse(BaseModel):
     memory_limit_mb: int = RUN_MEMORY_MB
 
 
-@router.post("/execute", response_model=CodeExecutionResponse, dependencies=[Depends(RateLimiter(30, 60, local_fallback=True))])
+@router.post("/execute", response_model=CodeExecutionResponse, dependencies=[Depends(RateLimiter(30, 60, local_fallback=True, per_user=True))])
 async def execute_code(req: CodeExecutionRequest, current_user: User = Depends(get_current_user)):
     """Compile (C, C++, Java) and run the program in the sandbox with the given stdin."""
     if not req.code.strip():

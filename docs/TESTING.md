@@ -10,6 +10,7 @@ the code-execution sandbox, browser tests with Playwright, and a live end-to-end
 - [Backend test files](#backend-test-files)
 - [Browser tests](#browser-tests)
 - [Latest results](#latest-results)
+- [Load test](#load-test)
 - [Writing tests](#writing-tests)
 
 ## Test suites
@@ -56,6 +57,9 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | `test_practice_bank.py` | 247 | At least 100 DSA problems, topic minimums, unique and stable IDs, required fields, harness generation in every language, checkers, idempotent seeding |
 | `test_sandbox_engine.py` | 183 | Programs in five languages with stdin, stdout and stderr; compile and runtime errors; isolation and limits; solutions in Java, C++, JavaScript and C; a round trip of every type through the C harness; every reference solution |
 | `test_practice.py` | 35 | Verdict logic, harness generation, authoring, hidden-data redaction, SQL judging, practice problems in exams |
+| `test_judge_queue.py` | 6 | Verdict within the wait, 202 then polling, one pending submission per student, engine-outage retries, recovery of an orphaned job, bounded engine concurrency, per-student (not per-IP) limits |
+| `test_cookie_sessions.py` | 7 | httpOnly cookie sign-in and refresh, CSRF header, logout, bearer clients unchanged, failed-login throttle, WebSocket origin check |
+| `test_redis_breaker.py` | 3 | Half-open circuit breaker: one probe at a time, cool-down, healthy Redis stays closed |
 | `test_practice_dsa_api.py` | 8 | IDs, topics, sorting and search; editorial gating; checker protection; history and progress; playground limits; rate limiting |
 | Other `test_*.py` | 116 | Authentication, RBAC, SSO, password reset, exams, proctoring and AI, interviews, IRT, adversarial and security checks |
 
@@ -74,7 +78,7 @@ was skipped. Re-run the suites after any change rather than relying on these fig
 
 | Suite | Result |
 |---|---|
-| Backend | **589 passed**, 0 failed, 0 skipped |
+| Backend | **605 passed**, 0 failed, 0 skipped |
 | Browser | **26 passed** |
 | End to end | **73 / 73** steps passed |
 | Type check, lint, production build | No errors or warnings |
@@ -82,6 +86,32 @@ was skipped. Re-run the suites after any change rather than relying on these fig
 Continuous integration (`.github/workflows/ci.yml`) runs the backend suite and a production
 frontend build on every pull request and on pushes to `main`. The engine is not available in
 CI, so real-engine tests are skipped there.
+
+## Load test
+
+`scripts/load_test.py` simulates an exam rush: N students sign in, then all submit a correct
+solution at the same moment; queued (202) submissions are polled like the web app does.
+
+```bash
+.venv/Scripts/python scripts/load_test.py --students 200 --api http://localhost:8000
+.venv/Scripts/python scripts/load_test.py --cleanup
+```
+
+It creates development-only accounts directly in the configured database and refuses to run
+when `ENVIRONMENT=production`. Results on 2026-10-15 (one API process, PostgreSQL 16, one
+Piston container, Windows 11 / 32 cores):
+
+| Students | Sign-in p95 | Submit responses | Accepted | Time to verdict p50 / p95 | Throughput |
+|---:|---:|---|---:|---:|---:|
+| 100 | 1.4 s | 100 × 200 | 100 / 100 | 8.6 s / 14.2 s | 6.7 verdicts/s |
+| 200 | 2.8 s | 144 × 200, 54 × 202 (queued) | 198 / 200 | 18.6 s / 32.0 s | 5.8 verdicts/s |
+
+The two missing results in the 200-student run were client-side connection drops (`ReadError`);
+the server logged no errors and left nothing pending. The load test found and fixed four
+problems on the way: the database pool was exhausted by requests waiting for verdicts,
+password hashing blocked the event loop, every request in a burst tried to reconnect to a
+missing Redis (100 sign-ins took 51 s; now 1.6 s), and code-execution limits were per IP
+(a whole lab shares one).
 
 ## Writing tests
 

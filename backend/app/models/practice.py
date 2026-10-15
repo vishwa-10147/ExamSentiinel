@@ -5,10 +5,11 @@ never affects exam results.
 """
 
 import enum
+from datetime import datetime
 import uuid
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Integer, JSON, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, JSON, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import TimeStampedUUIDModel
@@ -38,6 +39,7 @@ class Verdict(str, enum.Enum):
     RUNTIME_ERROR = "RUNTIME_ERROR"
     COMPILE_ERROR = "COMPILE_ERROR"
     SYSTEM_ERROR = "SYSTEM_ERROR"
+    PENDING = "PENDING"  # queued or being judged (see app/services/judge_queue.py)
 
 
 def _enum(cls, name):
@@ -131,5 +133,8 @@ class PracticeSubmission(TimeStampedUUIDModel):
     runtime_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     # Details of the first failing case (input/expected only when it is a sample case).
     failure: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    # Judge queue bookkeeping: set when a worker claims the submission; attempts counts retries.
+    judge_started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    judge_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
 
     problem: Mapped["PracticeProblem"] = relationship("PracticeProblem")
