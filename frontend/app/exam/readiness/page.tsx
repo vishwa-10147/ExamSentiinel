@@ -144,7 +144,7 @@ function ExamReadinessContent() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-300">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-600 dark:text-slate-300">
         <div className="flex items-center gap-3">
           <svg className="animate-spin h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -157,23 +157,23 @@ function ExamReadinessContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center sm:text-left">
-          <span className="text-xs uppercase font-bold tracking-widest text-indigo-400 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-800/60">
+          <span className="text-xs uppercase font-bold tracking-widest text-indigo-700 bg-indigo-50 border-indigo-200 dark:text-indigo-400 dark:bg-indigo-950/60 dark:border-indigo-800/60 px-3 py-1 rounded-full border">
             System Readiness Check
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-3">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-3">
             {exam ? exam.title : "Examination System Verification"}
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Complete the hardware, display, and policy checks before launching your exam session.
           </p>
         </div>
 
         {error && (
-          <div className="p-4 mb-6 bg-red-950/50 border border-red-800 rounded-xl text-red-300 text-sm">
+          <div className="p-4 mb-6 bg-red-950/50 border border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -182,22 +182,22 @@ function ExamReadinessContent() {
           {/* Main Checklist Card (2 cols) */}
           <div className="md:col-span-2 space-y-4">
             {/* 1. Camera & Mic Check */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-indigo-400">
+                  <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">Camera & Microphone</h3>
-                    <p className="text-xs text-slate-400">Verifies hardware stream access</p>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Camera & Microphone</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Verifies hardware stream access</p>
                   </div>
                 </div>
 
                 {webcamStatus === "passed" ? (
-                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold flex items-center gap-1">
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold flex items-center gap-1">
                     ✓ Verified
                   </span>
                 ) : (
@@ -215,7 +215,7 @@ function ExamReadinessContent() {
               <div className="mt-4 aspect-video bg-slate-950 rounded-xl border border-slate-800 overflow-hidden flex items-center justify-center relative">
                 <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                 {webcamStatus !== "passed" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-xs gap-2">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 text-xs gap-2">
                     <svg className="w-8 h-8 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
@@ -226,27 +226,27 @@ function ExamReadinessContent() {
             </div>
 
             {/* 2. Fullscreen Check */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-indigo-400">
+                <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Fullscreen Lock</h3>
-                  <p className="text-xs text-slate-400">Exams must be taken in dedicated fullscreen</p>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Fullscreen Lock</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Exams must be taken in dedicated fullscreen</p>
                 </div>
               </div>
 
               {fullscreenStatus === "passed" ? (
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold">
+                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold">
                   ✓ Enabled
                 </span>
               ) : (
                 <button
                   onClick={requestFullscreen}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition-colors"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors"
                 >
                   Enter Fullscreen
                 </button>
@@ -254,27 +254,27 @@ function ExamReadinessContent() {
             </div>
 
             {/* 3. Connectivity Check */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-indigo-400">
+                <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Network & Server Sync</h3>
-                  <p className="text-xs text-slate-400">Ensures reliable auto-save channel</p>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Network & Server Sync</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Ensures reliable auto-save channel</p>
                 </div>
               </div>
 
               {networkStatus === "passed" ? (
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold">
+                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold">
                   ✓ Connected
                 </span>
               ) : (
                 <button
                   onClick={testNetwork}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition-colors"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors"
                 >
                   Test Connection
                 </button>
@@ -282,25 +282,25 @@ function ExamReadinessContent() {
             </div>
 
             {/* 4. Multi-Monitor Display Check */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-indigo-400">
+                <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 002-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Display & Monitor Topology</h3>
-                  <p className="text-xs text-slate-400">Single active display monitor recommended</p>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Display & Monitor Topology</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Single active display monitor recommended</p>
                 </div>
               </div>
 
               {multiMonitorStatus === "passed" ? (
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold">
+                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold">
                   ✓ Single Display
                 </span>
               ) : (
-                <span className="px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-semibold">
+                <span className="px-3 py-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-full text-xs font-semibold">
                   ⚠ Extended Display Detected
                 </span>
               )}
@@ -310,43 +310,43 @@ function ExamReadinessContent() {
           {/* Side Info & Consent Card (1 col) */}
           <div className="space-y-4">
             {/* Exam Rules Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-white mb-3">Exam Specifications</h3>
-              <div className="space-y-2.5 text-xs text-slate-300">
-                <div className="flex justify-between py-1 border-b border-slate-800">
-                  <span className="text-slate-400">Duration:</span>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Exam Specifications</h3>
+              <div className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
+                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400">Duration:</span>
                   <span className="font-semibold">{exam?.duration_minutes || 60} minutes</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-800">
-                  <span className="text-slate-400">Late Entry Limit:</span>
+                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400">Late Entry Limit:</span>
                   <span className="font-semibold">{exam?.late_entry_minutes || 15} minutes</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-800">
-                  <span className="text-slate-400">Auto-Save:</span>
-                  <span className="text-emerald-400 font-semibold">Active (Real-time)</span>
+                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400">Auto-Save:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Active (Real-time)</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-slate-400">Proctoring:</span>
-                  <span className="text-indigo-400 font-semibold">Automated & Human Review</span>
+                  <span className="text-slate-500 dark:text-slate-400">Proctoring:</span>
+                  <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Automated & Human Review</span>
                 </div>
               </div>
             </div>
 
             {/* Informed Consent Agreement */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-white mb-2">Examination Integrity Consent</h3>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">Examination Integrity Consent</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
                 By participating in this examination, you acknowledge that ExamSentinel monitors browser window focus,
                 fullscreen boundaries, and camera telemetry to safeguard academic integrity. No automated penalty is
                 ever imposed; all anomalies are reviewed by human proctors.
               </p>
 
-              <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-300 select-none">
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-600 dark:text-slate-300 select-none">
                 <input
                   type="checkbox"
                   checked={consentAgreed}
                   onChange={(e) => setConsentAgreed(e.target.checked)}
-                  className="mt-0.5 text-indigo-600 rounded bg-slate-950 border-slate-700 focus:ring-indigo-500 h-4 w-4"
+                  className="mt-0.5 text-indigo-600 dark:text-indigo-400 rounded bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:ring-indigo-500 h-4 w-4"
                 />
                 <span>I understand and agree to the exam integrity policies and monitoring protocols.</span>
               </label>
@@ -357,7 +357,7 @@ function ExamReadinessContent() {
                 className={`w-full mt-6 py-3 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
                   isReady
                     ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30"
-                    : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                 }`}
               >
                 Proceed to Exam &rarr;
@@ -374,7 +374,7 @@ export default function ExamReadinessPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-300">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-600 dark:text-slate-300">
           Loading system readiness checklist...
         </div>
       }

@@ -14,7 +14,7 @@ allowed-tools: Bash, Read, Edit
   top of it (`examService`, `proctoringService`, `practiceService`). Never hard-code a host:
   the base URL is `NEXT_PUBLIC_API_URL` (localhost:8000 in dev). It's **build-time** — Docker images
   need it as a build arg.
-- Auth tokens live in localStorage; `contexts/AuthContext.tsx` exposes `user`. Only
+- Sessions are httpOnly cookies the page cannot read; `apiClient` sends them (`credentials: "include"` plus `X-Auth-Mode`/`X-Requested-With`). Never store tokens in localStorage. `contexts/AuthContext.tsx` exposes `user`. Only
   `app/admin/layout.tsx` enforces roles client-side — the API is the real guard, so every endpoint
   must check roles server-side.
 

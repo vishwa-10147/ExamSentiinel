@@ -314,7 +314,7 @@ export default function InterviewRoomPage() {
         <main className="relative flex min-h-[360px] items-center justify-center bg-black">
           <video ref={remoteVideo} autoPlay playsInline className="h-full w-full object-contain" />
           {link !== "connected" && (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">{statusText}</div>
+            <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">{statusText}</div>
           )}
           <video
             ref={localVideo}
@@ -361,12 +361,12 @@ export default function InterviewRoomPage() {
             {!detail.transcription_available ? (
               <p className="text-xs text-amber-300">Speech-to-text isn&apos;t installed on the server (requirements-ai.txt).</p>
             ) : detail.segments.length === 0 ? (
-              <p className="text-xs text-slate-500">The candidate&apos;s answers appear here as they speak.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">The candidate&apos;s answers appear here as they speak.</p>
             ) : (
               <ul className="space-y-2">
                 {detail.segments.map((s, i) => (
                   <li key={i} className="rounded-lg bg-slate-800/60 p-2">
-                    <span className="mr-2 text-[10px] text-slate-500">{new Date(s.at).toLocaleTimeString()}</span>
+                    <span className="mr-2 text-[10px] text-slate-500 dark:text-slate-400">{new Date(s.at).toLocaleTimeString()}</span>
                     {s.text}
                   </li>
                 ))}

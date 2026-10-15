@@ -1,9 +1,11 @@
 """
 WebSocket endpoints for real-time exam monitoring.
 
-Authentication is performed via a `token` query parameter because the browser
-WebSocket API does not allow setting custom HTTP headers.  The token is validated
-as a standard JWT access token, and only ADMIN / PROCTOR roles are permitted.
+Browsers authenticate with the httpOnly session cookie sent on the handshake (only
+from an allowed page origin); scripts may pass the access token as a `token` query
+parameter instead, because the WebSocket API cannot set custom headers. The token
+is validated as a standard JWT access token, and only ADMIN / PROCTOR roles are
+permitted (interviews also admit their candidate).
 """
 
 import uuid
@@ -12,6 +14,7 @@ import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth_cookies import ACCESS_COOKIE
 from app.core.config import settings
 from app.core.database import async_session_maker
 from app.core.logging import logger
@@ -32,6 +35,14 @@ async def _authenticate_ws(websocket: WebSocket, roles: set[UserRole] = _MONITOR
     an appropriate close code) if authentication fails.
     """
     token: str | None = websocket.query_params.get("token")
+    if not token:
+        # Browsers send the httpOnly session cookie with the handshake. WebSockets are not
+        # covered by CORS, so only accept the cookie from an allowed page origin
+        # (prevents cross-site WebSocket hijacking).
+        token = websocket.cookies.get(ACCESS_COOKIE)
+        if token and websocket.headers.get("origin") not in settings.CORS_ORIGINS:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Origin not allowed")
+            return None
 
     if not token:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Missing authentication token")

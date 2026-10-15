@@ -25,8 +25,8 @@ export default function CandidateResultDetailPage() {
 
   if (loading) {
     return (
-      <main className="w-full max-w-5xl mx-auto p-8 flex flex-col items-center justify-center min-h-[60vh] text-slate-500">
-        <Loader2 className="w-8 h-8 animate-spin mb-3 text-blue-600" />
+      <main className="w-full max-w-5xl mx-auto p-8 flex flex-col items-center justify-center min-h-[60vh] text-slate-500 dark:text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin mb-3 text-blue-600 dark:text-blue-400" />
         <p className="text-sm font-medium">Fetching detailed examination breakdown...</p>
       </main>
     );
@@ -37,11 +37,11 @@ export default function CandidateResultDetailPage() {
       <main className="w-full max-w-5xl mx-auto p-6 sm:p-8">
         <button 
           onClick={() => router.push("/candidate/results")} 
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 mb-6"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 mb-6"
         >
           <ArrowLeft className="w-4 h-4" /> Back to My Results
         </button>
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center text-red-700 flex flex-col items-center">
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-2xl p-6 text-center text-red-700 dark:text-red-400 flex flex-col items-center">
           <AlertCircle className="w-10 h-10 mb-2 text-red-500" />
           <h2 className="text-lg font-bold mb-1">Result Unavailable</h2>
           <p className="text-sm">{error || "Could not retrieve session details."}</p>
@@ -60,7 +60,7 @@ export default function CandidateResultDetailPage() {
       {/* Navigation */}
       <button 
         onClick={() => router.push("/candidate/results")} 
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Back to My Results
       </button>
@@ -75,7 +75,7 @@ export default function CandidateResultDetailPage() {
           <p className="text-slate-400 text-sm">Session ID: <span className="font-mono text-slate-300">{sessionId}</span></p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 sm:p-5 border border-white/10 text-center min-w-[200px] w-full md:w-auto space-y-3">
+        <div className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-md rounded-xl p-4 sm:p-5 border border-white/10 text-center min-w-[200px] w-full md:w-auto space-y-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Final Grade</div>
             <div className="text-3xl font-extrabold text-white">
@@ -106,24 +106,24 @@ export default function CandidateResultDetailPage() {
       </div>
 
       {/* Questions Breakdown Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-          <h2 className="font-bold text-slate-900 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-600" /> Question Breakdown
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+          <h2 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Question Breakdown
           </h2>
-          <span className="text-xs text-slate-500 font-medium">{responses.length} Total Questions</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{responses.length} Total Questions</span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-slate-600">
-            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200 font-semibold">
+          <table className="w-full text-sm text-left text-slate-600 dark:text-slate-300">
+            <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 font-semibold">
               <tr>
                 <th className="px-6 py-4">Question</th>
                 <th className="px-6 py-4">Marks Awarded</th>
                 <th className="px-6 py-4 text-right">Evaluation Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {responses.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="px-6 py-12 text-center text-slate-400 text-sm">
@@ -136,24 +136,24 @@ export default function CandidateResultDetailPage() {
                   const isIncorrect = resp.is_correct === false;
 
                   return (
-                    <tr key={resp.question_id || idx} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-slate-900">
+                    <tr key={resp.question_id || idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-700/50/70 transition-colors">
+                      <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">
                         {resp.question_title || `Question ${idx + 1}`}
                       </td>
-                      <td className="px-6 py-4 font-mono font-medium text-slate-800">
+                      <td className="px-6 py-4 font-mono font-medium text-slate-800 dark:text-slate-100">
                         {resp.marks_awarded ?? 0} pts
                       </td>
                       <td className="px-6 py-4 text-right">
                         {isCorrect ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Correct
                           </span>
                         ) : isIncorrect ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/30">
                             <XCircle className="w-3.5 h-3.5" /> Incorrect
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
                             <Clock className="w-3.5 h-3.5" /> Pending Review
                           </span>
                         )}

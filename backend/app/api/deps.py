@@ -7,6 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.auth_cookies import access_token_from_cookie, csrf_ok
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.database import get_db
@@ -64,16 +65,27 @@ async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Dependency that authenticates JWT access token and returns current active User."""
-    if not credentials or not credentials.credentials:
-        print("MISSING CREDENTIALS! Headers:", request.headers)
+    """Dependency that authenticates JWT access token and returns current active User.
+
+    The token comes from the ``Authorization: Bearer`` header (API clients) or the
+    httpOnly session cookie (browsers; see app/core/auth_cookies.py).
+    """
+    if credentials and credentials.credentials:
+        token = credentials.credentials
+    else:
+        token = access_token_from_cookie(request)
+        if token and not csrf_ok(request):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Missing X-Requested-With header for a cookie-authenticated request",
+            )
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication credentials were not provided",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = credentials.credentials
     try:
         payload = decode_token(token)
     except jwt.ExpiredSignatureError:
@@ -235,8 +247,9 @@ def RateLimiter(calls: int, period: int, local_fallback: bool = False):
     Uses MULTI/EXEC pipeline to ensure atomicity.
 
     Without Redis the limit is skipped, unless ``local_fallback`` is set: then a
-    per-process window enforces it (used for code execution, which must stay
-    limited even when Redis is down; with N workers the effective limit is N x calls).
+    per-process window enforces it (used for code execution and authentication, which
+    must stay limited even when Redis is down; with N workers the effective limit is
+    N x calls). Failed sign-ins are throttled separately by ``FailedLoginThrottle``.
     """
     async def rate_limit_dependency(request: Request):
         client_ip = extract_client_ip(request) or "127.0.0.1"
@@ -278,3 +291,49 @@ def RateLimiter(calls: int, period: int, local_fallback: bool = False):
                 _local_rate_limit(key, calls, period, now)
             
     return rate_limit_dependency
+
+
+class FailedLoginThrottle:
+    """Limits *failed* sign-in attempts per (client IP, email) — brute-force protection that does
+    not lock out a user who signs in successfully many times. Uses Redis when it is reachable and
+    the in-process window otherwise (same windows as ``RateLimiter(local_fallback=True)``)."""
+
+    def __init__(self, max_failures: int = 5, period: int = 60):
+        self.max_failures, self.period = max_failures, period
+
+    def _key(self, request: Request, email: str) -> str:
+        return f"login_failures:{extract_client_ip(request) or '127.0.0.1'}:{email.strip().lower()[:254]}"
+
+    async def _count(self, key: str, now: float, add: bool) -> int:
+        if not redis_breaker.is_open:
+            try:
+                async with redis_client.pipeline(transaction=True) as pipe:
+                    pipe.zremrangebyscore(key, 0, now - self.period)
+                    if add:
+                        pipe.zadd(key, {str(now): now})
+                    pipe.zcard(key)
+                    pipe.expire(key, self.period)
+                    results = await pipe.execute()
+                return int(results[2] if add else results[1])
+            except Exception:
+                redis_breaker.trip()
+        window = _local_windows.setdefault(key, deque())
+        while window and window[0] <= now - self.period:
+            window.popleft()
+        if add:
+            window.append(now)
+        return len(window)
+
+    async def check(self, request: Request, email: str) -> None:
+        if await self._count(self._key(request, email), time.time(), add=False) >= self.max_failures:
+            logger.warning("login_throttled", ip=extract_client_ip(request))
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed sign-in attempts. Please wait a minute and try again.",
+            )
+
+    async def record_failure(self, request: Request, email: str) -> None:
+        await self._count(self._key(request, email), time.time(), add=True)
+
+
+failed_login_throttle = FailedLoginThrottle()

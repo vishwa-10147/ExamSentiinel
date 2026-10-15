@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Optional, Union
 
 from dotenv import load_dotenv
 from pydantic import field_validator, model_validator
@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # Browser sessions use httpOnly cookies (see app/core/auth_cookies.py).
+    # COOKIE_SECURE defaults to True in production; COOKIE_DOMAIN is only needed when the
+    # frontend must see the cookie on a sibling subdomain (it normally does not).
+    COOKIE_SECURE: Optional[bool] = None
+    COOKIE_SAMESITE: str = "lax"
+    COOKIE_DOMAIN: Optional[str] = None
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5440/examsentinel"

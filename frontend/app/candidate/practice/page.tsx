@@ -11,7 +11,7 @@ import { LANGUAGE_LABELS, MONACO_LANGUAGE, PracticeLanguage } from "@/services/p
 
 const Editor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
-  loading: () => <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading editor…</div>,
+  loading: () => <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading editor…</div>,
 });
 
 const LANGUAGES: PracticeLanguage[] = ["python", "javascript", "java", "cpp", "c", "sql"];
@@ -105,7 +105,7 @@ export default function PracticePlaygroundPage() {
     <div className="flex h-full flex-col bg-slate-50 dark:bg-slate-900">
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-slate-800">
         <h1 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-          <Code2 className="h-5 w-5 text-blue-600" /> Code Playground
+          <Code2 className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Code Playground
         </h1>
         <select
           value={language}
@@ -119,11 +119,11 @@ export default function PracticePlaygroundPage() {
         </select>
         <button
           onClick={() => setCode(TEMPLATES[language])}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-700 dark:hover:text-white"
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-700 dark:hover:text-white"
         >
           <RotateCcw className="h-3.5 w-3.5" /> Template
         </button>
-        <Link href="/candidate/problems" className="text-xs font-medium text-blue-600 hover:underline">
+        <Link href="/candidate/problems" className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
           Browse problems →
         </Link>
         <button
@@ -152,7 +152,7 @@ export default function PracticePlaygroundPage() {
         </div>
         <div className="flex min-h-0 flex-col gap-3 border-l border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
           <div>
-            <label htmlFor="stdin" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label htmlFor="stdin" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Standard input
             </label>
             <textarea
@@ -166,7 +166,7 @@ export default function PracticePlaygroundPage() {
           </div>
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="mb-1 flex items-baseline justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Output</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Output</span>
               {status && (
                 <span className={`text-xs font-semibold ${status.tone}`}>
                   {status.text}
@@ -180,7 +180,7 @@ export default function PracticePlaygroundPage() {
               {!running && result?.stderr && <span className="text-rose-300">{(result.stdout ? "\n" : "") + result.stderr}</span>}
             </pre>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Runs in an isolated sandbox with a 5 s time limit, 256 MB memory and no network access. Java code must define <code>public class Main</code>.
           </p>
         </div>

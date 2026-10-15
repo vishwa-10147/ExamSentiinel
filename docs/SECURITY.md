@@ -22,6 +22,7 @@ here, do not assume it exists.
 ### Contents
 
 - [Code execution sandbox](#code-execution-sandbox)
+- [Sessions and authentication](#sessions-and-authentication)
 - [API controls](#api-controls)
 - [Secrets](#secrets)
 - [Known gaps](#known-gaps)
@@ -66,6 +67,19 @@ run memory, 64 processes, 8 MB output); per-request limits are set by
   outbound IP and DNS are unreachable from user code in our deployment; re-run it after
   changing the engine image or host.
 
+### Sessions and authentication
+
+| Control | Where | Verified by |
+|---|---|---|
+| Browser sessions use **httpOnly cookies** (`es_access`, `es_refresh`): page scripts cannot read the tokens, and in cookie mode the JSON body carries none | `app/core/auth_cookies.py`, `session_response` in `app/api/auth.py` | `test_cookie_login_keeps_tokens_out_of_javascript`, `test_cookie_refresh_rotates_without_exposing_tokens`; checked in a browser (`document.cookie` is empty, `localStorage` holds no token) |
+| Cookies are `SameSite=Lax`, `Secure` in production, and the refresh cookie is scoped to `/api/auth` | `set_auth_cookies` | `test_cookie_login_keeps_tokens_out_of_javascript` |
+| CSRF: a state-changing request authenticated by cookie must carry `X-Requested-With` (403 otherwise) | `get_current_user` in `app/api/deps.py` | `test_cookie_requests_that_change_state_need_the_csrf_header` |
+| WebSockets accept the session cookie only from an allowed page `Origin` (cross-site WebSocket hijacking) | `_authenticate_ws` in `app/api/monitoring.py` | `test_websocket_cookie_auth_requires_an_allowed_origin` |
+| Logout revokes refresh tokens and clears the cookies | `logout` in `app/api/auth.py` | `test_cookie_requests_that_change_state_need_the_csrf_header`, `test_bearer_clients_are_unchanged` |
+| Failed sign-ins: 5 per minute per (IP, account), then 429 — successful sign-ins are not counted; plus 60 sign-ins per minute per IP. Enforced by Redis **with an in-process fallback** | `FailedLoginThrottle`, `RateLimiter(..., local_fallback=True)` | `test_failed_logins_are_throttled_per_account_without_redis`, `test_successful_logins_are_not_throttled` |
+| Registration (3/hour per IP) and password-reset limits hold without Redis | `RateLimiter(..., local_fallback=True)` in `app/api/auth.py` | `test_concurrency_duplicate_registration` |
+| Bearer tokens remain available for API clients and scripts (no cookies set for them) | `session_response` | `test_bearer_clients_are_unchanged` |
+
 ### API controls
 
 | Control | Where | Verified by |
@@ -95,12 +109,10 @@ DOMPurify for exam HTML, audit logging) are covered by `test_auth.py`, `test_rba
 
 ### Known gaps
 
-- Login/registration rate limits require Redis (they are skipped without it, on purpose, so
-  local test suites can log in repeatedly).
 - In-process rate-limit windows are per worker process: with N workers the effective limit is
   N × the configured value until Redis is available.
-- Access tokens are stored in `localStorage` (no httpOnly cookies), so an XSS bug would expose
-  them; exam HTML is sanitised with DOMPurify to reduce that risk.
+- An XSS bug could still act *as* the signed-in user while the page is open (it cannot steal
+  the tokens); exam HTML is sanitised with DOMPurify to reduce that risk.
 - AI proctoring signals are advisory only; they never penalise a candidate automatically.
 
 ---

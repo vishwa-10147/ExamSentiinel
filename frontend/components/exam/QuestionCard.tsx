@@ -10,7 +10,7 @@ import Markdown from "@/components/practice/Markdown";
 // Lazy load Monaco Editor (massive bundle) only when needed, disable SSR
 const Editor = dynamic(() => import("@monaco-editor/react"), { 
   ssr: false, 
-  loading: () => <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">Loading IDE...</div>
+  loading: () => <div className="w-full h-full flex items-center justify-center text-slate-500 dark:text-slate-400 text-sm">Loading IDE...</div>
 });
 
 const DEFAULT_LANGUAGES = ["python", "javascript", "java", "c", "cpp"];
@@ -169,18 +169,18 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   const normalizedOptions = normalizeOptions(question.options);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between min-h-[500px] shadow-sm select-none">
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 flex flex-col justify-between min-h-[500px] shadow-sm select-none">
       <div>
         {/* Header Bar */}
-        <div className="flex flex-wrap items-center justify-between pb-4 mb-4 border-b border-slate-100 gap-2">
+        <div className="flex flex-wrap items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-slate-700 gap-2">
           <div className="flex items-center gap-3">
-            <span className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-bold">
+            <span className="px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-full text-xs font-bold">
               Question {index + 1} of {total}
             </span>
-            <span className="text-xs font-medium text-slate-500">
-              Points: <strong className="text-slate-900">{question.points}</strong>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Points: <strong className="text-slate-900 dark:text-white">{question.points}</strong>
             </span>
-            <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded-md text-xs font-semibold">
+            <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-md text-xs font-semibold">
               {question.type.replace("_", " ")}
             </span>
           </div>
@@ -190,8 +190,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               onClick={onToggleFlag}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 isFlagged
-                  ? "bg-amber-50 text-amber-700 border-amber-300 font-bold"
-                  : "bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900 hover:bg-slate-200"
+                  ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-500/30 font-bold"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200"
               }`}
             >
               <svg
@@ -210,7 +210,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             </button>
             <button
               onClick={onClearResponse}
-              className="px-2.5 py-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+              className="px-2.5 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors font-medium"
             >
               Clear
             </button>
@@ -218,12 +218,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         </div>
 
         {/* Title & Content */}
-        <h2 className="text-lg font-bold text-slate-900 mb-2">{question.title}</h2>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{question.title}</h2>
         {linkedProblemId ? (
-          <Markdown source={question.content_rich_text} className="mb-6 text-sm text-slate-700" />
+          <Markdown source={question.content_rich_text} className="mb-6 text-sm text-slate-700 dark:text-slate-200" />
         ) : (
           <div
-            className="prose prose-slate max-w-none text-slate-700 text-sm mb-6 leading-relaxed"
+            className="prose prose-slate max-w-none text-slate-700 dark:text-slate-200 text-sm mb-6 leading-relaxed"
             // Question text may come from CSV imports or AI generation: strip scripts and handlers.
             dangerouslySetInnerHTML={{ __html: typeof window === "undefined" ? "" : DOMPurify.sanitize(question.content_rich_text) }}
           />
@@ -234,7 +234,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           {question.type === "MCQ_SINGLE" && (
             <div className="space-y-2.5">
               {normalizedOptions.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">No options provided for this question.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 italic">No options provided for this question.</p>
               ) : (
                 normalizedOptions.map((opt) => {
                   const selected = String(responseData?.selected_option_id) === String(opt.id);
@@ -244,14 +244,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                       onClick={() => handleSingleOption(opt.id)}
                       className={`flex items-center gap-3.5 p-3.5 rounded-xl border cursor-pointer transition-all ${
                         selected
-                          ? "bg-blue-50/80 border-blue-600 text-blue-950 font-semibold shadow-sm ring-1 ring-blue-500/20"
-                          : "bg-slate-50/80 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300 hover:shadow-sm"
+                          ? "bg-blue-50/80 dark:bg-blue-500/10 border-blue-600 text-blue-950 dark:text-blue-300 font-semibold shadow-sm ring-1 ring-blue-500/20"
+                          : "bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-white hover:border-slate-300 hover:shadow-sm"
                       }`}
                     >
                       <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                        selected ? "border-blue-600 bg-blue-600" : "border-slate-400 bg-white"
+                        selected ? "border-blue-600 bg-blue-600" : "border-slate-400 bg-white dark:bg-slate-800"
                       }`}>
-                        {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        {selected && <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-slate-800" />}
                       </div>
                       <span className="text-sm font-medium leading-normal">{opt.text}</span>
                     </div>
@@ -263,9 +263,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
           {question.type === "MCQ_MULTI" && (
             <div className="space-y-2.5">
-              <p className="text-xs text-slate-500 italic mb-1">Select all options that apply:</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic mb-1">Select all options that apply:</p>
               {normalizedOptions.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">No options provided for this question.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 italic">No options provided for this question.</p>
               ) : (
                 normalizedOptions.map((opt) => {
                   const checked =
@@ -277,12 +277,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                       onClick={() => handleMultiOption(opt.id)}
                       className={`flex items-center gap-3.5 p-3.5 rounded-xl border cursor-pointer transition-all ${
                         checked
-                          ? "bg-blue-50/80 border-blue-600 text-blue-950 font-semibold shadow-sm ring-1 ring-blue-500/20"
-                          : "bg-slate-50/80 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300 hover:shadow-sm"
+                          ? "bg-blue-50/80 dark:bg-blue-500/10 border-blue-600 text-blue-950 dark:text-blue-300 font-semibold shadow-sm ring-1 ring-blue-500/20"
+                          : "bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-white hover:border-slate-300 hover:shadow-sm"
                       }`}
                     >
                       <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                        checked ? "border-blue-600 bg-blue-600" : "border-slate-400 bg-white"
+                        checked ? "border-blue-600 bg-blue-600" : "border-slate-400 bg-white dark:bg-slate-800"
                       }`}>
                         {checked && (
                           <svg className="w-3 h-3 text-white fill-current" viewBox="0 0 20 20">
@@ -300,7 +300,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
           {question.type === "SHORT_ANSWER" && (
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                 Your Answer:
               </label>
               <input
@@ -308,7 +308,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 value={responseData?.text || ""}
                 onChange={handleTextChange}
                 placeholder="Type your brief answer here..."
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm"
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm"
               />
             </div>
           )}
@@ -316,25 +316,25 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           {question.type === "ESSAY" && (
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Essay Response:
                 </label>
-                <span className="text-xs text-slate-500 font-mono">Words: {essayWordCount}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">Words: {essayWordCount}</span>
               </div>
               <textarea
                 value={responseData?.text || ""}
                 onChange={handleTextChange}
                 rows={8}
                 placeholder="Write your comprehensive response here..."
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-sans shadow-sm"
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-sans shadow-sm"
               />
             </div>
           )}
           {question.type === "SQL" && (
-            <div className="border border-slate-200 rounded-xl overflow-hidden flex flex-col h-[600px] mb-4 bg-white shadow-sm">
-              <div className="flex items-center justify-between bg-slate-50 px-4 py-2 border-b border-slate-200">
+            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden flex flex-col h-[600px] mb-4 bg-white dark:bg-slate-800 shadow-sm">
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 px-4 py-2 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
                     SQL Editor (SQLite)
                   </span>
                 </div>
@@ -345,7 +345,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                      runCode("sql").then(() => setActiveLang(old));
                   }}
                   disabled={isExecuting}
-                  className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
+                  className="px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
                 >
                   <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 
                   {isExecuting ? "Executing..." : "Run Query"}
@@ -354,13 +354,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               
               {/* Schema Viewer */}
               {(question as any).database_schema && (
-                <div className="bg-slate-50 border-b border-slate-200 p-3 overflow-x-auto text-xs text-slate-700 font-mono">
-                  <div className="text-[10px] uppercase text-slate-500 mb-1 font-bold">Database Schema</div>
+                <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-3 overflow-x-auto text-xs text-slate-700 dark:text-slate-200 font-mono">
+                  <div className="text-[10px] uppercase text-slate-500 dark:text-slate-400 mb-1 font-bold">Database Schema</div>
                   <pre>{(question as any).database_schema}</pre>
                 </div>
               )}
 
-              <div className="w-full h-[350px] md:h-[500px] border-b border-slate-200">
+              <div className="w-full h-[350px] md:h-[500px] border-b border-slate-200 dark:border-slate-700">
                 <Editor
                   height="100%"
                   theme="vs"
@@ -376,8 +376,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 />
               </div>
               {/* Output Panel */}
-              <div className="h-48 border-t border-slate-200 bg-slate-50 text-slate-800 font-mono text-sm overflow-y-auto p-4 flex flex-col">
-                <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 font-bold">Query Result</div>
+              <div className="h-48 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-mono text-sm overflow-y-auto p-4 flex flex-col">
+                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 font-bold">Query Result</div>
                 {output.length > 0 ? (
                   output.map((line, i) => (
                     <div key={i} className="whitespace-pre-wrap">{line}</div>
@@ -390,10 +390,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           )}
 
           {question.type === "CODING" && (
-            <div className="border border-slate-200 rounded-xl overflow-hidden flex flex-col h-[600px] mb-4 bg-white shadow-sm">
-              <div className="flex items-center justify-between bg-slate-50 px-4 py-2 border-b border-slate-200">
+            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden flex flex-col h-[600px] mb-4 bg-white dark:bg-slate-800 shadow-sm">
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 px-4 py-2 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
                     Code Editor
                   </span>
                   <select 
@@ -402,7 +402,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                       setActiveLang(e.target.value);
                       onAnswerChange({ text: responseData?.text || "", language: e.target.value });
                     }}
-                    className="bg-white border border-slate-200 text-xs text-slate-800 rounded-lg px-2 py-1 outline-none font-medium"
+                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 rounded-lg px-2 py-1 outline-none font-medium"
                   >
                     {allowedLanguages.map((lang) => (
                       <option key={lang} value={lang}>{LANGUAGE_NAMES[lang] ?? lang}</option>
@@ -412,13 +412,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 <button 
                   onClick={() => runCode()}
                   disabled={isExecuting}
-                  className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
+                  className="px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
                 >
                   <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> 
                   {isExecuting ? "Running..." : "Run Code"}
                 </button>
               </div>
-              <div className="w-full h-[350px] md:h-[500px] border-b border-slate-200">
+              <div className="w-full h-[350px] md:h-[500px] border-b border-slate-200 dark:border-slate-700">
                 <Editor
                   height="100%"
                   theme="vs"
@@ -434,8 +434,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 />
               </div>
               {/* Output Panel */}
-              <div className="h-48 border-t border-slate-200 bg-slate-50 text-slate-800 font-mono text-sm overflow-y-auto p-4 flex flex-col">
-                <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 font-bold">Console Output</div>
+              <div className="h-48 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-mono text-sm overflow-y-auto p-4 flex flex-col">
+                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 font-bold">Console Output</div>
                 {output.length > 0 ? (
                   output.map((line, i) => (
                     <div key={i} className="whitespace-pre-wrap">{line}</div>
@@ -450,14 +450,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       </div>
 
       {/* Footer Navigation */}
-      <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-100">
+      <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-100 dark:border-slate-700">
         <button
           onClick={onPrev}
           disabled={isFirst}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
             isFirst
-              ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
-              : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-250"
+              ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-slate-700"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 border border-slate-250"
           }`}
         >
           &larr; Previous
@@ -468,7 +468,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           disabled={isLast}
           className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
             isLast
-              ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+              ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-slate-700"
               : "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20"
           }`}
         >

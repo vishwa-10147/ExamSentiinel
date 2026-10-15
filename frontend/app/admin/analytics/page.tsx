@@ -89,8 +89,8 @@ export default function AnalyticsDashboard() {
 
   if (authLoading || !user) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="text-center text-slate-500">Loading analytics dashboard...</div>
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <div className="text-center text-slate-500 dark:text-slate-400">Loading analytics dashboard...</div>
       </div>
     );
   }
@@ -119,13 +119,13 @@ export default function AnalyticsDashboard() {
         <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full space-y-8">
           
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-700 pb-5">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                <BarChart3 className="h-6 w-6 text-blue-600" />
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 University Analytics
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Global examination metrics, academic integrity distribution, and batch performance.
               </p>
             </div>
@@ -134,7 +134,7 @@ export default function AnalyticsDashboard() {
               <button
                 onClick={() => fetchData()}
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                 Refresh
@@ -152,29 +152,29 @@ export default function AnalyticsDashboard() {
           </div>
 
           {error && (
-            <div className="rounded-xl bg-amber-50 p-4 border border-amber-200 text-sm text-amber-800">
+            <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 p-4 border border-amber-200 dark:border-amber-500/30 text-sm text-amber-800 dark:text-amber-300">
               {error}
             </div>
           )}
 
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                 <span className="text-xs font-semibold uppercase tracking-wider">Total Exams</span>
-                <FileText className="h-5 w-5 text-blue-600" />
+                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <p className="text-3xl font-extrabold text-slate-900 mt-3">{overview?.total_exams || 0}</p>
+              <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-3">{overview?.total_exams || 0}</p>
               <span className="text-xs text-slate-400 mt-1 block">Created in system</span>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                 <span className="text-xs font-semibold uppercase tracking-wider">Active Live Sessions</span>
-                <Activity className="h-5 w-5 text-emerald-600" />
+                <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="flex items-baseline gap-2 mt-3">
-                <p className="text-3xl font-extrabold text-slate-900">{overview?.active_sessions || 0}</p>
+                <p className="text-3xl font-extrabold text-slate-900 dark:text-white">{overview?.active_sessions || 0}</p>
                 {overview?.active_sessions ? (
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 ) : null}
@@ -182,21 +182,21 @@ export default function AnalyticsDashboard() {
               <span className="text-xs text-slate-400 mt-1 block">In progress right now</span>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                 <span className="text-xs font-semibold uppercase tracking-wider">Completed Sessions</span>
-                <Award className="h-5 w-5 text-purple-600" />
+                <Award className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <p className="text-3xl font-extrabold text-slate-900 mt-3">{overview?.completed_sessions || 0}</p>
+              <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-3">{overview?.completed_sessions || 0}</p>
               <span className="text-xs text-slate-400 mt-1 block">Submitted & graded</span>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between text-slate-500">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                 <span className="text-xs font-semibold uppercase tracking-wider">Avg AI Risk Score</span>
-                <ShieldAlert className="h-5 w-5 text-indigo-600" />
+                <ShieldAlert className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <p className="text-3xl font-extrabold text-indigo-600 mt-3">
+              <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-3">
                 {(overview?.average_risk_score || 0).toFixed(1)} <span className="text-xs text-slate-400 font-normal">/ 100</span>
               </p>
               <span className="text-xs text-slate-400 mt-1 block">Cumulative risk index</span>
@@ -207,9 +207,9 @@ export default function AnalyticsDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
             {/* Bar Chart: Batch Performance */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-              <h2 className="text-base font-bold text-slate-900 mb-1">Batch Performance Comparison</h2>
-              <p className="text-xs text-slate-500 mb-6">Student counts and average risk scores per academic batch</p>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">Batch Performance Comparison</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">Student counts and average risk scores per academic batch</p>
               <div className="h-80 flex-1">
                 {batchData.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-slate-400 text-sm">
@@ -234,9 +234,9 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* Pie Chart: Integrity Distribution */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-              <h2 className="text-base font-bold text-slate-900 mb-1">Academic Integrity Distribution</h2>
-              <p className="text-xs text-slate-500 mb-6">Session categorization by AI risk level breakdown</p>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">Academic Integrity Distribution</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">Session categorization by AI risk level breakdown</p>
               <div className="h-80 flex-1">
                 {pieData.every((d) => d.value === 0) ? (
                   <div className="h-full flex items-center justify-center text-slate-400 text-sm">

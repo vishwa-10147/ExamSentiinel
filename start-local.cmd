@@ -7,12 +7,14 @@ rem ---------------------------------------------------------------------------
 rem  ExamSentinel local launcher (SQLite + Piston code runner in Docker).
 rem    start-local.cmd           start everything (first run also installs and seeds)
 rem    start-local.cmd --seed    also re-run the seeders (idempotent)
-rem  Stop with stop-local.cmd. Set NO_BROWSER=1 to skip opening the browser.
+rem    start-local.cmd stop      stop the API, web app and code runner (data is kept)
+rem  Set NO_BROWSER=1 to skip opening the browser.
 rem ---------------------------------------------------------------------------
 
 set "PY=%~dp0.venv\Scripts\python.exe"
 set "RESEED=0"
 if /i "%~1"=="--seed" set "RESEED=1"
+if /i "%~1"=="stop" goto :stop
 
 echo ====================================================
 echo      ExamSentinel - starting locally
@@ -154,9 +156,31 @@ echo    proctor@sentinel.edu    Proctor
 echo    reviewer@sentinel.edu   Reviewer
 echo    candidate@sentinel.edu  Candidate
 echo.
-echo  Stop everything with  stop-local.cmd
+echo  Stop everything with  start-local.cmd stop
 echo ====================================================
 if not "%NO_BROWSER%"=="1" start "" "http://localhost:3000/auth/login"
+exit /b 0
+
+:stop
+rem Stops the backend and frontend windows and the Piston container (data is kept). uvicorn's
+rem reloader and the Next.js server can outlive their console window, so also stop whatever
+rem listens on 8000/3000 - but only if it is this app's uvicorn or Next.js process.
+echo Stopping ExamSentinel ...
+taskkill /FI "WINDOWTITLE eq ExamSentinel Backend*" /T /F >nul 2>&1
+taskkill /FI "WINDOWTITLE eq ExamSentinel Frontend*" /T /F >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$ids = Get-NetTCPConnection -LocalPort 8000,3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique;" ^
+  "foreach ($id in $ids) {" ^
+  "  $p = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $id);" ^
+  "  if ($p.CommandLine -match 'uvicorn app\.main:app|next[\\/]dist') { taskkill /PID $id /T /F | Out-Null; Write-Output ('  Stopped ' + $p.Name + ' (pid ' + $id + ')') }" ^
+  "  else { Write-Output ('  Port in use by another program, left running: ' + $p.Name + ' (pid ' + $id + ')') }" ^
+  "}"
+docker info >nul 2>&1
+if not errorlevel 1 (
+    docker compose -f docker-compose.piston.yml stop >nul 2>&1 && echo   Code runner stopped
+)
+echo Done.
+endlocal
 exit /b 0
 
 :port_in_use

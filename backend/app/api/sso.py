@@ -55,7 +55,7 @@ async def list_providers():
     return [{"id": p.id, "name": p.name} for p in sso_service.configured_providers().values()]
 
 
-@router.get("/{provider_id}/login", dependencies=[Depends(RateLimiter(calls=20, period=60))])
+@router.get("/{provider_id}/login", dependencies=[Depends(RateLimiter(calls=20, period=60, local_fallback=True))])
 async def sso_login(provider_id: str, request: Request):
     try:
         provider = sso_service.get_provider(provider_id)
@@ -129,7 +129,7 @@ async def sso_callback(provider_id: str, request: Request, db: AsyncSession = De
         return _to_frontend("/auth/login", error="sso_failed")
 
 
-@router.post("/exchange", response_model=TokenResponse, dependencies=[Depends(RateLimiter(calls=20, period=60))])
+@router.post("/exchange", response_model=TokenResponse, dependencies=[Depends(RateLimiter(calls=20, period=60, local_fallback=True))])
 async def sso_exchange(payload: SSOExchangeRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Trade the single-use ticket from the callback redirect for a normal login session."""
     value = await sso_tickets.redeem(payload.ticket)

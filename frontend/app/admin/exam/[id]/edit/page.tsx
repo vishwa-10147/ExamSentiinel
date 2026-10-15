@@ -68,33 +68,33 @@ export default function EditExamPage() {
     }
   };
 
-  if (loading) return <main className="p-6 text-slate-500">Loading exam...</main>;
+  if (loading) return <main className="p-6 text-slate-500 dark:text-slate-400">Loading exam...</main>;
 
   return (
     <main className="mx-auto w-full max-w-3xl p-4 sm:p-6 lg:p-8">
-      <button onClick={() => router.push(`/admin/exam/${id}/manage`)} className="mb-6 text-sm font-medium text-blue-600">← Back to exam</button>
-      <form onSubmit={submit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-900">Edit Exam Details</h1>
-        {error && <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      <button onClick={() => router.push(`/admin/exam/${id}/manage`)} className="mb-6 text-sm font-medium text-blue-600 dark:text-blue-400">← Back to exam</button>
+      <form onSubmit={submit} className="space-y-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Edit Exam Details</h1>
+        {error && <p className="rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-400">{error}</p>}
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-slate-700">Title</label>
-          <input id="title" name="title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+          <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-200">Title</label>
+          <input id="title" name="title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 p-2.5" />
         </div>
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-slate-700">Description</label>
-          <textarea id="description" name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" rows={4} />
+          <label htmlFor="description" className="block text-sm font-medium text-slate-700 dark:text-slate-200">Description</label>
+          <textarea id="description" name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 p-2.5" rows={4} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="duration_minutes" className="text-sm font-medium text-slate-700">Duration (minutes)</label>
-            <input id="duration_minutes" name="duration_minutes" type="number" min={1} required value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+            <label htmlFor="duration_minutes" className="text-sm font-medium text-slate-700 dark:text-slate-200">Duration (minutes)</label>
+            <input id="duration_minutes" name="duration_minutes" type="number" min={1} required value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 p-2.5" />
           </div>
           <div>
-            <label htmlFor="late_entry_minutes" className="text-sm font-medium text-slate-700">Late entry (minutes)</label>
-            <input id="late_entry_minutes" name="late_entry_minutes" type="number" min={0} required value={form.late_entry_minutes} onChange={(e) => setForm({ ...form, late_entry_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+            <label htmlFor="late_entry_minutes" className="text-sm font-medium text-slate-700 dark:text-slate-200">Late entry (minutes)</label>
+            <input id="late_entry_minutes" name="late_entry_minutes" type="number" min={0} required value={form.late_entry_minutes} onChange={(e) => setForm({ ...form, late_entry_minutes: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 p-2.5" />
           </div>
           <div>
-            <label htmlFor="start_window" className="text-sm font-medium text-slate-700">Start window</label>
+            <label htmlFor="start_window" className="text-sm font-medium text-slate-700 dark:text-slate-200">Start window</label>
             <input id="start_window" name="start_window" type="datetime-local" required value={form.start_window} onChange={(e) => {
               const val = e.target.value;
               setForm((prev) => {
@@ -104,11 +104,11 @@ export default function EditExamPage() {
                 }
                 return updated;
               });
-            }} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+            }} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 p-2.5" />
           </div>
           <div>
             <div className="flex items-center justify-between">
-              <label htmlFor="end_window" className="text-sm font-medium text-slate-700">End window</label>
+              <label htmlFor="end_window" className="text-sm font-medium text-slate-700 dark:text-slate-200">End window</label>
               {form.start_window && (
                 <button
                   type="button"
@@ -116,16 +116,16 @@ export default function EditExamPage() {
                     const autoEnd = calculateRecommendedEndWindow(form.start_window, form.duration_minutes, form.late_entry_minutes);
                     if (autoEnd) setForm(prev => ({ ...prev, end_window: autoEnd }));
                   }}
-                  className="text-[11px] font-bold text-blue-600 hover:underline"
+                  className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   ⚡ Auto-Set (Start + Duration + Late Entry)
                 </button>
               )}
             </div>
-            <input id="end_window" name="end_window" type="datetime-local" required value={form.end_window} onChange={(e) => setForm({ ...form, end_window: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5" />
+            <input id="end_window" name="end_window" type="datetime-local" required value={form.end_window} onChange={(e) => setForm({ ...form, end_window: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 p-2.5" />
           </div>
           {form.start_window && (
-            <div className="sm:col-span-2 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-900 space-y-1">
+            <div className="sm:col-span-2 p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 text-xs text-blue-900 dark:text-blue-300 space-y-1">
               <div className="font-bold">🗓️ Calculated Timing Breakdown:</div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
                 <div>Start Window: <strong>{new Date(form.start_window).toLocaleString()}</strong></div>

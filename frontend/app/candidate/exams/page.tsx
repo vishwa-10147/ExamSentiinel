@@ -95,9 +95,9 @@ export default function CandidateExamsPage() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+          <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
           <span>Loading Examination Portal...</span>
         </div>
       </div>
@@ -199,26 +199,26 @@ export default function CandidateExamsPage() {
       <div className="w-full max-w-7xl mx-auto p-6 sm:p-8 space-y-6">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <BookOpen className="h-6 w-6 text-blue-600" />
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               My Scheduled Examinations
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Browse available assessments, check start windows, launch proctored exams, and view past results.
             </p>
           </div>
           <button
             onClick={() => router.push("/candidate/results")}
-            className="self-start sm:self-auto px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+            className="self-start sm:self-auto px-4 py-2 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
           >
             <ShieldCheck className="h-4 w-4" /> View All Exam Results →
           </button>
         </div>
 
         {/* Filter and Search Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
@@ -226,11 +226,11 @@ export default function CandidateExamsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search exam title or topic..."
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg w-full sm:w-auto overflow-x-auto">
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg w-full sm:w-auto overflow-x-auto">
             {(["ALL", "AVAILABLE", "SCHEDULED", "COMPLETED"] as const).map((f) => (
               <button
                 key={f}
@@ -238,8 +238,8 @@ export default function CandidateExamsPage() {
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                   filter === f
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 {f === "ALL" ? "Active Exams" : f === "AVAILABLE" ? "Available Now" : f === "SCHEDULED" ? "Upcoming" : "Completed"}
@@ -251,13 +251,13 @@ export default function CandidateExamsPage() {
         {/* Main Grid */}
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
           </div>
         ) : filteredExams.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8 space-y-3">
+          <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 space-y-3">
             <BookOpen className="h-12 w-12 text-slate-300 mx-auto" />
-            <h3 className="text-lg font-bold text-slate-900">No examinations found</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">No examinations found</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
               {searchTerm || filter !== "ALL"
                 ? "No exams match your current search or filter criteria."
                 : "No exams are currently assigned or active for your cohort."}
@@ -268,51 +268,51 @@ export default function CandidateExamsPage() {
             {filteredExams.map((exam) => (
               <div
                 key={exam.id}
-                className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
               >
                 <div className="space-y-3">
                   <div className="flex justify-between items-start gap-2">
-                    <h3 className="font-bold text-lg text-slate-900 line-clamp-1" title={exam.title}>
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-white line-clamp-1" title={exam.title}>
                       {exam.title}
                     </h3>
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold shrink-0 border ${
                         exam.availability === "COMPLETED"
-                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          ? "bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/30"
                           : exam.canStart
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
                           : exam.availability === "SCHEDULED"
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : "bg-slate-100 text-slate-600 border-slate-200"
+                          ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/30"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                       }`}
                     >
                       {exam.availability === "COMPLETED" ? "COMPLETED" : exam.canStart ? "AVAILABLE NOW" : exam.availability}
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-500 line-clamp-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                     {exam.description || "No specific instructions specified for this examination."}
                   </p>
 
-                  <div className="flex flex-col gap-1.5 text-xs text-slate-600 pt-3 border-t border-slate-100 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                  <div className="flex flex-col gap-1.5 text-xs text-slate-600 dark:text-slate-300 pt-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
-                        <Clock className="h-4 w-4 text-blue-600" />
+                      <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200 font-semibold">
+                        <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         <span>{exam.duration_minutes} Minutes</span>
                       </div>
-                      <div className="flex items-center gap-1 text-slate-500 text-[11px]">
+                      <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[11px]">
                         <Calendar className="h-3.5 w-3.5 text-slate-400" />
                         <span>Schedule Window</span>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-0.5 text-[11px] text-slate-600 pt-1 border-t border-slate-200/60">
+                    <div className="flex flex-col gap-0.5 text-[11px] text-slate-600 dark:text-slate-300 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Starts:</span>
-                        <span className="font-medium text-slate-800">{formatWindowDate(exam.start_window)}</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-100">{formatWindowDate(exam.start_window)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Ends:</span>
-                        <span className="font-medium text-slate-800">{formatWindowDate(exam.end_window)}</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-100">{formatWindowDate(exam.end_window)}</span>
                       </div>
                     </div>
                   </div>
@@ -334,7 +334,7 @@ export default function CandidateExamsPage() {
                       className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-md transition disabled:cursor-not-allowed ${
                         exam.canStart
                           ? "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-emerald-200"
-                          : "bg-slate-100 text-slate-500 border border-slate-200 disabled:shadow-none"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 disabled:shadow-none"
                       }`}
                     >
                       {exam.canStart ? (
@@ -343,7 +343,7 @@ export default function CandidateExamsPage() {
                         </>
                       ) : exam.availability === "SCHEDULED" ? (
                         <>
-                          <Clock className="h-4 w-4 text-blue-600 animate-pulse" />
+                          <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-pulse" />
                           <span>{exam.countdownText}</span>
                         </>
                       ) : (
@@ -355,7 +355,7 @@ export default function CandidateExamsPage() {
                   {exam.canStart && (
                     <button
                       onClick={() => router.push(`/exam/${exam.id}/interview`)}
-                      className="mt-2 w-full rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50"
+                      className="mt-2 w-full rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-indigo-700 dark:text-indigo-400 transition hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
                     >
                       Join live interview
                     </button>

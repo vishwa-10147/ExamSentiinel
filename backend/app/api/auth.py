@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 import jwt
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_current_user, get_db, log_audit_event, RateLimiter
+from app.api.deps import failed_login_throttle, get_current_user, get_db, log_audit_event, RateLimiter
+from app.core.auth_cookies import clear_auth_cookies, refresh_token_from_cookie, set_auth_cookies, wants_cookie_session
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.security import (
@@ -52,7 +54,7 @@ class LoginResponse(BaseModel):
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(RateLimiter(calls=3, period=3600))])
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(RateLimiter(calls=3, period=3600, local_fallback=True))])
 async def register_user(
     user_in: UserCreate,
     request: Request,
@@ -116,7 +118,18 @@ async def register_user(
     return user
 
 
-async def issue_login_session(db: AsyncSession, user: User, request: Request, method: str) -> TokenResponse:
+def session_response(request: Request, tokens: TokenResponse):
+    """Return tokens in the body (API clients) or as httpOnly cookies (browsers in cookie mode)."""
+    if not wants_cookie_session(request):
+        return tokens
+    body = tokens.model_dump(mode="json")
+    body["access_token"] = body["refresh_token"] = None
+    response = JSONResponse(body)
+    set_auth_cookies(response, tokens.access_token, tokens.refresh_token)
+    return response
+
+
+async def issue_login_session(db: AsyncSession, user: User, request: Request, method: str):
     """Start a new browser session for *user* (password or SSO login).
 
     Enforces one active browser per user, rotates refresh tokens and audits
@@ -168,16 +181,16 @@ async def issue_login_session(db: AsyncSession, user: User, request: Request, me
     )
     await db.commit()
 
-    return TokenResponse(
+    return session_response(request, TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user=UserResponse.model_validate(user),
-    )
+    ))
 
 
-@router.post("/login", dependencies=[Depends(RateLimiter(calls=5, period=60))])
+@router.post("/login", dependencies=[Depends(RateLimiter(calls=60, period=60, local_fallback=True))])
 async def login(
     credentials: UserLogin,
     request: Request,
@@ -185,10 +198,14 @@ async def login(
 ):
     """Authenticate user credentials and issue signed JWT access and refresh tokens."""
     clean_email = credentials.email.strip().lower()
+    # Brute-force protection: 5 failed attempts per minute per (IP, account); the per-IP limit
+    # above (60/min) covers spraying many accounts.
+    await failed_login_throttle.check(request, clean_email)
     result = await db.execute(select(User).where(User.email == clean_email))
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(credentials.password, user.hashed_password):
+        await failed_login_throttle.record_failure(request, clean_email)
         # Log failed login attempt for audit trail and brute-force visibility
         await log_audit_event(
             db=db,
@@ -229,13 +246,23 @@ async def login(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_access_token(
-    refresh_req: TokenRefreshRequest,
     request: Request,
+    refresh_req: TokenRefreshRequest | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Validate refresh token and issue a newly rotated token pair with single-use revocation."""
+    """Validate refresh token and issue a newly rotated token pair with single-use revocation.
+
+    Browsers send no body: the refresh token comes from the httpOnly cookie.
+    """
+    raw_refresh = (refresh_req.refresh_token if refresh_req else None) or refresh_token_from_cookie(request)
+    if not raw_refresh:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token was not provided",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
-        payload = decode_token(refresh_req.refresh_token)
+        payload = decode_token(raw_refresh)
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -361,13 +388,13 @@ async def refresh_access_token(
     )
     await db.commit()
 
-    return TokenResponse(
+    return session_response(request, TokenResponse(
         access_token=new_access_token,
         refresh_token=new_refresh_token,
         token_type="bearer",
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user=UserResponse.model_validate(user),
-    )
+    ))
 
 
 @router.post("/logout")
@@ -395,7 +422,9 @@ async def logout(
         request=request,
     )
     await db.commit()
-    return {"message": "Successfully logged out and revoked active sessions"}
+    response = JSONResponse({"message": "Successfully logged out and revoked active sessions"})
+    clear_auth_cookies(response)
+    return response
 
 
 @router.get("/me", response_model=UserResponse)
@@ -408,7 +437,7 @@ async def get_current_user_profile(
 _RESET_GENERIC = "If an account exists for that email, a verification code has been sent."
 
 
-@router.post("/forgot-password", dependencies=[Depends(RateLimiter(calls=15, period=300))])
+@router.post("/forgot-password", dependencies=[Depends(RateLimiter(calls=15, period=300, local_fallback=True))])
 async def forgot_password(
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
@@ -440,7 +469,7 @@ async def forgot_password(
     return {"status": "success", "message": _RESET_GENERIC}
 
 
-@router.post("/verify-forgot-otp", dependencies=[Depends(RateLimiter(calls=20, period=300))])
+@router.post("/verify-forgot-otp", dependencies=[Depends(RateLimiter(calls=20, period=300, local_fallback=True))])
 async def verify_forgot_otp(
     payload: VerifyForgotOTPRequest,
     db: AsyncSession = Depends(get_db),
@@ -454,7 +483,7 @@ async def verify_forgot_otp(
     return {"status": "success", "message": "OTP code verified successfully."}
 
 
-@router.post("/reset-password", dependencies=[Depends(RateLimiter(calls=20, period=300))])
+@router.post("/reset-password", dependencies=[Depends(RateLimiter(calls=20, period=300, local_fallback=True))])
 async def reset_password(
     payload: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),

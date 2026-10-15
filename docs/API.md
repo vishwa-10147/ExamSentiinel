@@ -26,9 +26,17 @@ Content-Type: application/json
  "user": {"id": "991b7ca9-…", "email": "candidate@sentinel.edu", "role": "candidate", "…": "…"}}
 ```
 
-Send `Authorization: Bearer <access_token>` on every request below. (The demo password
-comes from `seed_admin.py` and exists only in development seeds.) Logging in again revokes
-the previous session's token. Refresh with `POST /api/auth/refresh`.
+Two ways to authenticate:
+
+| Client | How | Notes |
+|---|---|---|
+| Scripts, tests, integrations | `Authorization: Bearer <access_token>` on every request | Tokens are in the JSON body as above. Refresh with `POST /api/auth/refresh` and `{"refresh_token": "…"}` |
+| Browsers (the web app) | Send `X-Auth-Mode: cookie` on login; requests use `credentials: "include"` | The API sets httpOnly cookies `es_access` and `es_refresh` and returns `access_token: null`. Every state-changing request must also send `X-Requested-With` (CSRF protection). `POST /api/auth/refresh` takes no body; `POST /api/auth/logout` clears the cookies |
+
+Logging in again revokes the previous session (one active session per account). After 5
+failed sign-ins for an account from one IP within a minute, further attempts get `429` for
+the rest of that minute. The demo password comes from `seed_admin.py` and exists only in
+development seeds.
 
 ## Student endpoints
 

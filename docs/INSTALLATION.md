@@ -47,7 +47,7 @@ runs skip the steps that are already done.
 |---|---|
 | `start-local.cmd` | Start everything |
 | `start-local.cmd --seed` | Start and re-run the (idempotent) seeders |
-| `stop-local.cmd` | Stop the API, web app and engine; data is kept |
+| `start-local.cmd stop` | Stop the API, web app and engine; data is kept |
 
 Set `NO_BROWSER=1` to skip opening the browser.
 
@@ -178,7 +178,7 @@ Pair With Target Sum** and press **Run**. The sample tests should pass in a few 
 | The API tries to connect to PostgreSQL | `backend/.env` is missing, so the PostgreSQL default is used. Copy `.env.example` |
 | Pages stay on *Checking access…* | A stale `.next` build from another dev server. Stop it, delete `frontend/.next`, run `npm run dev` |
 | *Logged in from another browser/session* | The account signed in elsewhere; sign in again |
-| `stop-local.cmd` reports a port used by another program | Something other than ExamSentinel is listening on 8000 or 3000; it is left running |
+| `start-local.cmd stop` reports a port used by another program | Something other than ExamSentinel is listening on 8000 or 3000; it is left running |
 | pytest permission error on `.pytest_cache` | Run pytest with `-p no:cacheprovider` |
 | Git reports *dubious ownership* on Windows | The checkout belongs to another user account: `git config --global --add safe.directory <path>` |
 

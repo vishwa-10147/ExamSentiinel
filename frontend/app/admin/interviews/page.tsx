@@ -6,10 +6,10 @@ import { Loader2, MessagesSquare, RefreshCw } from "lucide-react";
 import { InterviewListItem, interviewService } from "@/services/interviewService";
 
 const STATUS_STYLE: Record<string, string> = {
-  SCHEDULED: "bg-slate-100 text-slate-600",
-  READY: "bg-amber-50 text-amber-700",
-  LIVE: "bg-emerald-50 text-emerald-700",
-  COMPLETED: "bg-blue-50 text-blue-700",
+  SCHEDULED: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300",
+  READY: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  LIVE: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  COMPLETED: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400",
 };
 
 export default function InterviewsPage() {
@@ -41,22 +41,22 @@ export default function InterviewsPage() {
         <div className="flex items-end justify-between border-b border-slate-200 pb-5 dark:border-slate-700">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
-              <MessagesSquare className="h-7 w-7 text-indigo-600" /> Live Interviews
+              <MessagesSquare className="h-7 w-7 text-indigo-600 dark:text-indigo-400" /> Live Interviews
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Candidates open their interview from the exam; join here to connect by video, follow the live transcript and score.
             </p>
           </div>
-          <button onClick={() => void load()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+          <button onClick={() => void load()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50">
             <RefreshCw className="h-4 w-4" /> Refresh
           </button>
         </div>
 
-        {error && <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
+        {error && <div className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 p-4 text-sm text-rose-700 dark:text-rose-400">{error}</div>}
 
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <table className="w-full min-w-[700px] text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900/50">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:bg-slate-900/50">
               <tr>
                 <th className="px-4 py-3">Candidate</th>
                 <th className="px-4 py-3">Exam</th>
@@ -68,10 +68,10 @@ export default function InterviewsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {loading && items.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500 dark:text-slate-400"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></td></tr>
               )}
               {!loading && items.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500">No interviews yet.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No interviews yet.</td></tr>
               )}
               {items.map((i) => (
                 <tr key={i.id}>

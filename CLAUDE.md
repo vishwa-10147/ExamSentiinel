@@ -29,7 +29,7 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
 - Live interviews: `app/api/interviews.py` (consent, transcript, scores), `app/api/interview_ws.py` (WebRTC
   signalling relay, in-memory rooms), `services/transcription_service.py` (faster-whisper). UI: `/interview/[id]`,
   `/admin/interviews`.
-- `frontend/services/apiClient.ts` — the single API client; tokens live in localStorage (no cookies). `components/RoleAreaLayout.tsx` guards each role area in the UI; the API enforces roles regardless.
+- `frontend/services/apiClient.ts` — the single API client. Browser sessions are httpOnly cookies (`app/core/auth_cookies.py`): requests send `credentials: "include"`, `X-Auth-Mode: cookie` and `X-Requested-With` (required for cookie-authenticated writes); tokens never touch localStorage. Scripts/tests may still use `Authorization: Bearer`. `components/RoleAreaLayout.tsx` guards each role area in the UI; the API enforces roles regardless.
 
 ## Rules
 

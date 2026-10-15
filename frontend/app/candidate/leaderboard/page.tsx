@@ -76,26 +76,26 @@ export default function LeaderboardPage() {
       <div className="w-full max-w-7xl mx-auto space-y-6">
         
         {/* Header Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-700 pb-5">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Trophy className="h-7 w-7 text-amber-500" />
               Academic Leaderboard & Rankings
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Celebrate top academic achievements and view published examination rankings.
             </p>
           </div>
 
           {exams.length > 0 && (
             <div className="w-full sm:w-auto">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                 Select Exam
               </label>
               <select
                 value={selectedExam}
                 onChange={(e) => setSelectedExam(e.target.value)}
-                className="w-full sm:w-72 border border-slate-300 rounded-xl px-4 py-2 bg-white text-sm font-semibold text-slate-900 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full sm:w-72 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2 bg-white dark:bg-slate-800 text-sm font-semibold text-slate-900 dark:text-white shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               >
                 {exams.map((e) => (
                   <option key={e.id} value={e.id}>
@@ -124,8 +124,8 @@ export default function LeaderboardPage() {
 
             {/* Candidate Quick Rank Highlight Card */}
             {myEntry && (
-              <div className="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-2xl flex items-center gap-4 shrink-0 shadow-inner">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-400 text-slate-900 font-extrabold text-lg shadow">
+              <div className="bg-white/10 dark:bg-slate-800/10 backdrop-blur border border-white/20 p-4 rounded-2xl flex items-center gap-4 shrink-0 shadow-inner">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-400 text-slate-900 dark:text-white font-extrabold text-lg shadow">
                   #{myEntry.rank}
                 </div>
                 <div>
@@ -141,7 +141,7 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Search Bar */}
-        <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
@@ -149,27 +149,27 @@ export default function LeaderboardPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search candidate by name..."
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
-          <div className="text-xs text-slate-500 hidden sm:block">
+          <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
             Showing {filteredLeaderboard.length} Ranked Candidate(s)
           </div>
         </div>
 
         {/* Leaderboard Table Container */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           {loading ? (
             <div className="p-16 flex justify-center items-center">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400" />
             </div>
           ) : filteredLeaderboard.length === 0 ? (
             <div className="p-16 text-center space-y-3">
-              <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto border border-amber-200 text-amber-500">
+              <div className="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto border border-amber-200 dark:border-amber-500/30 text-amber-500">
                 <Trophy className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">No Published Rankings Found</h3>
-              <p className="text-slate-500 text-xs sm:text-sm max-w-sm mx-auto">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">No Published Rankings Found</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm max-w-sm mx-auto">
                 The leaderboard for this exam is currently empty. Leaderboards update automatically once grades are published by the course administrator.
               </p>
             </div>
@@ -177,30 +177,30 @@ export default function LeaderboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                  <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
                     <th className="px-6 py-4">Rank</th>
                     <th className="px-6 py-4">Candidate Name</th>
                     <th className="px-6 py-4 text-right">Final Score</th>
                     <th className="px-6 py-4 text-right">Percentile Grade</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   {filteredLeaderboard.map((entry) => (
                     <tr
                       key={entry.session_id || entry.rank}
                       className={`transition-colors ${
                         entry.is_me
-                          ? "bg-blue-50/70 border-l-4 border-l-blue-600"
-                          : "hover:bg-slate-50/70"
+                          ? "bg-blue-50/70 dark:bg-blue-500/10 border-l-4 border-l-blue-600"
+                          : "hover:bg-slate-50/70 dark:hover:bg-slate-700/50/70"
                       }`}
                     >
                       <td className="px-6 py-4">
                         {entry.rank === 1 ? (
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-400 text-slate-900 font-bold shadow-sm">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-400 text-slate-900 dark:text-white font-bold shadow-sm">
                             🥇 1
                           </div>
                         ) : entry.rank === 2 ? (
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 text-slate-800 font-bold shadow-sm">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold shadow-sm">
                             🥈 2
                           </div>
                         ) : entry.rank === 3 ? (
@@ -208,7 +208,7 @@ export default function LeaderboardPage() {
                             🥉 3
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center w-8 h-8 font-bold text-slate-500">
+                          <div className="flex items-center justify-center w-8 h-8 font-bold text-slate-500 dark:text-slate-400">
                             #{entry.rank}
                           </div>
                         )}
@@ -217,16 +217,16 @@ export default function LeaderboardPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm ${
-                            entry.is_me ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                            entry.is_me ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
                           }`}>
                             {entry.candidate_name?.charAt(0)?.toUpperCase() || "C"}
                           </div>
                           <div>
-                            <span className={`font-semibold ${entry.is_me ? "text-blue-900 font-bold" : "text-slate-900"}`}>
+                            <span className={`font-semibold ${entry.is_me ? "text-blue-900 dark:text-blue-300 font-bold" : "text-slate-900 dark:text-white"}`}>
                               {entry.candidate_name}
                             </span>
                             {entry.is_me && (
-                              <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
+                              <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-[10px] font-bold">
                                 YOU
                               </span>
                             )}
@@ -235,12 +235,12 @@ export default function LeaderboardPage() {
                       </td>
 
                       <td className="px-6 py-4 text-right">
-                        <span className="font-extrabold text-slate-900">{entry.total_score}</span>
+                        <span className="font-extrabold text-slate-900 dark:text-white">{entry.total_score}</span>
                         <span className="text-slate-400 text-xs ml-1">pts</span>
                       </td>
 
                       <td className="px-6 py-4 text-right">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
                           {entry.percentage.toFixed(1)}%
                         </span>
                       </td>

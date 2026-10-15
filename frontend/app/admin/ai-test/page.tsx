@@ -141,22 +141,22 @@ export default function AITestDashboard() {
   }, [autoStream, streamActive, captureAndAnalyze]);
 
   return (
-    <div className="flex-1 w-full bg-slate-50">
+    <div className="flex-1 w-full bg-slate-50 dark:bg-slate-900">
       <div className="flex-1 p-6 sm:p-8 max-w-5xl mx-auto space-y-6">
         
         {/* Header */}
-        <div className="flex items-center space-x-3 border-b border-slate-200 pb-5">
-          <div className="p-3 bg-indigo-100 rounded-xl">
-            <Cpu className="w-6 h-6 text-indigo-600" />
+        <div className="flex items-center space-x-3 border-b border-slate-200 dark:border-slate-700 pb-5">
+          <div className="p-3 bg-indigo-100 dark:bg-indigo-500/20 rounded-xl">
+            <Cpu className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">AI Vision Testing Sandbox</h1>
-            <p className="text-sm text-slate-500">Live testing suite for OpenCV Face Recognition & YOLO Object Detection</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">AI Vision Testing Sandbox</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Live testing suite for OpenCV Face Recognition & YOLO Object Detection</p>
           </div>
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center text-sm">
+          <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 rounded-xl flex items-center text-sm">
             <AlertTriangle className="w-5 h-5 mr-2 shrink-0" />
             {error}
           </div>
@@ -165,10 +165,10 @@ export default function AITestDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* Camera Feed Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm">
-                <Camera className="w-4 h-4 text-indigo-600" /> Live Webcam Feed
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 text-sm">
+                <Camera className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Live Webcam Feed
               </h3>
               
               <div className="flex gap-2">
@@ -185,8 +185,8 @@ export default function AITestDashboard() {
                       onClick={() => setAutoStream(!autoStream)}
                       className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition flex items-center gap-1 ${
                         autoStream 
-                          ? "bg-amber-50 text-amber-700 border-amber-300" 
-                          : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+                          ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-500/30" 
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                       }`}
                     >
                       {autoStream ? <Square className="w-3 h-3 fill-amber-700" /> : <Play className="w-3 h-3 fill-slate-700" />}
@@ -204,7 +204,7 @@ export default function AITestDashboard() {
 
                     <button 
                       onClick={stopCamera}
-                      className="px-3 py-1.5 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300 transition"
+                      className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg hover:bg-slate-300 transition"
                     >
                       Stop
                     </button>
@@ -222,14 +222,14 @@ export default function AITestDashboard() {
                 className="w-full h-full object-cover"
               />
               {!streamActive && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-2">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 gap-2">
                   <Camera className="w-10 h-10 opacity-40" />
                   <span className="text-xs font-medium">Webcam Disconnected</span>
                 </div>
               )}
               {autoStream && (
                 <div className="absolute top-3 left-3 bg-red-600/90 text-white px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1.5 backdrop-blur-sm">
-                  <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                  <span className="w-2 h-2 rounded-full bg-white dark:bg-slate-800 animate-pulse"></span>
                   LIVE AI PROCTORING
                 </div>
               )}
@@ -238,14 +238,14 @@ export default function AITestDashboard() {
           </div>
 
           {/* Results View Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
-            <h3 className="font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4 text-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col">
+            <h3 className="font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-3 mb-4 text-sm flex items-center justify-between">
               <span>AI Vision Engine Output</span>
-              {analyzing && <span className="text-xs text-indigo-600 animate-pulse font-normal">Processing frame...</span>}
+              {analyzing && <span className="text-xs text-indigo-600 dark:text-indigo-400 animate-pulse font-normal">Processing frame...</span>}
             </h3>
             
             {!results ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
                 <Shield className="w-10 h-10 mb-2 text-slate-300" />
                 <p className="text-xs font-medium">Start camera & click &apos;Analyze Frame&apos; or enable &apos;Auto AI Mode&apos;</p>
               </div>
@@ -253,10 +253,10 @@ export default function AITestDashboard() {
               <div className="space-y-3 flex-1 flex flex-col justify-between">
                 
                 {/* Face Detection Status */}
-                <div className={`p-3.5 rounded-xl border transition ${results.face_detected ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                <div className={`p-3.5 rounded-xl border transition ${results.face_detected ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 dark:text-emerald-300' : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-800 dark:text-red-300 dark:text-red-300'}`}>
                   <div className="flex items-center justify-between font-bold text-sm">
                     <span className="flex items-center gap-2">
-                      {results.face_detected ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <AlertTriangle className="w-4 h-4 text-red-600" />}
+                      {results.face_detected ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />}
                       Face Recognition
                     </span>
                     <span className="text-xs font-mono">
@@ -266,10 +266,10 @@ export default function AITestDashboard() {
                 </div>
                 
                 {/* Multiple Faces Imposter Status */}
-                <div className={`p-3.5 rounded-xl border transition ${results.multiple_faces ? 'bg-red-50 border-red-200 text-red-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                <div className={`p-3.5 rounded-xl border transition ${results.multiple_faces ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-800 dark:text-red-300 dark:text-red-300' : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 dark:text-emerald-300'}`}>
                   <div className="flex items-center justify-between font-bold text-sm">
                     <span className="flex items-center gap-2">
-                      {results.multiple_faces ? <AlertTriangle className="w-4 h-4 text-red-600" /> : <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                      {results.multiple_faces ? <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" /> : <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                       Imposter Detection (Multiple Faces)
                     </span>
                     <span className="text-xs font-mono">
@@ -279,10 +279,10 @@ export default function AITestDashboard() {
                 </div>
 
                 {/* Mobile Phone Status */}
-                <div className={`p-3.5 rounded-xl border transition ${results.phone_detected ? 'bg-red-50 border-red-200 text-red-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                <div className={`p-3.5 rounded-xl border transition ${results.phone_detected ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-800 dark:text-red-300 dark:text-red-300' : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 dark:text-emerald-300'}`}>
                   <div className="flex items-center justify-between font-bold text-sm">
                     <span className="flex items-center gap-2">
-                      {results.phone_detected ? <AlertTriangle className="w-4 h-4 text-red-600" /> : <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                      {results.phone_detected ? <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" /> : <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                       Object Detection (Mobile Phone)
                     </span>
                     <span className="text-xs font-mono">
@@ -293,7 +293,7 @@ export default function AITestDashboard() {
 
                 {/* Raw JSON Debug */}
                 <div className="mt-4 pt-2">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Raw Backend AI Response</h4>
+                  <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Raw Backend AI Response</h4>
                   <pre className="bg-slate-900 text-emerald-400 p-3 rounded-xl text-[11px] font-mono overflow-auto h-28 border border-slate-800">
                     {JSON.stringify(results.raw_detections, null, 2)}
                   </pre>

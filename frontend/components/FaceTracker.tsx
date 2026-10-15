@@ -177,7 +177,7 @@ export default function FaceTracker({ onEventDetected, onAnalysis, enabled, sess
   if (!enabled) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-900 shadow-sm">
+    <div className="relative overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-900 shadow-sm">
       <video ref={videoRef} autoPlay playsInline muted className="h-36 w-48 object-cover opacity-80" />
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 p-2 text-center text-xs font-semibold text-red-400">

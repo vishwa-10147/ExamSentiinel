@@ -28,5 +28,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - working-directory: frontend
         run: npm install
+      - name: Every light colour class has a dark-mode variant
+        run: python3 frontend/scripts/add-dark-variants.py --check
       - working-directory: frontend
         run: npm run build

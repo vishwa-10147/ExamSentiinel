@@ -22,7 +22,7 @@ export default function RoleAreaLayout({ roles, children }: { roles: string[]; c
   }, [isLoading, isAuthenticated, allowed, router]);
 
   if (isLoading || !allowed) {
-    return <main className="flex min-h-screen items-center justify-center text-slate-500">Checking access...</main>;
+    return <main className="flex min-h-screen items-center justify-center text-slate-500 dark:text-slate-400">Checking access...</main>;
   }
 
   return (

@@ -90,7 +90,7 @@ export default function AdminProblemsPage() {
         <div className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 dark:border-slate-700 sm:flex-row sm:items-end">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
-              <Code2 className="h-7 w-7 text-blue-600" /> Practice Problems
+              <Code2 className="h-7 w-7 text-blue-600 dark:text-blue-400" /> Practice Problems
             </h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {items.length} problems · {published} published. Students practise these in the Problem Set; practice never affects exam results.
@@ -117,7 +117,7 @@ export default function AdminProblemsPage() {
 
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <table className="w-full min-w-[760px] text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900/50">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:bg-slate-900/50">
               <tr>
                 <th className="px-4 py-3">Problem</th>
                 <th className="px-4 py-3">Difficulty</th>
@@ -131,14 +131,14 @@ export default function AdminProblemsPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-10 text-center text-slate-500 dark:text-slate-400">
                     <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                   </td>
                 </tr>
               )}
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-slate-500">No problems found.</td>
+                  <td colSpan={7} className="px-4 py-10 text-center text-slate-500 dark:text-slate-400">No problems found.</td>
                 </tr>
               )}
               {filtered.map((p) => (
@@ -177,28 +177,28 @@ export default function AdminProblemsPage() {
                         onClick={() => void validate(p)}
                         disabled={validating === p.id}
                         title="Run the reference solution against every test"
-                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-emerald-600 disabled:opacity-50 dark:hover:bg-slate-700"
+                        className="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 hover:text-emerald-600 disabled:opacity-50 dark:hover:bg-slate-700"
                       >
                         {validating === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                       </button>
                       <Link
                         href={`/candidate/problems/${p.slug}`}
                         title="Open as a student"
-                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
+                        className="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
                       >
                         <Eye className="h-4 w-4" />
                       </Link>
                       <button
                         onClick={() => void openAddToExam(p)}
                         title="Use in an exam"
-                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-violet-600 dark:hover:bg-slate-700"
+                        className="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 hover:text-violet-600 dark:hover:bg-slate-700"
                       >
                         <ClipboardPlus className="h-4 w-4" />
                       </button>
                       <Link
                         href={`/admin/problems/${p.id}`}
                         title="Edit"
-                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
+                        className="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
                       >
                         <Pencil className="h-4 w-4" />
                       </Link>
@@ -217,7 +217,7 @@ export default function AdminProblemsPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 id="add-title" className="font-semibold text-slate-900 dark:text-white">Use “{addTarget.title}” in an exam</h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Students see the statement and examples; answers are graded on every test (hidden ones included), with marks proportional to tests passed.
                 </p>
               </div>
@@ -226,7 +226,7 @@ export default function AdminProblemsPage() {
               </button>
             </div>
             <div>
-              <label htmlFor="exam" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Exam</label>
+              <label htmlFor="exam" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Exam</label>
               <select
                 id="exam"
                 value={examId}
@@ -240,7 +240,7 @@ export default function AdminProblemsPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="points" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Points</label>
+              <label htmlFor="points" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Points</label>
               <input
                 id="points"
                 type="number"

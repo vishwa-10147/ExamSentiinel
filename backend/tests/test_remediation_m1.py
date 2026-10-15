@@ -121,7 +121,7 @@ async def test_concurrency_duplicate_registration(async_client: AsyncClient, tes
     assert status_codes.count(201) == 1
     assert 500 not in status_codes
     for sc in status_codes:
-        assert sc in [201, 400]
+        assert sc in [201, 400, 429]  # 429: the per-IP registration limit (3/hour) also applies
 
 
 @pytest.mark.asyncio

@@ -224,7 +224,7 @@ export default function QuestionsPage() {
   if (isLoading || !user) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="text-center text-slate-500">Loading question bank...</div>
+        <div className="text-center text-slate-500 dark:text-slate-400">Loading question bank...</div>
       </div>
     );
   }
@@ -245,13 +245,13 @@ export default function QuestionsPage() {
       <main className="flex-1 flex flex-col overflow-y-auto">
         <div className="p-6 sm:p-8 max-w-7xl mx-auto w-full">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-700 pb-5 mb-8">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                <Library className="h-6 w-6 text-blue-600" />
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                <Library className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 Question Bank
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Manage, organize, and import questions for all online exams.
               </p>
             </div>
@@ -261,7 +261,7 @@ export default function QuestionsPage() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingCSV}
-                className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 border border-slate-200"
+                className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 border border-slate-200 dark:border-slate-700"
               >
                 <Upload className="h-4 w-4" />
                 {isUploadingCSV ? "Importing..." : "Import CSV"}
@@ -277,8 +277,8 @@ export default function QuestionsPage() {
           </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-lg bg-amber-50 p-4 border border-amber-200 text-sm text-amber-800">
-              <AlertCircle className="h-5 w-5 text-amber-600" />
+            <div className="mb-6 flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 p-4 border border-amber-200 dark:border-amber-500/30 text-sm text-amber-800 dark:text-amber-300">
+              <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               {error}
             </div>
           )}
@@ -294,7 +294,7 @@ export default function QuestionsPage() {
                 placeholder="Search questions by title or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-9 pr-8 py-2 border border-slate-300 rounded-lg text-sm bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full pl-9 pr-8 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {searchQuery && (
                 <button
@@ -310,7 +310,7 @@ export default function QuestionsPage() {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="All">All Types</option>
                 <option value="multiple_choice">Multiple Choice</option>
@@ -321,7 +321,7 @@ export default function QuestionsPage() {
               <select
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="All">All Difficulties</option>
                 <option value="EASY">Easy</option>
@@ -332,35 +332,35 @@ export default function QuestionsPage() {
           </div>
 
           {/* Table Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+              <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                <thead className="bg-slate-50 dark:bg-slate-900">
                   <tr>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Title & Description
                     </th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Type
                     </th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Difficulty & Points
                     </th>
-                    <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
                   {loading ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500">
+                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
                         Loading questions...
                       </td>
                     </tr>
                   ) : filteredQuestions.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500">
+                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
                         No questions match your criteria.
                       </td>
                     </tr>
@@ -369,27 +369,27 @@ export default function QuestionsPage() {
                       const displayDiff = (q.difficulty || "MEDIUM").toUpperCase();
                       const displayType = (q.type || "multiple_choice").replace("_", " ");
                       return (
-                        <tr key={q.id} className="hover:bg-slate-50/50 transition-colors">
+                        <tr key={q.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50/50 transition-colors">
                           <td className="px-6 py-4">
-                            <div className="text-sm font-semibold text-slate-900">{q.title}</div>
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">{q.title}</div>
                             {q.content_rich_text && q.content_rich_text !== q.title && (
-                              <div className="text-xs text-slate-500 truncate max-w-md mt-0.5">
+                              <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-md mt-0.5">
                                 {q.content_rich_text}
                               </div>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center text-sm text-slate-700 capitalize">
+                            <div className="flex items-center text-sm text-slate-700 dark:text-slate-200 capitalize">
                               <Type className="h-4 w-4 mr-2 text-slate-400" />
                               {displayType}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2 text-sm text-slate-700">
+                            <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
                               <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                                displayDiff === 'EASY' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' :
-                                displayDiff === 'HARD' ? 'bg-red-50 text-red-700 ring-red-600/10' :
-                                'bg-amber-50 text-amber-800 ring-amber-600/20'
+                                displayDiff === 'EASY' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-emerald-600/20' :
+                                displayDiff === 'HARD' ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 ring-red-600/10' :
+                                'bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 ring-amber-600/20'
                               }`}>
                                 {displayDiff}
                               </span>
@@ -426,9 +426,9 @@ export default function QuestionsPage() {
       {/* Create / Edit Question Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isEditMode ? "Edit Question" : "Create New Question"}
               </h2>
               <button 
@@ -442,24 +442,24 @@ export default function QuestionsPage() {
             
             <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Question Title</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Question Title</label>
                 <input 
                   type="text" 
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({...prev, title: e.target.value}))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
                   placeholder="e.g. Reverse a Linked List" 
                   disabled={isSubmitting}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Detailed Problem Description</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Detailed Problem Description</label>
                 <textarea 
                   rows={3}
                   value={formData.content_rich_text}
                   onChange={(e) => setFormData(prev => ({...prev, content_rich_text: e.target.value}))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
                   placeholder="Provide full description, constraints, and instructions..." 
                   disabled={isSubmitting}
                 />
@@ -467,11 +467,11 @@ export default function QuestionsPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Type</label>
                   <select 
                     value={formData.type}
                     onChange={(e) => setFormData(prev => ({...prev, type: e.target.value}))}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800"
                     disabled={isSubmitting}
                   >
                     <option value="multiple_choice">Multiple Choice</option>
@@ -481,11 +481,11 @@ export default function QuestionsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Difficulty</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Difficulty</label>
                   <select 
                     value={formData.difficulty}
                     onChange={(e) => setFormData(prev => ({...prev, difficulty: e.target.value}))}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800"
                     disabled={isSubmitting}
                   >
                     <option value="EASY">Easy</option>
@@ -495,13 +495,13 @@ export default function QuestionsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Points</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Points</label>
                   <input 
                     type="number"
                     min={1}
                     value={formData.points}
                     onChange={(e) => setFormData(prev => ({...prev, points: Number(e.target.value)}))}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -510,24 +510,24 @@ export default function QuestionsPage() {
               {formData.type === "multiple_choice" && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Options (comma separated)</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Options (comma separated)</label>
                     <input 
                       type="text"
                       value={formData.optionsStr}
                       onChange={(e) => setFormData(prev => ({...prev, optionsStr: e.target.value}))}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       placeholder="Option A, Option B, Option C, Option D"
                       disabled={isSubmitting}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Correct Answer</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Correct Answer</label>
                     <input 
                       type="text"
                       value={formData.correctAnswer}
                       onChange={(e) => setFormData(prev => ({...prev, correctAnswer: e.target.value}))}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       placeholder="e.g. Option A"
                       disabled={isSubmitting}
                     />
@@ -537,12 +537,12 @@ export default function QuestionsPage() {
 
               {formData.type === "coding" && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Test Cases / Solution Metadata (JSON)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Test Cases / Solution Metadata (JSON)</label>
                   <textarea 
                     rows={3}
                     value={formData.correctAnswer}
                     onChange={(e) => setFormData(prev => ({...prev, correctAnswer: e.target.value}))}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-mono focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     placeholder='{"test_cases": [{"input": "5", "output": "120"}]}'
                     disabled={isSubmitting}
                   />
@@ -550,10 +550,10 @@ export default function QuestionsPage() {
               )}
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 mt-auto">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 mt-auto">
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                 disabled={isSubmitting}
               >
                 Cancel

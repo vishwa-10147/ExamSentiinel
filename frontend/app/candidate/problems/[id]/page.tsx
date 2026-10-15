@@ -39,7 +39,7 @@ import { DifficultyBadge, StatusIcon, VerdictText, verdictColor } from "@/compon
 
 const Editor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
-  loading: () => <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading editor…</div>,
+  loading: () => <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading editor…</div>,
 });
 
 type LeftTab = "description" | "editorial" | "submissions";
@@ -279,7 +279,7 @@ export default function ProblemWorkspacePage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
         <p className="text-slate-600 dark:text-slate-300">{loadError}</p>
-        <Link href="/candidate/problems" className="text-sm font-semibold text-blue-600 hover:underline">
+        <Link href="/candidate/problems" className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline">
           Back to problems
         </Link>
       </div>
@@ -288,7 +288,7 @@ export default function ProblemWorkspacePage() {
 
   if (!problem) {
     return (
-      <div className="flex h-full items-center justify-center text-slate-500">
+      <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading problem…
       </div>
     );
@@ -346,7 +346,7 @@ export default function ProblemWorkspacePage() {
                 className={`inline-flex items-center gap-1.5 rounded-t-lg px-3 py-2 text-sm font-medium ${
                   leftTab === key
                     ? "border-b-2 border-blue-600 text-blue-700 dark:text-blue-400"
-                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 <Icon className="h-4 w-4" /> {label}
@@ -391,7 +391,7 @@ export default function ProblemWorkspacePage() {
                     <pre className="overflow-x-auto rounded-lg bg-slate-100 p-3 font-mono text-[12px] leading-relaxed text-slate-800 dark:bg-slate-900 dark:text-slate-200">
                       {problem.sql_schema}
                     </pre>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       Rows may be returned in {problem.compare_mode === "exact" ? "the order the statement asks for" : "any order"}.
                     </p>
                   </div>
@@ -433,7 +433,7 @@ export default function ProblemWorkspacePage() {
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
                   <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {problem.time_limit_ms} ms per test</span>
                   <span>{problem.memory_limit_mb} MB memory</span>
                   {problem.complexity && (
@@ -465,23 +465,23 @@ export default function ProblemWorkspacePage() {
                 <div className="space-y-4">
                   <h3 className="font-semibold text-slate-900 dark:text-white">Approach</h3>
                   <Markdown source={problem.editorial} />
-                  {problem.complexity && <p className="text-xs text-slate-500">Complexity: {problem.complexity}</p>}
+                  {problem.complexity && <p className="text-xs text-slate-500 dark:text-slate-400">Complexity: {problem.complexity}</p>}
                 </div>
               ) : (
-                <div className="flex flex-col items-center gap-2 py-10 text-center text-slate-500">
+                <div className="flex flex-col items-center gap-2 py-10 text-center text-slate-500 dark:text-slate-400">
                   <Lock className="h-6 w-6" />
                   <p>{problem.has_editorial ? "Solve this problem to unlock the editorial." : "No editorial has been written for this problem yet."}</p>
                 </div>
               )
             ) : submissions.length === 0 ? (
-              <p className="py-10 text-center text-slate-500">No submissions yet. Submit your solution to see it here.</p>
+              <p className="py-10 text-center text-slate-500 dark:text-slate-400">No submissions yet. Submit your solution to see it here.</p>
             ) : (
               <div className="space-y-3">
                 {acceptedRuntime.length > 0 && (
-                  <p className="text-xs text-slate-500">Best accepted runtime: {Math.min(...acceptedRuntime)} ms</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Best accepted runtime: {Math.min(...acceptedRuntime)} ms</p>
                 )}
                 <table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     <tr>
                       <th className="py-2 pr-3">Status</th>
                       <th className="py-2 pr-3">Language</th>
@@ -512,7 +512,7 @@ export default function ProblemWorkspacePage() {
                                 setCode(s.source_code || "");
                                 toast.success("Loaded submission into the editor.");
                               }}
-                              className="text-xs font-semibold text-blue-600 hover:underline"
+                              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
                             >
                               Load code
                             </button>
@@ -544,7 +544,7 @@ export default function ProblemWorkspacePage() {
             <button
               onClick={resetCode}
               title="Reset to starter code"
-              className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-700 dark:hover:text-white"
+              className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-700 dark:hover:text-white"
             >
               <RotateCcw className="h-3.5 w-3.5" /> Reset
             </button>
@@ -582,7 +582,7 @@ export default function ProblemWorkspacePage() {
                   className={`rounded-md px-3 py-1.5 text-sm font-medium ${
                     consoleOpen && consoleTab === t
                       ? "bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white"
-                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
                   {t === "testcase" ? "Testcase" : "Test Result"}
@@ -591,7 +591,7 @@ export default function ProblemWorkspacePage() {
               <button
                 onClick={() => setConsoleOpen((o) => !o)}
                 aria-label={consoleOpen ? "Collapse console" : "Expand console"}
-                className="ml-auto rounded-md p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="ml-auto rounded-md p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 {consoleOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
               </button>
@@ -629,7 +629,7 @@ export default function ProblemWorkspacePage() {
                     </div>
                     {useCustom ? (
                       <div className="space-y-1.5">
-                        <label className="text-xs text-slate-500" htmlFor="custom-input">
+                        <label className="text-xs text-slate-500 dark:text-slate-400" htmlFor="custom-input">
                           {spec
                             ? `One JSON value per line, in order: ${spec.params.map((p) => `${p.name} (${p.type})`).join(", ")}`
                             : problem.judge_mode === "SQL"
@@ -644,7 +644,7 @@ export default function ProblemWorkspacePage() {
                           spellCheck={false}
                           className="w-full rounded-lg border border-slate-300 bg-slate-50 p-2 font-mono text-[13px] text-slate-800 outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                         />
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           Custom input runs alongside the examples.
                           {problem.has_reference_solution ? " The expected answer is computed for you." : ""}
                         </p>
@@ -655,13 +655,13 @@ export default function ProblemWorkspacePage() {
                         value={formatCaseInput(problem.examples[selectedCase]?.input ?? "", spec)}
                       />
                     ) : (
-                      <p className="text-slate-500">This problem has no example cases.</p>
+                      <p className="text-slate-500 dark:text-slate-400">This problem has no example cases.</p>
                     )}
                   </div>
                 ) : !result && !busy ? (
-                  <p className="py-6 text-center text-slate-500">Run or submit your code to see results here.</p>
+                  <p className="py-6 text-center text-slate-500 dark:text-slate-400">Run or submit your code to see results here.</p>
                 ) : busy ? (
-                  <div className="flex items-center justify-center gap-2 py-8 text-slate-500">
+                  <div className="flex items-center justify-center gap-2 py-8 text-slate-500 dark:text-slate-400">
                     <Loader2 className="h-5 w-5 animate-spin" /> {busy === "run" ? "Running sample tests…" : "Judging against all tests…"}
                   </div>
                 ) : result ? (
@@ -669,7 +669,7 @@ export default function ProblemWorkspacePage() {
                     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                       <span className={`text-lg font-bold ${verdictColor(result.verdict)}`}>{VERDICT_LABELS[result.verdict]}</span>
                       {result.verdict !== "COMPILE_ERROR" && result.verdict !== "SYSTEM_ERROR" && (
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
                           {result.passed}/{result.total} {result.kind === "run" ? "sample" : ""} tests passed
                           {result.runtime_ms != null && ` · ${result.runtime_ms} ms`}
                         </span>
@@ -722,7 +722,7 @@ export default function ProblemWorkspacePage() {
                             )}
                             {resultCase.expected != null && <Block label="Expected" value={resultCase.expected} />}
                             {resultCase.is_custom && resultCase.expected == null && (
-                              <p className="text-xs text-slate-500">No reference answer available for custom input.</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">No reference answer available for custom input.</p>
                             )}
                             {resultCase.stdout && <Block label="Stdout" value={resultCase.stdout} />}
                           </div>
