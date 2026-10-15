@@ -63,6 +63,7 @@ AI is used to *surface* signals — never to penalise a candidate automatically.
 - Verdicts: Accepted, Wrong Answer, Time/Memory/Output Limit Exceeded, Runtime Error, Compile Error
 - Topic and difficulty filters, search by ID, submission history and per-topic progress
 - Code playground for any C, C++, Java, Python, JavaScript or SQL program with custom stdin
+- **Timed contests** with registration, a countdown, points and penalties, and a live leaderboard
 
 ### Interviews and accounts
 - Live WebRTC interviews with consent capture, rubric scoring and Whisper transcription
@@ -306,7 +307,8 @@ together with known limitations. Please report vulnerabilities privately.
 - [x] C support for function-style problems with LeetCode-style signatures
 - [x] httpOnly cookie sessions with CSRF protection; brute-force throttling without Redis
 - [x] Queued judging, load-tested with 500 simultaneous students (all judged, p95 13 s)
-- [ ] Timed contests and curated study plans
+- [x] Timed contests with registration, scoring with penalties and a live leaderboard
+- [ ] Curated study plans
 
 ## Contributing
 

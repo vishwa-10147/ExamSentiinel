@@ -25,6 +25,7 @@ import {
   Code2,
   Library,
   BarChart3,
+  Timer,
   LogOut,
   CheckCircle2,
   AlertTriangle,
@@ -59,6 +60,7 @@ export default function Sidebar() {
     { label: "Exam Center", href: "/admin/exam", icon: ClipboardList, roles: ["admin"] },
     { label: "Question Bank", href: "/admin/questions", icon: Library, roles: ["admin"] },
     { label: "Practice Problems", href: "/admin/problems", icon: Code2, roles: ["admin"] },
+    { label: "Contests", href: "/admin/contests", icon: Timer, roles: ["admin"] },
     { label: "Results", href: "/admin/results", icon: FileCheck2, roles: ["admin"] },
     { label: "Review Queue", href: "/admin/review", icon: AlertOctagon, roles: ["admin", "reviewer"] },
     { label: "Interviews", href: "/admin/interviews", icon: Video, roles: ["admin", "proctor", "reviewer"] },
@@ -70,6 +72,7 @@ export default function Sidebar() {
     // Candidate routes
     { label: "My Exams", href: "/candidate/exams", icon: BookOpen, roles: ["candidate"] },
     { label: "Problem Set", href: "/candidate/problems", icon: Library, roles: ["candidate"] },
+    { label: "Contests", href: "/candidate/contests", icon: Timer, roles: ["candidate"] },
     { label: "Practice Progress", href: "/candidate/progress", icon: BarChart3, roles: ["candidate"] },
     { label: "Code Playground", href: "/candidate/practice", icon: Code2, roles: ["candidate"] },
     { label: "My Results", href: "/candidate/results", icon: FileCheck2, roles: ["candidate"] },

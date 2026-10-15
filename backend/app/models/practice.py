@@ -136,5 +136,9 @@ class PracticeSubmission(TimeStampedUUIDModel):
     # Judge queue bookkeeping: set when a worker claims the submission; attempts counts retries.
     judge_started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     judge_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    # Set when submitted through a contest (app/api/contests.py); NULL for practice.
+    contest_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("contests.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     problem: Mapped["PracticeProblem"] = relationship("PracticeProblem")

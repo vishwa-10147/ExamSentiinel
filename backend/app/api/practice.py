@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import RateLimiter, get_current_user, log_audit_event, require_roles
 from app.core.database import get_db
 from app.core.logging import logger
+from app.models.contest import Contest, ContestProblem
 from app.models.practice import (
     JudgeMode,
     PracticeProblem,
@@ -91,12 +92,22 @@ class _JudgeSlot:
 # Helpers
 # ---------------------------------------------------------------------------
 
+async def contest_locked_problem_ids(db: AsyncSession) -> set[uuid.UUID]:
+    """Problems of published contests that have not ended: hidden from practice until the end."""
+    rows = await db.execute(
+        select(ContestProblem.problem_id)
+        .join(Contest, Contest.id == ContestProblem.contest_id)
+        .where(Contest.is_published.is_(True), Contest.ends_at > datetime.now(timezone.utc))
+    )
+    return set(rows.scalars().all())
+
+
 async def _get_problem(db: AsyncSession, slug: str, *, published_only: bool) -> PracticeProblem:
     query = select(PracticeProblem).options(selectinload(PracticeProblem.test_cases)).where(PracticeProblem.slug == slug)
     if published_only:
         query = query.where(PracticeProblem.is_published.is_(True))
     problem = (await db.execute(query)).scalar_one_or_none()
-    if problem is None:
+    if problem is None or (published_only and problem.id in await contest_locked_problem_ids(db)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Problem not found")
     return problem
 
@@ -217,7 +228,8 @@ async def list_problems(
         query = query.where(PracticeProblem.difficulty == difficulty)
     if topic:
         query = query.where(PracticeProblem.topic == topic)
-    problems = list((await db.execute(query)).scalars().all())
+    locked = await contest_locked_problem_ids(db)
+    problems = [p for p in (await db.execute(query)).scalars().all() if p.id not in locked]
     if search:
         needle = search.strip().lower().lstrip("#")
         problems = [
@@ -292,6 +304,10 @@ async def get_problem(slug: str, db: AsyncSession = Depends(get_db), current_use
     status_value = statuses.get(problem.id, "todo")
     # Editorials are a reward for solving: hidden until the user has an accepted submission.
     show_editorial = status_value == "solved" or current_user.role == UserRole.ADMIN
+    return problem_detail(problem, status_value, show_editorial=show_editorial)
+
+
+def problem_detail(problem: PracticeProblem, status_value: str, *, show_editorial: bool) -> ProblemDetail:
     input_format, output_format = problem.input_format, problem.output_format
     if problem.judge_mode == JudgeMode.FUNCTION and problem.function_spec and not (input_format and output_format):
         default_in, default_out = describe_function_io(problem.function_spec, problem.compare_mode)
@@ -338,6 +354,10 @@ async def run_code(
 ):
     """Run against the sample cases (plus optional custom input). Nothing is stored."""
     problem = await _get_problem(db, slug, published_only=current_user.role != UserRole.ADMIN)
+    return await run_samples(problem, payload, current_user)
+
+
+async def run_samples(problem: PracticeProblem, payload: RunRequest, current_user: User) -> RunResponse:
     if payload.language not in _languages(problem):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{payload.language} is not available for this problem")
     cases = _judge_cases(problem, samples_only=True)
@@ -450,6 +470,20 @@ async def submit_code(
     202 with ``verdict: PENDING``; poll ``GET /api/practice/submissions/{id}`` for the result.
     """
     problem = await _get_problem(db, slug, published_only=current_user.role != UserRole.ADMIN)
+    return await enqueue_submission(db, problem, payload, current_user)
+
+
+async def enqueue_submission(
+    db: AsyncSession,
+    problem: PracticeProblem,
+    payload: SubmitRequest,
+    current_user: User,
+    contest_id: Optional[uuid.UUID] = None,
+):
+    """Store a PENDING submission, wake the judge workers and wait up to SUBMIT_WAIT_SECONDS.
+
+    Returns the verdict (200) or, if judging takes longer, a 202 with ``verdict: PENDING``.
+    """
     if payload.language not in _languages(problem):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{payload.language} is not available for this problem")
     if not problem.test_cases:
@@ -470,6 +504,7 @@ async def submit_code(
         verdict=Verdict.PENDING,
         passed_count=0,
         total_count=len(problem.test_cases),
+        contest_id=contest_id,
     )
     db.add(submission)
     await db.commit()

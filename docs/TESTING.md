@@ -60,6 +60,7 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | `test_judge_queue.py` | 6 | Verdict within the wait, 202 then polling, one pending submission per student, engine-outage retries, recovery of an orphaned job, bounded engine concurrency, per-student (not per-IP) limits |
 | `test_cookie_sessions.py` | 7 | httpOnly cookie sign-in and refresh, CSRF header, logout, bearer clients unchanged, failed-login throttle, WebSocket origin check |
 | `test_resilience.py` | 4 | Half-open Redis circuit breaker (one probe at a time, cool-down, healthy Redis stays closed); one pooled HTTP client for the engine |
+| `test_contests.py` | 7 | Problems hidden before the start (also from practice), registration, the submission window, scoring and penalties, tie-breaks, editorial hiding until the end, admin rules after the start, SQLite dev-database column upgrades |
 | `test_practice_dsa_api.py` | 8 | IDs, topics, sorting and search; editorial gating; checker protection; history and progress; playground limits; rate limiting |
 | Other `test_*.py` | 116 | Authentication, RBAC, SSO, password reset, exams, proctoring and AI, interviews, IRT, adversarial and security checks |
 
@@ -69,7 +70,7 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 |---|---|
 | `dashboard.spec.ts` | Login and registration pages render; dashboard requires authentication |
 | `protected-routes.spec.ts` | Every protected route redirects anonymous users; login works on a mobile viewport |
-| `roles.spec.ts` | Solving a problem (Run and Submit), browsing by topic and ID, a C++ linked-list solution unlocking the editorial, a C solution with LeetCode-style signatures, the progress page, a C program in the playground, staff areas closed to candidates, user creation, problem authoring, reviewer and proctor dashboards |
+| `roles.spec.ts` | Solving a problem (Run and Submit), browsing by topic and ID, a C++ linked-list solution unlocking the editorial, a C solution with LeetCode-style signatures, the progress page, a C program in the playground, staff areas closed to candidates, user creation, problem authoring, reviewer and proctor dashboards, scheduling a contest and solving inside it |
 
 ## Latest results
 
@@ -78,8 +79,8 @@ was skipped. Re-run the suites after any change rather than relying on these fig
 
 | Suite | Result |
 |---|---|
-| Backend | **606 passed**, 0 failed, 0 skipped |
-| Browser | **26 passed** |
+| Backend | **613 passed**, 0 failed, 0 skipped |
+| Browser | **27 passed** |
 | End to end | **73 / 73** steps passed |
 | Type check, lint, production build | No errors or warnings |
 

@@ -17,6 +17,31 @@ from app.core.logging import (
 )
 
 
+def _sqlite_add_missing_columns(conn, metadata) -> list[str]:
+    """``create_all`` never alters existing tables: add columns that newer models declare to an
+    older local SQLite database. Additive and nullable/defaulted only; PostgreSQL uses Alembic."""
+    from sqlalchemy import inspect
+
+    inspector = inspect(conn)
+    added = []
+    for table in metadata.sorted_tables:
+        if not inspector.has_table(table.name):
+            continue
+        present = {c["name"] for c in inspector.get_columns(table.name)}
+        for column in table.columns:
+            if column.name in present or column.primary_key:
+                continue
+            ddl = f'ALTER TABLE "{table.name}" ADD COLUMN "{column.name}" {column.type.compile(dialect=conn.dialect)}'
+            default = getattr(column.server_default, "arg", None)
+            if isinstance(default, str):
+                ddl += " DEFAULT '" + default.replace("'", "''") + "'" + ("" if column.nullable else " NOT NULL")
+            elif not column.nullable:
+                continue  # a NOT NULL column needs a default; recreate the dev database for this one
+            conn.exec_driver_sql(ddl)
+            added.append(f"{table.name}.{column.name}")
+    return added
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup tasks
@@ -34,7 +59,8 @@ async def lifespan(app: FastAPI):
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("sqlite_schema_ready", database_url=settings.DATABASE_URL)
+            added = await conn.run_sync(_sqlite_add_missing_columns, Base.metadata)
+        logger.info("sqlite_schema_ready", database_url=settings.DATABASE_URL, added_columns=added)
 
     # Load the proctoring vision model in the background so the first
     # candidate frame doesn't pay PyTorch's start-up cost.
