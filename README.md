@@ -13,6 +13,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [Features](#features) ·
 [Screenshots](#screenshots) ·
@@ -274,7 +275,8 @@ private subnet. Step-by-step instructions: [AWS deployment](docs/AWS_DEPLOYMENT.
 
 - Untrusted code runs only in the sandbox; isolation and limits are verified by automated tests
 - Hidden tests, reference solutions and checkers are never sent to the browser
-- Role-based authorisation on every endpoint, rate limits on authentication and code execution
+- Browser sessions in httpOnly cookies with CSRF protection; tokens are never readable by page scripts
+- Role-based authorisation on every endpoint; rate limits on sign-in and code execution, with or without Redis
 - Secrets come from the environment; nothing secret is committed or exposed to the frontend
 
 Every control and the test that verifies it is listed in the [security policy](docs/SECURITY.md),
@@ -301,9 +303,9 @@ together with known limitations. Please report vulnerabilities privately.
 - [x] Sandboxed multi-language judge with checkers for multi-answer problems
 - [x] OpenID Connect single sign-on and live interviews with transcription
 - [x] C support for function-style problems with LeetCode-style signatures
+- [x] httpOnly cookie sessions with CSRF protection; brute-force throttling without Redis
 - [ ] Queued judging for exam-day load across multiple engine instances
 - [ ] Timed contests and curated study plans
-- [ ] Token storage in httpOnly cookies
 
 ## Contributing
 
@@ -313,8 +315,7 @@ security claims need a test that proves them.
 
 ## License
 
-This repository does not yet include an open-source license; all rights are reserved by the
-author. Contact the maintainer before reusing the code.
+Released under the [MIT License](LICENSE).
 
 ## Acknowledgements
 

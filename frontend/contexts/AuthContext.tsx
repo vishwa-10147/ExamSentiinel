@@ -9,7 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<any>;
   verifyOTP: (userId: string, otpCode: string) => Promise<UserProfile>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -23,8 +23,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       if (typeof window !== "undefined") {
-        const storedToken = localStorage.getItem("access_token");
-        if (storedToken) {
+        // The session itself is an httpOnly cookie; the stored profile only says one may exist.
+        // Tokens kept in localStorage by older versions are discarded.
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        if (localStorage.getItem("user_profile")) {
           const profile = await apiClient.getMe();
           setUser(profile);
           localStorage.setItem("user_profile", JSON.stringify(profile));
@@ -67,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    apiClient.clearTokens();
+  const logout = async () => {
+    await apiClient.logout();
     setUser(null);
     if (typeof window !== "undefined") {
       window.location.href = "/auth/login";
@@ -80,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const profile = await apiClient.getMe();
       setUser(profile);
     } catch {
-      logout();
+      await logout();
     }
   };
 

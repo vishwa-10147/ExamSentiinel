@@ -14,8 +14,9 @@ export interface UserProfile {
 }
 
 export interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
+  /** Always null for the browser: tokens live in httpOnly cookies the page cannot read. */
+  access_token: string | null;
+  refresh_token: string | null;
   token_type: string;
   expires_in: number;
   user: UserProfile;
@@ -41,24 +42,20 @@ class ApiClient {
     this.baseUrl = baseUrl.replace(/\/$/, "");
   }
 
-  private getAccessToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("access_token");
-  }
+  // Sessions live in httpOnly cookies set by the API (see backend app/core/auth_cookies.py):
+  // page scripts never see the tokens. Every request sends the cookies, asks for cookie mode,
+  // and carries X-Requested-With, which the API requires for cookie-authenticated writes (CSRF).
+  private static readonly SESSION_HEADERS = { "X-Auth-Mode": "cookie", "X-Requested-With": "ExamSentinel" };
 
-  private getRefreshToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("refresh_token");
-  }
-
-  private setTokens(accessToken: string, refreshToken: string): void {
+  private storeProfile(user: UserProfile): void {
     if (typeof window === "undefined") return;
-    localStorage.setItem("access_token", accessToken);
-    localStorage.setItem("refresh_token", refreshToken);
+    localStorage.setItem("user_profile", JSON.stringify(user));
   }
 
+  /** Forget the local session state (the cookies themselves are cleared by POST /api/auth/logout). */
   public clearTokens(): void {
     if (typeof window === "undefined") return;
+    // Tokens from older versions, which kept them in localStorage.
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user_profile");
@@ -70,13 +67,9 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
     const headers: Record<string, string> = {
+      ...ApiClient.SESSION_HEADERS,
       ...(options.headers as Record<string, string>),
     };
-
-    const token = this.getAccessToken();
-    if (token && !headers["Authorization"]) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
 
     // Do not set Content-Type to application/json for FormData
     if (!(options.body instanceof FormData) && !headers["Content-Type"] && options.method !== "GET") {
@@ -86,6 +79,7 @@ class ApiClient {
     const response = await fetch(url, {
       ...options,
       headers,
+      credentials: "include",
     });
 
     // Handle token expiration & single-session displacement
@@ -102,11 +96,11 @@ class ApiClient {
 
       const refreshed = await this.tryRefreshToken();
       if (refreshed) {
-        // Retry the request with new token
-        headers["Authorization"] = `Bearer ${this.getAccessToken()}`;
+        // Retry the request; the refreshed session cookie is sent automatically.
         const retryResponse = await fetch(url, {
           ...options,
           headers,
+          credentials: "include",
         });
         if (!retryResponse.ok) {
           const errorData = await retryResponse.json().catch(() => ({}));
@@ -142,18 +136,12 @@ class ApiClient {
   }
 
   private async tryRefreshToken(): Promise<boolean> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      this.clearTokens();
-      return false;
-    }
-
     try {
-      const refreshUrl = `${this.baseUrl}/api/auth/refresh`;
-      const res = await fetch(refreshUrl, {
+      // The refresh token is an httpOnly cookie scoped to /api/auth; the API reads it from there.
+      const res = await fetch(`${this.baseUrl}/api/auth/refresh`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        headers: ApiClient.SESSION_HEADERS,
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -162,7 +150,7 @@ class ApiClient {
       }
 
       const data: TokenResponse = await res.json();
-      this.setTokens(data.access_token, data.refresh_token);
+      this.storeProfile(data.user);
       return true;
     } catch {
       this.clearTokens();
@@ -206,11 +194,22 @@ class ApiClient {
     if (data.requires_2fa) {
       return data;
     }
-    this.setTokens(data.access_token, data.refresh_token);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("user_profile", JSON.stringify(data.user));
-    }
+    this.storeProfile(data.user);
     return data;
+  }
+
+  /** End the session on the server (revokes refresh tokens, clears the cookies), then locally. */
+  public async logout(): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/api/auth/logout`, {
+        method: "POST",
+        headers: ApiClient.SESSION_HEADERS,
+        credentials: "include",
+      });
+    } catch {
+      /* offline or already signed out: still clear local state */
+    }
+    this.clearTokens();
   }
 
   /** Configured single sign-on providers (empty when SSO isn't set up). */
@@ -226,19 +225,13 @@ class ApiClient {
   /** Exchange the single-use ticket from the SSO redirect for a session. */
   public async completeSsoLogin(ticket: string): Promise<TokenResponse> {
     const data = await this.post<TokenResponse>("/api/auth/sso/exchange", { ticket });
-    this.setTokens(data.access_token, data.refresh_token);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("user_profile", JSON.stringify(data.user));
-    }
+    this.storeProfile(data.user);
     return data;
   }
 
   public async verifyOTP(userId: string, otpCode: string): Promise<TokenResponse> {
     const data = await this.post<TokenResponse>("/api/auth/verify-otp", { user_id: userId, otp_code: otpCode });
-    this.setTokens(data.access_token, data.refresh_token);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("user_profile", JSON.stringify(data.user));
-    }
+    this.storeProfile(data.user);
     return data;
   }
 

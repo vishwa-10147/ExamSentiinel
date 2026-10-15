@@ -154,7 +154,7 @@ export default function LoginPage() {
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2.5 text-xs text-slate-200">
                 <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>Multi-Factor AI Face & Audio Detection</span>
+                <span>Webcam Face &amp; Phone Detection</span>
               </div>
               <div className="flex items-center gap-2.5 text-xs text-slate-200">
                 <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -162,15 +162,14 @@ export default function LoginPage() {
               </div>
               <div className="flex items-center gap-2.5 text-xs text-slate-200">
                 <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>Real-Time Instructor Proctoring Dashboard</span>
+                <span>Every Integrity Decision Made by a Human Reviewer</span>
               </div>
             </div>
           </div>
 
           {/* Bottom Institutional Trust */}
           <div className="relative z-10 pt-8 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>ISO 27001 & FERPA Compliant</span>
-            <span className="font-mono text-blue-400">v2.4.0</span>
+            <span>AI signals are advisory — people decide</span>
           </div>
         </div>
 

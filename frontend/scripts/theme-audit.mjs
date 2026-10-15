@@ -35,23 +35,22 @@ for (const theme of ["light", "dark"]) {
   const page = await context.newPage();
   for (const [email, paths] of Object.entries(PAGES)) {
     await page.goto(`${APP}/auth/login`);
-    let session = null;
+    let user = null;
+    await context.clearCookies();
     if (email) {
-      const res = await fetch(`${API}/api/auth/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: PASSWORD }),
+      // Cookie-mode login: the httpOnly session cookies land in this browser context.
+      const res = await page.request.post(`${API}/api/auth/login`, {
+        headers: { "X-Auth-Mode": "cookie", "X-Requested-With": "ExamSentinel" },
+        data: { email, password: PASSWORD },
       });
-      session = await res.json();
+      user = (await res.json()).user;
     }
-    await page.evaluate(({ s, t }) => {
+    await page.evaluate(({ u, t }) => {
       localStorage.clear();
       localStorage.setItem("theme", t);
       localStorage.setItem("cookieConsent", "declined");
-      if (s) {
-        localStorage.setItem("access_token", s.access_token);
-        localStorage.setItem("refresh_token", s.refresh_token);
-        localStorage.setItem("user_profile", JSON.stringify(s.user));
-      }
-    }, { s: session, t: theme });
+      if (u) localStorage.setItem("user_profile", JSON.stringify(u));
+    }, { u: user, t: theme });
     for (const path of paths) {
       await page.goto(`${APP}${path}`);
       await page.waitForTimeout(2500);

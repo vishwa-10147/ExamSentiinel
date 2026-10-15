@@ -134,8 +134,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="relative z-10 pt-8 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>Secure Encryption Enabled</span>
-            <span className="font-mono text-blue-400">SSL / TLS 1.3</span>
+            <span>Passwords are stored as bcrypt hashes</span>
           </div>
         </div>
 

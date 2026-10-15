@@ -134,14 +134,13 @@ export default function LiveProctoringDashboard() {
     let socket: WebSocket | null = null;
     void loadSessions();
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-    
-    if (token && typeof window !== "undefined") {
+    // Authenticated by the httpOnly session cookie sent with the WebSocket handshake.
+    if (typeof window !== "undefined") {
       const isHttps = window.location.protocol === "https:";
       const wsProtocol = isHttps ? "wss:" : "ws:";
       const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "https://examsentinel-backend.onrender.com" : "http://localhost:8000");
       const cleanHost = rawApiUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
-      const wsUrl = `${wsProtocol}//${cleanHost}/api/ws/dashboard?token=${encodeURIComponent(token)}`;
+      const wsUrl = `${wsProtocol}//${cleanHost}/api/ws/dashboard`;
 
       try {
         socket = new WebSocket(wsUrl);

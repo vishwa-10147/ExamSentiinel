@@ -17,20 +17,19 @@ const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "docs", "a
 mkdirSync(OUT, { recursive: true });
 
 async function signIn(page, email) {
-  const res = await fetch(`${API}/api/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password: PASSWORD }),
+  // Cookie-mode login through the page's own request context, so the httpOnly session
+  // cookies land in the browser exactly as they do for a real sign-in.
+  const res = await page.request.post(`${API}/api/auth/login`, {
+    headers: { "X-Auth-Mode": "cookie", "X-Requested-With": "ExamSentinel" },
+    data: { email, password: PASSWORD },
   });
-  if (!res.ok) throw new Error(`login failed for ${email}: ${res.status}`);
+  if (!res.ok()) throw new Error(`login failed for ${email}: ${res.status()}`);
   const data = await res.json();
   await page.goto(`${APP}/auth/login`);
-  await page.evaluate((d) => {
-    localStorage.setItem("access_token", d.access_token);
-    localStorage.setItem("refresh_token", d.refresh_token);
-    localStorage.setItem("user_profile", JSON.stringify(d.user));
+  await page.evaluate((user) => {
+    localStorage.setItem("user_profile", JSON.stringify(user));
     localStorage.setItem("cookieConsent", "declined");
-  }, data);
+  }, data.user);
 }
 
 async function shot(page, name, { path, waitFor, before, fullPage = false } = {}) {
