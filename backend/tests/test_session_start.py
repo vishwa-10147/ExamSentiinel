@@ -65,3 +65,45 @@ async def test_the_database_refuses_a_second_session_for_the_same_candidate(asyn
                            started_at=original.started_at, server_end_time=original.server_end_time))
         with pytest.raises(IntegrityError):
             await db.commit()
+
+
+async def test_activity_calendar_works_on_sqlite_and_postgres(async_client: AsyncClient, seed_users):
+    """The profile page's activity calendar used CAST(... AS DATE), which fails on SQLite (500)."""
+    admin, candidate = _user(seed_users, UserRole.ADMIN), _user(seed_users, UserRole.CANDIDATE)
+    exam_id = await _published_exam(async_client, admin, candidate)
+    await async_client.post("/api/exam/sessions/start", headers=auth_header(candidate), json={"exam_id": exam_id})
+    r = await async_client.get("/api/users/me/activity", headers=auth_header(candidate))
+    assert r.status_code == 200, r.text
+    today = datetime.now(timezone.utc).date().isoformat()
+    body = r.json()
+    calendar = body.get("activity") or body.get("daily") or body
+    assert today in str(calendar)
+
+
+async def test_concurrent_interview_creation_returns_one_interview(async_client: AsyncClient, seed_users):
+    """The interview page asked twice at once; the second request failed with a 500."""
+    admin, candidate = _user(seed_users, UserRole.ADMIN), _user(seed_users, UserRole.CANDIDATE)
+    exam_id = await _published_exam(async_client, admin, candidate)
+    session = (await async_client.post("/api/exam/sessions/start", headers=auth_header(candidate), json={"exam_id": exam_id})).json()
+    responses = await asyncio.gather(*[
+        async_client.post("/api/interviews/sessions", headers=auth_header(candidate), json={"exam_session_id": session["session_id"]})
+        for _ in range(5)
+    ])
+    assert [r.status_code for r in responses] == [201] * 5, [r.text for r in responses]
+    assert len({r.json()["id"] for r in responses}) == 1
+
+
+async def test_concurrent_enrollment_does_not_fail(async_client: AsyncClient, seed_users):
+    admin, candidate = _user(seed_users, UserRole.ADMIN), _user(seed_users, UserRole.CANDIDATE)
+    now = datetime.now(timezone.utc)
+    exam = (await async_client.post("/api/exams", headers=auth_header(admin), json={
+        "title": "Concurrent enroll", "duration_minutes": 30,
+        "start_window": now.isoformat(), "end_window": (now + timedelta(hours=1)).isoformat(),
+    })).json()
+    responses = await asyncio.gather(*[
+        async_client.post(f"/api/exams/{exam['id']}/enroll", headers=auth_header(admin), json={"candidate_ids": [str(candidate.id)]})
+        for _ in range(5)
+    ])
+    assert all(r.status_code < 300 for r in responses), [r.text for r in responses]
+    enrolled = (await async_client.get(f"/api/exams/{exam['id']}/enrollments", headers=auth_header(admin))).json()
+    assert len(enrolled) == 1
