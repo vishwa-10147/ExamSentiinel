@@ -7,7 +7,10 @@ Reference documentation for running, operating and extending ExamSentinel. Start
 
 | Document | Description |
 |---|---|
-| [Installation](INSTALLATION.md) | Local setup (one-command or manual), Docker Compose, troubleshooting |
+| [Setup](../SETUP.md) | Local setup (one-command or manual), Docker Compose |
+| [Configuration](CONFIGURATION.md) | Every environment variable, development vs production |
+| [Deployment](DEPLOYMENT.md) | Choosing campus server or AWS; rollback and recovery |
+| [Troubleshooting](TROUBLESHOOTING.md) | Common problems and fixes |
 | [Staff guide](STAFF_GUIDE.md) | Building and running exams, proctoring, reviewing, grading, practice problems |
 
 ## Reference

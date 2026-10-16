@@ -15,6 +15,9 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
 - `/backend`, `/frontend` — conventions to follow before changing either side.
 - `/aws-deploy` — release checklist (manual only); full guide in `docs/AWS_DEPLOYMENT.md`.
 
+Setup: `SETUP.md`. Every env variable: `docs/CONFIGURATION.md`. Choosing campus vs AWS, rollback:
+`docs/DEPLOYMENT.md`. Common problems: `docs/TROUBLESHOOTING.md`.
+
 ## Layout
 
 - `backend/app/api/` — route modules, all mounted under `/api` in `router.py`. `sessions` is mounted at both `/exam/sessions` and `/sessions`; `proctoring` at both `/proctoring` and `/telemetry`.
@@ -27,7 +30,7 @@ ExamSentinel: online exam platform with AI proctoring. Next.js 14 frontend (`fro
 - Auth: password login and OpenID Connect SSO (`app/api/sso.py`, `services/sso_service.py`; providers via `SSO_*`
   env vars) share `issue_login_session` in `app/api/auth.py`. Password reset codes live in `services/otp_store.py`.
 - Live interviews: `app/api/interviews.py` (consent, transcript, scores), `app/api/interview_ws.py` (WebRTC
-  signalling relay, in-memory rooms), `services/transcription_service.py` (faster-whisper). UI: `/interview/[id]`,
+  signalling relay; rooms shared through Redis by `services/interview_hub.py`), `services/transcription_service.py` (faster-whisper). UI: `/interview/[id]`,
   `/admin/interviews`.
 - Contests: `app/api/contests.py` (+ `/api/admin/contests`), `models/contest.py`. Contest submissions are
   practice submissions with `contest_id`, judged by the same queue; problems of a published, unfinished contest

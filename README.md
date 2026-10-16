@@ -19,8 +19,8 @@
 [Screenshots](#screenshots) ·
 [Getting started](#getting-started) ·
 [Architecture](#architecture) ·
-[Documentation](#documentation) ·
-[Roadmap](#roadmap)
+[Deployment](#deployment) ·
+[Documentation](#documentation)
 
 <br />
 
@@ -40,13 +40,31 @@ algorithms problems** and **11 SQL problems**, judged by real compilers in an is
 
 AI is used to *surface* signals — never to penalise a candidate automatically.
 
+**Who it is for:** colleges and training organisations that run exams in computer labs or
+remotely (administrators, proctors, reviewers) and the students who take them.
+
+**The problem it solves:** online exams need integrity checks, coding questions need a safe
+way to run untrusted code, and students need practice between exams. ExamSentinel puts exams,
+proctoring, human review, a judged practice platform and contests in one self-hostable system
+that can run on a single campus server without internet access during exams.
+
+## Contents
+
+- [Features](#features) · [Project status](#project-status) · [Screenshots](#screenshots)
+- [Architecture](#architecture) · [Tech stack](#tech-stack) · [Project structure](#project-structure)
+- [Getting started](#getting-started) · [Configuration](#configuration) · [Database](#database)
+- [Testing](#testing) · [Code quality and CI](#code-quality-and-ci) · [Deployment](#deployment)
+- [Troubleshooting](#troubleshooting) · [Security](#security) · [Documentation](#documentation)
+- [Roadmap](#roadmap) · [Contributing](#contributing) · [License](#license)
+
 ## Features
 
 ### Assessments
 - Exam builder with MCQ, short answer, essay, coding and SQL questions; scheduling windows and enrolment
 - Timed sessions with server-side timing, auto-save and automatic submission at the deadline
 - Coding questions graded against hidden tests; any practice problem can be added to an exam
-- Results, CSV export, and an item-response-theory engine for adaptive testing
+- Results, leaderboards and CSV export; one session per exam and candidate, resumed after a
+  disconnect, with answers kept in the browser until the server confirms them
 
 ### Proctoring and review
 - Browser telemetry: tab switches, fullscreen exits, copy/paste, multiple sessions
@@ -70,6 +88,20 @@ AI is used to *surface* signals — never to penalise a candidate automatically.
 - Email/password and OpenID Connect single sign-on (Google, Microsoft, any OIDC provider)
 - Role-based access for Admin, Proctor, Reviewer and Candidate
 
+## Project status
+
+| Area | Status |
+|---|---|
+| Exams, proctoring, review, practice, contests, interviews, SSO | Implemented and covered by automated tests |
+| Local development (Windows) and the Docker Compose stack | Verified |
+| Campus server kit (`deploy/campus/`) | Verified in a local rehearsal on Docker Desktop; not yet run on a real campus server |
+| AWS deployment | Topology rehearsed locally (`deploy/rehearsal/`); not yet deployed to a real AWS account |
+| Item-response-theory scoring (`backend/app/services/irt_service.py`) | Service code only; not exposed through the API or UI |
+| macOS on Apple Silicon | Untested (the code-execution engine image is amd64-only) |
+
+Known limitations are listed in [Production readiness](docs/PRODUCTION_READINESS.md#known-limitations)
+and [Security](docs/SECURITY.md#known-gaps).
+
 ## Screenshots
 
 | | |
@@ -80,6 +112,8 @@ AI is used to *surface* signals — never to penalise a candidate automatically.
 | **Code playground** — any program, custom stdin | **Problem authoring** — validate, publish, add to exams |
 | <img src="docs/assets/screenshots/proctor-dashboard.png" alt="Proctor console" /> | <img src="docs/assets/screenshots/reviewer-dashboard.png" alt="Reviewer dashboard" /> |
 | **Proctor console** — live sessions and risk | **Reviewer dashboard** — human-in-the-loop decisions |
+| <img src="docs/assets/screenshots/admin-dashboard.png" alt="Admin dashboard" /> | <img src="docs/assets/screenshots/login.png" alt="Sign-in page" /> |
+| **Admin dashboard** — exams, users and activity | **Sign in** — password or single sign-on |
 
 Screenshots are generated from a running local instance with
 [`frontend/scripts/capture-screenshots.mjs`](frontend/scripts/capture-screenshots.mjs).
@@ -100,14 +134,14 @@ flowchart LR
 
     subgraph Data["Data"]
         DB[("PostgreSQL<br/>(SQLite in dev)")]
-        R[("Redis<br/>optional")]
+        R[("Redis<br/>needed for several API processes")]
     end
 
     subgraph Sandbox["Code execution"]
         P["Piston engine<br/>isolated per run"]
     end
 
-    UI -- "JWT over HTTPS / WSS" --> API
+    UI -- "HTTPS + WSS<br/>httpOnly session cookie" --> API
     API --> SVC
     SVC --> AI
     API --> DB
@@ -120,24 +154,58 @@ User code never runs in the API process: every run goes to a self-hosted
 a non-root user and CPU, memory, process, output and file-size limits. Details in
 [Architecture](docs/ARCHITECTURE.md) and [Code execution](docs/CODE_EXECUTION.md).
 
-### Tech stack
+Live proctoring events, interview signalling and rate limits are shared between API processes
+through Redis; a single process falls back to memory. Practice submissions go through a
+database-backed judging queue, so a restarted process loses no submission.
+
+## Tech stack
 
 | Layer | Technologies |
 |---|---|
 | Frontend | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Monaco Editor |
 | Backend | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2 (async), Alembic |
-| Data | PostgreSQL 16 (production), SQLite (local development), Redis (optional) |
+| Data | PostgreSQL 16 (production), SQLite (local development), Redis 7 |
 | Code execution | Piston — Python 3.12, Node 20, Java 15, GCC 10.2 (C/C++), SQLite 3.36 |
 | AI | Ultralytics YOLO11n, BlazeFace (TensorFlow.js), faster-whisper |
-| Infrastructure | Docker Compose, AWS (ECS, EC2, RDS, ElastiCache, S3), GitHub Actions |
+| Testing | pytest, Playwright, end-to-end scripts against live servers |
+| Infrastructure | Docker Compose, nginx (campus server), AWS (ECS, EC2, RDS, ElastiCache, S3), GitHub Actions |
+
+## Project structure
+
+```
+ExamSentinel/
+├── backend/
+│   ├── app/               # FastAPI application: api/, core/, models/, schemas/, services/
+│   ├── practice_bank/     # DSA and SQL question bank
+│   ├── alembic/           # Database migrations (PostgreSQL)
+│   └── tests/             # pytest suites
+├── frontend/
+│   ├── app/               # Next.js routes: admin/, candidate/, proctor/, reviewer/, exam/, auth/
+│   ├── components/        # Shared UI components
+│   ├── services/          # API client
+│   └── tests/             # Playwright specs
+├── ai/                    # Standalone AI modules and model weights
+├── infra/piston/          # Code-execution engine image
+├── scripts/               # Seeding, runtime installation, end-to-end checks
+├── deploy/                # campus/ (one-server kit), rehearsal/ (AWS topology locally)
+├── docs/                  # Documentation
+├── docker-compose.yml     # Full stack for evaluation
+├── docker-compose.piston.yml  # Code-execution engine only (local development)
+├── docker-compose.prod.yml    # Single-host production (AWS option B)
+├── SETUP.md               # Installation guide
+└── start-local.cmd        # One-command local start (Windows)
+```
 
 ## Getting started
 
 ### Prerequisites
 
-- Python 3.12
-- Node.js 20 LTS or newer
-- Docker Desktop (runs the code-execution engine)
+| Tool | Version |
+|---|---|
+| Operating system | Windows 10/11 (verified), Linux x86-64, macOS (Intel; Apple Silicon untested) |
+| Python | 3.12 |
+| Node.js | 20 LTS or newer |
+| Docker | Docker Desktop or Docker Engine with Compose (runs the code-execution engine) |
 
 ### Quick start on Windows
 
@@ -151,32 +219,18 @@ start-local.cmd
 code-execution engine, the API and the web app, seeds demo data, waits until everything is
 healthy and opens the browser. Stop everything with `start-local.cmd stop`.
 
-### Manual setup (any OS)
+### Other ways to run it
 
-```bash
-# 1. Dependencies
-python -m venv .venv
-.venv/bin/python -m pip install -r backend/requirements-dev.txt      # Windows: .venv\Scripts\python
-(cd frontend && npm install)
+| Goal | Guide |
+|---|---|
+| Step-by-step setup on Windows, Linux or macOS (SQLite) | [Setup: Option B](SETUP.md#option-b-manual-setup-on-windows-linux-or-macos) |
+| The whole stack in Docker (PostgreSQL, Redis, production build of the web app) | [Setup: Option C](SETUP.md#option-c-the-whole-stack-in-docker) |
+| A college server for real exams | [Campus server](deploy/campus/README.md) |
+| AWS | [AWS deployment](docs/AWS_DEPLOYMENT.md) |
 
-# 2. Configuration (placeholders only — set SECRET_KEY)
-cp .env.example backend/.env
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > frontend/.env.local
-
-# 3. Code-execution engine
-docker compose -f docker-compose.piston.yml up -d --build
-.venv/bin/python scripts/install_piston_runtimes.py
-
-# 4. Seed data
-(cd backend && ../.venv/bin/python seed_admin.py && ../.venv/bin/python seed_practice.py)
-
-# 5. Run
-(cd backend && ../.venv/bin/python -m uvicorn app.main:app --port 8000) &
-(cd frontend && npm run dev)
-```
-
-Open <http://localhost:3000>. The API reference is served at <http://localhost:8000/docs>.
-To run the whole stack in containers instead, see [Installation](docs/INSTALLATION.md#2-docker-compose-full-stack).
+After starting, open <http://localhost:3000>. In development the interactive API reference is at
+<http://localhost:8000/docs> (it is disabled when `DEBUG=false`); see also the
+[API reference](docs/API.md).
 
 ### Demo accounts
 
@@ -194,18 +248,34 @@ Each account allows one active session; signing in elsewhere ends the previous o
 
 ## Configuration
 
-All settings are environment variables, documented in [`.env.example`](.env.example).
-The most important ones:
+All settings are environment variables; [`.env.example`](.env.example) is the template
+(placeholders only) and [Configuration](docs/CONFIGURATION.md) documents every variable. The
+most important:
 
-| Variable | Purpose | Default |
+| Variable | Purpose | Development default |
 |---|---|---|
-| `SECRET_KEY` | JWT signing key | — (required) |
+| `SECRET_KEY` | Signs sessions and evidence links | development key (production requires a random one) |
 | `DATABASE_URL` | Database connection | SQLite file in `backend/` |
-| `REDIS_URL` | Rate limits, OTPs, pub/sub (optional) | `redis://localhost:6379/0` |
-| `PISTON_URL` | Code-execution engine | `http://localhost:2000/api/v2/execute` |
-| `CORS_ORIGINS` | Allowed browser origins | `localhost:3000` |
-| `SSO_*` | OpenID Connect providers | disabled |
-| `NEXT_PUBLIC_API_URL` | API base URL used by the browser | `http://localhost:8000` |
+| `REDIS_URL` | Shared state between API processes | `redis://localhost:6379/0` (optional for one process) |
+| `PISTON_URL` | Code-execution engine | `http://127.0.0.1:2000/api/v2/execute` |
+| `CORS_ORIGINS` | Allowed browser origins | `http://localhost:3000` |
+| `ENVIRONMENT` | `production` enables start-up safety checks | `development` |
+| `NEXT_PUBLIC_API_URL` | API address used by the browser (build time) | required by production builds |
+
+With `ENVIRONMENT=production` the API refuses to start with debug mode, a default secret key,
+SQLite, non-HTTPS origins or other unsafe settings. Never commit real values: `backend/.env`,
+`frontend/.env.local` and the root `.env` are git-ignored.
+
+## Database
+
+- **Development:** SQLite. The API creates the schema on start-up and adds columns introduced by
+  newer versions. Seed with `seed_admin.py` (demo accounts) and `seed_practice.py` (problem bank).
+- **Production:** PostgreSQL 16. The schema comes only from Alembic migrations
+  (`backend/alembic/versions/`, run with the backend image's `migrate` command or
+  `alembic upgrade head`). CI applies them to an empty database and checks the result matches
+  the models.
+- **Backups:** the campus kit dumps the database nightly and includes a restore script; on AWS
+  use RDS backups. See [Deployment](docs/DEPLOYMENT.md#disaster-recovery).
 
 ## Coding practice
 
@@ -236,52 +306,43 @@ for the full index and authoring guide.
 
 | Suite | Command | Scope |
 |---|---|---|
-| Backend | `cd backend && pytest -q -p no:cacheprovider` | Unit, API, question bank, real-engine isolation and every reference solution |
+| Backend | `cd backend && ../.venv/bin/python -m pytest -q -p no:cacheprovider` | Unit, API, question bank, real-engine isolation and every reference solution |
 | Type check | `cd frontend && npx tsc --noEmit` | Frontend types |
-| Browser | `cd frontend && npx playwright test` | Route protection and role journeys |
+| Browser | `cd frontend && npx playwright test` | Route protection, role journeys, every page per role, exam resilience and accessibility |
 | End to end | `python scripts/e2e_roles_smoke.py` | Full exam lifecycle against running servers |
 
-Real-engine tests run only when Piston is reachable and are reported as skipped otherwise.
-Latest recorded results are in [Testing](docs/TESTING.md).
+Latest results recorded on 2026-10-16: backend 669 passed, 0 skipped (with the engine running);
+Playwright 39 passed; end to end 73 of 73 steps. Real-engine tests are skipped when the engine is
+not reachable, and skipped is reported as skipped. Details: [Testing](docs/TESTING.md).
 
-## Project structure
+## Code quality and CI
 
-```
-ExamSentinel/
-├── backend/
-│   ├── app/               # FastAPI application: api/, core/, models/, schemas/, services/
-│   ├── practice_bank/     # DSA and SQL question bank
-│   ├── alembic/           # Database migrations (PostgreSQL)
-│   └── tests/             # pytest suites
-├── frontend/
-│   ├── app/               # Next.js routes: admin/, candidate/, proctor/, reviewer/, exam/, auth/
-│   ├── components/        # Shared UI components
-│   ├── services/          # API client
-│   └── tests/             # Playwright specs
-├── ai/                    # Standalone AI modules and model weights
-├── infra/piston/          # Code-execution engine image
-├── scripts/               # Seeding, runtime installation, end-to-end checks
-├── docs/                  # Documentation
-├── docker-compose.yml     # Full local stack
-├── docker-compose.prod.yml
-└── start-local.cmd        # One-command local start (Windows)
-```
+- GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push to
+  `main` and every pull request, in four jobs: **backend** (compile and pytest), **frontend**
+  (dark-mode class check and production build), **migrations** (apply to PostgreSQL 16, compare
+  with the models, downgrade and re-apply the latest) and **docker** (build both production images).
+- Frontend lint: `cd frontend && npm run lint` (ESLint with `eslint-config-next`). CI does not run it yet.
+- Python has no configured linter or formatter yet; follow the surrounding code and
+  [Contributing](docs/CONTRIBUTING.md).
 
 ## Deployment
 
-The production stack runs the web app and API in containers on ECS, PostgreSQL on RDS, Redis on
-ElastiCache, evidence in S3, and the code-execution engine on a dedicated EC2 instance in a
-private subnet. Step-by-step instructions: [AWS deployment](docs/AWS_DEPLOYMENT.md).
+| Target | What runs where | Guide |
+|---|---|---|
+| Campus server | Everything on one Linux server with Docker: nginx (HTTPS), API, web app, PostgreSQL, Redis, code engine, nightly backups. No internet needed during exams. | [deploy/campus/README.md](deploy/campus/README.md) |
+| AWS | Web app and API on ECS Fargate, PostgreSQL on RDS, Redis on ElastiCache, evidence in S3, code engine on EC2 in a private subnet | [AWS deployment](docs/AWS_DEPLOYMENT.md) |
 
-Before deploying, `deploy/rehearsal/` runs the production images in the same topology on one
-machine — two API replicas behind a TLS load balancer, PostgreSQL, Redis and the engine — and
-every check runs against it, including a rolling restart during a 250-student submission rush.
-Results, the operator checklist and known limitations: [Production readiness](docs/PRODUCTION_READINESS.md).
+The campus install is one command (`sh setup.sh exam.college.edu admin@college.edu`).
+`deploy/rehearsal/` runs the production images in the AWS topology on one machine (two API
+replicas behind a TLS load balancer) so every check can run before a real deployment. How to
+choose, release, roll back and recover: [Deployment](docs/DEPLOYMENT.md). Rehearsal results and
+the operator checklist: [Production readiness](docs/PRODUCTION_READINESS.md).
 
-**On a college server instead of AWS:** `deploy/campus/` installs everything on one Linux server
-with Docker in one command (`sh setup.sh exam.college.edu admin@college.edu`), with HTTPS,
-nightly backups and evidence on the server's disk; nothing needs the internet during exams. Guide
-for the IT team: [deploy/campus/README.md](deploy/campus/README.md).
+## Troubleshooting
+
+Start with `curl http://localhost:8000/api/health`, which names the failing component. Common
+cases (engine unavailable, ports in use, cookies not stored, webcam blocked, production start-up
+refusals) are in [Troubleshooting](docs/TROUBLESHOOTING.md).
 
 ## Security
 
@@ -300,7 +361,11 @@ together with known limitations. Please report vulnerabilities privately.
 
 | Document | Contents |
 |---|---|
-| [Installation](docs/INSTALLATION.md) | Native and Docker setup, troubleshooting |
+| [Setup](SETUP.md) | Local and Docker setup |
+| [Configuration](docs/CONFIGURATION.md) | Every environment variable; development vs production |
+| [Deployment](docs/DEPLOYMENT.md) | Choosing a target, releases, rollback, recovery |
+| [Campus server](deploy/campus/README.md) | One-server installation for a college |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common problems and fixes |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data model, request flow |
 | [Production readiness](docs/PRODUCTION_READINESS.md) | Rehearsal results, operator checklist, known limitations |
 | [API reference](docs/API.md) | Practice and code-execution endpoints with examples |
@@ -311,6 +376,7 @@ together with known limitations. Please report vulnerabilities privately.
 | [AWS deployment](docs/AWS_DEPLOYMENT.md) | Production deployment |
 | [Testing](docs/TESTING.md) | Test suites, how to run them and latest results |
 | [Contributing](docs/CONTRIBUTING.md) | Workflow and engineering rules |
+| [Changelog](CHANGELOG.md) | Notable changes |
 
 ## Roadmap
 
@@ -322,7 +388,11 @@ together with known limitations. Please report vulnerabilities privately.
 - [x] Queued judging, load-tested with 500 simultaneous students (all judged, p95 13 s)
 - [x] Timed contests with registration, scoring with penalties and a live leaderboard
 - [x] Runs as several API processes; production rehearsal of the AWS topology passes every check
+- [x] Campus server kit with HTTPS, nightly backups and restore, rehearsed end to end
+- [ ] First real campus server installation
 - [ ] First AWS staging deployment (see the [operator checklist](docs/PRODUCTION_READINESS.md#operator-checklist))
+- [ ] Adaptive testing with the IRT service
+- [ ] ESLint and a Python linter in CI
 - [ ] Curated study plans
 
 ## Contributing
@@ -333,7 +403,7 @@ security claims need a test that proves them.
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE). Copyright (c) 2026 vishwa-10147.
 
 ## Acknowledgements
 
@@ -342,4 +412,7 @@ Released under the [MIT License](LICENSE).
 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) ·
 [Monaco Editor](https://github.com/microsoft/monaco-editor) ·
 [FastAPI](https://fastapi.tiangolo.com) ·
-[Next.js](https://nextjs.org)
+[Next.js](https://nextjs.org) ·
+[TensorFlow.js models (BlazeFace)](https://github.com/tensorflow/tfjs-models) ·
+[PostgreSQL](https://www.postgresql.org) ·
+[Redis](https://redis.io)

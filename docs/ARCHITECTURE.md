@@ -33,8 +33,9 @@ flowchart LR
     end
 
     DB[("PostgreSQL / SQLite")]
-    RD[("Redis (optional)")]
+    RD[("Redis<br/>(shared state for several processes)")]
     PI["Piston sandbox"]
+    EV[("Evidence<br/>S3 or local disk")]
 
     UI -- REST --> R
     UI <-- live updates --> WS
@@ -47,11 +48,16 @@ flowchart LR
     R --> DB
     RE --> DB
     R -.-> RD
+    R --> EV
 ```
 
-The browser talks to the API over HTTPS with a JWT in the `Authorization` header and receives
-live updates over WebSockets. The API persists to PostgreSQL (SQLite in local development),
-uses Redis when available, and sends all user code to the Piston sandbox over HTTP.
+The browser talks to the API over HTTPS and receives live updates over WebSockets. Browser
+sessions are httpOnly cookies (`app/core/auth_cookies.py`) that page scripts cannot read;
+cookie-authenticated writes must also carry the `X-Requested-With` header. Scripts and tests may
+use an `Authorization: Bearer` token instead. The API persists to PostgreSQL (SQLite in local
+development), uses Redis when available, stores webcam evidence in a private S3 bucket or on the
+server's disk (served through signed, expiring links), and sends all user code to the Piston
+sandbox over HTTP.
 
 ## Components
 
@@ -63,6 +69,10 @@ uses Redis when available, and sends all user code to the Piston sandbox over HT
 | Models | `backend/app/models/` | SQLAlchemy 2 (async). Migrations in `backend/alembic/versions/` |
 | Question bank | `backend/practice_bank/`, `backend/seed_practice.py` | Problem definitions and the seeder — see [Question bank](DSA_QUESTION_BANK.md) |
 | Code execution | `infra/piston/`, `docker-compose.piston.yml` | Self-hosted Piston image — see [Code execution](CODE_EXECUTION.md) |
+| Contests | `app/api/contests.py`, `models/contest.py` | Timed contests; their submissions are practice submissions with a `contest_id`, judged by the same queue |
+| Judging queue | `services/judge_queue.py` | Database-backed queue of practice submissions with worker tasks in each API process |
+| Evidence storage | `services/storage_service.py`, `app/api/evidence.py` | S3 with presigned links, or local disk (`EVIDENCE_DIR`) with HMAC-signed links |
+| Metrics | `app/core/metrics.py` | CloudWatch Embedded Metric Format lines in production |
 | AI modules | `ai/` | Standalone research modules and model weights (`ai/models/yolo11n.pt`); the API uses `app/services/*` |
 
 ## Proctoring signal flow
@@ -172,9 +182,11 @@ is computed from submissions rather than stored.
 
 | Topology | Components | Guide |
 |---|---|---|
-| Local development | API and web app run natively (SQLite, no Redis); Piston in Docker | [Installation](INSTALLATION.md) |
-| Docker Compose | PostgreSQL, Redis, API, web app and Piston containers | [Installation](INSTALLATION.md#2-docker-compose-full-stack) |
+| Local development | API and web app run natively (SQLite, no Redis); Piston in Docker | [Setup](../SETUP.md) |
+| Docker Compose | PostgreSQL, Redis, API, web app and Piston containers | [Setup](../SETUP.md#option-c-the-whole-stack-in-docker) |
+| Campus server | One Linux server: nginx (TLS, `/api` proxied on one host name), API with 4 workers, web app, PostgreSQL, Redis, Piston, nightly backup container; evidence on disk | [Campus server](../deploy/campus/README.md) |
 | AWS | ECS for the app, EC2 for Piston (it must run privileged), RDS, ElastiCache, S3 | [AWS deployment](AWS_DEPLOYMENT.md) |
+| Rehearsal | The AWS topology on one machine: nginx as the load balancer, two API replicas, PostgreSQL, Redis, Piston | [Rehearsal](../deploy/rehearsal/README.md) |
 
 ## Design principles
 
