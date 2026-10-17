@@ -10,8 +10,8 @@
 # Put TLS in front (ALB, CloudFront or Caddy/nginx); only 80/443 should be public.
 
 x-backend-env: &backend-env
-  ENVIRONMENT: production
-  DEBUG: "false"
+  ENVIRONMENT: '${ENVIRONMENT:-production}'
+  DEBUG: '${DEBUG:-false}'
   LOG_LEVEL: INFO
   SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
   DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/examsentinel}
