@@ -48,6 +48,9 @@ for the operator.
                           └──► Piston EC2 :2000 (security group: backend SG only)
 ```
 
+Add an ALB listener on port **80** whose only action is a permanent redirect to HTTPS (443).
+The web app does not redirect by itself: whatever terminates TLS is responsible for it.
+
 Why these pieces:
 - **Piston needs `privileged`**, which Fargate doesn't allow — run it on a small EC2 instance
   (or an ECS EC2 capacity provider) in a private subnet. The public emkc.org Piston API is

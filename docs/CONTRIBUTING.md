@@ -15,7 +15,7 @@ environment, the rules every change must follow, and how to get a pull request m
 
 ## Development setup
 
-Follow [Installation](INSTALLATION.md). On Windows, `start-local.cmd` sets everything up and
+Follow [Setup](../SETUP.md). On Windows, `start-local.cmd` sets everything up and
 starts the stack. Keep the code-execution engine running while you work so the real-engine
 tests run instead of being skipped.
 
@@ -25,12 +25,12 @@ tests run instead of being skipped.
 2. Make a focused change with tests.
 3. Run the checks:
    ```bash
-   cd backend && ../.venv/Scripts/python -m pytest -q -p no:cacheprovider
+   cd backend && ../.venv/bin/python -m pytest -q -p no:cacheprovider   # Windows: ..\.venv\Scripts\python
    cd frontend && npx tsc --noEmit && npx next lint
    ```
    For user-facing changes, also run the Playwright suite (see [Testing](TESTING.md)).
-4. Open a pull request against `main` using the pull request template. CI runs the backend tests
-   and a production frontend build.
+4. Open a pull request against `main` using the pull request template. CI runs the backend tests,
+   a production frontend build, the PostgreSQL migration checks and both Docker image builds.
 
 ## Engineering rules
 

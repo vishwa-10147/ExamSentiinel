@@ -1,7 +1,7 @@
 # Staff Guide
 
 How administrators, proctors and reviewers run assessments in ExamSentinel. For installation,
-see [Installation](INSTALLATION.md).
+see [Setup](../SETUP.md).
 
 ## Contents
 

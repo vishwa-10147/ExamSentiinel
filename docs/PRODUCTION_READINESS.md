@@ -10,6 +10,7 @@ steps themselves are in [AWS deployment](AWS_DEPLOYMENT.md).
 - [Campus server](#campus-server)
 - [Rehearsal results](#rehearsal-results)
 - [Problems the rehearsal found](#problems-the-rehearsal-found)
+- [Later checks](#later-checks)
 - [Operator checklist](#operator-checklist)
 - [Known limitations](#known-limitations)
 
@@ -19,7 +20,7 @@ The application side is ready for a staging deployment: the production images bu
 only with safe settings, run as several replicas behind a load balancer, survive rolling
 restarts under load without losing work, and pass every functional, browser and security check
 against the production build. **Not yet done** (they need an AWS account or real people, so no
-local rehearsal can do them): the AWS resources themselves, a backup restore drill, alarms,
+local rehearsal can do them): the AWS resources themselves, a restore drill on the real infrastructure, alarms,
 e-mail delivery, a TURN server, an external security review and a pilot on real student devices.
 See the [operator checklist](#operator-checklist).
 
@@ -91,6 +92,23 @@ by a test:
 | When time ran out and the final submit failed, the page still showed "Exam Submitted Successfully" | A student leaves an exam that was never submitted | The page keeps retrying and says so until the server confirms |
 | Multiple-choice options were clickable `div`s | Students who cannot use a mouse could not answer | Proper radio/checkbox semantics, keyboard selection, labelled fields, an announced submit dialog |
 | A production frontend built without `NEXT_PUBLIC_API_URL` silently used an old Render URL | Students' browsers would call the wrong server | The production build fails without it; one `API_BASE_URL` for the whole app |
+
+## Later checks
+
+Run on 2026-10-15 and 2026-10-16 after the rehearsal:
+
+| Check | Result |
+|---|---|
+| Every page (51 routes) opened as every role against seeded data (`frontend/tests/all-pages.spec.ts`) | Passed after three fixes, below |
+| `docker-compose.yml` (full stack, production web build) with a root `.env` holding only `SECRET_KEY` | Health `healthy`; end to end **73 / 73**; browser suite **39 / 39** |
+
+| Problem | Impact | Fix |
+|---|---|---|
+| The candidate activity calendar grouped days with `CAST(... AS DATE)` | `/api/users/me/activity` returned 500 on SQLite (development and tests) | Days grouped in Python on any database |
+| Two simultaneous interview creations or enrolments hit the unique constraint and returned 500 | An admin double click showed an error | The existing record is returned |
+| The face tracker did not handle a rejected `video.play()` | Uncaught error in the browser console | Handled |
+| The Compose stack did not pass the web app's build arguments | The production build failed (no `NEXT_PUBLIC_API_URL`) | Build arguments passed |
+| The web app redirected HTTP to HTTPS itself, using its bind address | Every page of the Compose stack redirected to `https://0.0.0.0:3000` | Removed; the front door (nginx, ALB) redirects |
 
 ## Operator checklist
 

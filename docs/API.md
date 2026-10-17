@@ -1,7 +1,8 @@
 # API Reference
 
 Base URL `http://localhost:8000` (all routes are under `/api`). Interactive docs for every
-route: `http://localhost:8000/docs` (Swagger) and `/redoc`. This page covers the practice
+route: `http://localhost:8000/docs` (Swagger) and `/redoc`, available only while `DEBUG=true`
+(development); production serves neither. This page covers the practice
 platform and the code runner; the examples are real responses from a local instance.
 
 ## Contents

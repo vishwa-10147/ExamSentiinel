@@ -11,6 +11,9 @@ the code-execution sandbox, browser tests with Playwright, and a live end-to-end
 - [Browser tests](#browser-tests)
 - [Latest results](#latest-results)
 - [Load test](#load-test)
+- [Production rehearsal](#production-rehearsal)
+- [Several API processes](#several-api-processes)
+- [Other test material](#other-test-material)
 - [Writing tests](#writing-tests)
 
 ## Test suites
@@ -19,7 +22,7 @@ the code-execution sandbox, browser tests with Playwright, and a live end-to-end
 |---|---|---|
 | Backend unit and API | `backend/tests/` | Nothing — uses a temporary SQLite database and a faked engine |
 | Real engine | `backend/tests/test_sandbox_engine.py` | Piston on `localhost:2000` (or `PISTON_URL`); skipped otherwise |
-| Browser | `frontend/tests/*.spec.ts` | Running frontend and backend for the role journeys |
+| Browser | `frontend/tests/*.spec.ts` | Running frontend and backend (with seeded data) for the role journeys and the all-pages check |
 | End to end | `scripts/e2e_roles_smoke.py` | Running backend with seeded data and Piston |
 | Several API processes | `scripts/multi_process_check.py --a URL --b URL` | Two API processes sharing PostgreSQL and Redis |
 | Static checks | `tsc`, `next lint`, `next build` | Node.js |
@@ -29,12 +32,13 @@ the code-execution sandbox, browser tests with Playwright, and a live end-to-end
 
 ```bash
 # Backend (about 9 minutes with the engine running; much faster without it)
+# Linux/macOS: ../.venv/bin/python   Windows: ../.venv/Scripts/python
 cd backend
-../.venv/Scripts/python -m pytest -q -p no:cacheprovider
+../.venv/bin/python -m pytest -q -p no:cacheprovider
 
 # A subset
-../.venv/Scripts/python -m pytest -q -p no:cacheprovider tests/test_practice_bank.py
-../.venv/Scripts/python -m pytest -q -p no:cacheprovider tests/test_sandbox_engine.py -k reverse-linked-list
+../.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_practice_bank.py
+../.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_sandbox_engine.py -k reverse-linked-list
 
 # Frontend static checks
 cd frontend
@@ -65,7 +69,8 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | `test_multi_instance.py` | 11 | Several API processes sharing Redis (simulated with an in-memory fake): interview signalling between processes, seat replacement on reconnect, a seat joined during a Redis outage joining the shared room later, monitoring events delivered once on every process, the listener surviving idle periods, one run per student across processes, and the single-process fallbacks |
 | `test_log_redaction.py` | 4 | Tokens, tickets and OAuth codes in logged URLs are redacted; other query strings are kept |
 | `test_production_config.py` | 23 | Production start-up refuses every unsafe setting (and lists them together); `CORS_ORIGINS` from the environment; client IP headers cannot be forged; uvicorn behind a trusted load balancer |
-| `test_session_start.py` | 2 | Six simultaneous exam starts resume one session; the database refuses a second session for the same candidate |
+| `test_session_start.py` | 5 | Six simultaneous exam starts resume one session; the database refuses a second session for the same candidate; the activity calendar on SQLite and PostgreSQL; simultaneous enrolment and interview creation return one record |
+| `test_evidence_storage.py` | 3 | Evidence on local disk (`EVIDENCE_DIR`) is stored and served through signed links; forged, expired and unknown links are refused; nothing is kept when no storage is configured |
 | `test_metrics.py` | 2 | The CloudWatch Embedded Metric Format document (namespace, units, values, reset) and request counting by the middleware |
 | `test_ai_grading.py` | 3 | Gemini suggestions parsed and clamped, the API key sent in a header (never the URL), failures fall back to manual grading, nothing sent without a key |
 | `test_practice_dsa_api.py` | 8 | IDs, topics, sorting and search; editorial gating; checker protection; history and progress; playground limits; rate limiting |
@@ -80,23 +85,31 @@ Without `PLAYWRIGHT_BASE_URL`, Playwright starts its own dev server on port 3110
 | `roles.spec.ts` | Solving a problem (Run and Submit), browsing by topic and ID, a C++ linked-list solution unlocking the editorial, a C solution with LeetCode-style signatures, the progress page, a C program in the playground, staff areas closed to candidates, user creation, problem authoring, reviewer and proctor dashboards, scheduling a contest and solving inside it |
 | `exam-resilience.spec.ts` | Answers reach the server despite 503s while online, a dropped connection plus a reload, and a submit right after typing; time-out submits retry until confirmed; one session start per exam |
 | `exam-accessibility.spec.ts` | Multiple-choice answered with the keyboard alone and saved; the submit dialog is announced, takes focus and closes with Escape |
+| `all-pages.spec.ts` | Every page (51 routes) opened as each role that may use it, against seeded data: no error screen, no uncaught script error, no API response of 500 or above, no unexpected redirect to sign-in |
 | `production.spec.ts` | Production build only: no Content-Security-Policy violations and no request leaving the app or its API on the main candidate pages; the exam page loads the self-hosted face model and starts the camera (Chromium's fake device) |
 
 ## Latest results
 
-Recorded on 2026-10-15 on Windows 11 with the execution engine running, so no real-engine test
+Recorded on 2026-10-16 on Windows 11 with the execution engine running, so no real-engine test
 was skipped. Re-run the suites after any change rather than relying on these figures.
 
 | Suite | Result |
 |---|---|
-| Backend | **663 passed**, 0 failed, 0 skipped |
-| Browser | **34 passed** against the production build (rehearsal stack); the exam-resilience, accessibility and role specs also pass against the development server |
-| End to end | **73 / 73** steps passed |
+| Backend | **669 passed**, 0 failed, 0 skipped |
+| Browser | **39 passed** against the development server and against the Docker Compose stack; **34 passed** against the production build on the rehearsal and campus stacks (the specs that need development data are excluded there) |
+| All pages | passed (every page per role) |
+| End to end | **73 / 73** steps passed, against the development servers and the Docker Compose stack |
 | Type check, lint, production build | No errors or warnings |
 
-Continuous integration (`.github/workflows/ci.yml`) runs the backend suite and a production
-frontend build on every pull request and on pushes to `main`. The engine is not available in
-CI, so real-engine tests are skipped there.
+The tiered suite in `e2e-tests/` (`python e2e-tests/runner.py`) passed **56 / 56** against the
+live API. Note that it falls back to an in-memory mock when no server is reachable, so check
+its output says it used the live server before trusting a pass.
+
+Continuous integration (`.github/workflows/ci.yml`) runs four jobs on every pull request and on
+pushes to `main`: the backend suite, the frontend production build (with the dark-mode class
+check), the PostgreSQL migrations (applied, compared with the models, latest downgraded and
+re-applied) and both Docker image builds. The engine is not available in CI, so real-engine
+tests are skipped there; browser and end-to-end tests are not run in CI.
 
 ## Load test
 
@@ -153,6 +166,11 @@ room once Redis answers); and uvicorn logged WebSocket URLs with `?token=<JWT>` 
 Building the fake-backed tests found a third: a seat subscribed to its channel after
 announcing itself, so a message sent in that gap was lost.
 
+## Other test material
+
+`load-testing/exam_start_spike.js` (k6) and `load_tests/locustfile.py` (Locust) predate
+`scripts/load_test.py` and are not maintained; use `scripts/load_test.py` for load tests.
+
 ## Writing tests
 
 - Fake the engine with the `fake_sandbox` fixture (`tests/test_practice.py`) for API and verdict
@@ -164,4 +182,4 @@ announcing itself, so a message sent in that gap was lost.
 
 ---
 
-[Back to README](../README.md)
+[Back to README](../README.md) · [Documentation index](README.md)
