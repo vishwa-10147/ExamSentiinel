@@ -97,7 +97,11 @@ class _FakeWebSocket:
         self.closed = (code, reason)
 
 
-async def test_websocket_cookie_auth_requires_an_allowed_origin(async_client: AsyncClient, seed_users):
+async def test_websocket_cookie_auth_requires_an_allowed_origin(async_client: AsyncClient, seed_users, monkeypatch):
+    from tests.conftest import test_async_session_maker
+
+    # Look the user up in the test database, not the app's configured one.
+    monkeypatch.setattr(monitoring, "async_session_maker", test_async_session_maker)
     login = await async_client.post("/api/auth/login", json=ADMIN, headers=COOKIE_MODE)
     token = login.cookies.get(ACCESS_COOKIE)
 
