@@ -36,7 +36,7 @@ services:
     restart: always
     environment: *backend-env
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -64,7 +64,7 @@ services:
     image: examsentinel-frontend:latest
     restart: always
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     depends_on:
       - backend
 
