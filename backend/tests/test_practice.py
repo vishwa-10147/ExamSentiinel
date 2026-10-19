@@ -6,6 +6,7 @@ reachable (see docker-compose.piston.yml).
 """
 
 import json
+import os
 from types import SimpleNamespace
 
 import httpx
@@ -321,8 +322,10 @@ async def test_sandbox_playground_requires_login(async_client: AsyncClient):
 # ---------------------------------------------------------------------------
 
 def _piston_available() -> bool:
+    # Probe the engine the judge will actually call, not a fixed address.
+    base = os.getenv("PISTON_URL", "http://localhost:2000/api/v2/execute").split("/api/")[0]
     try:
-        return httpx.get("http://localhost:2000/api/v2/runtimes", timeout=1).status_code == 200
+        return httpx.get(f"{base}/api/v2/runtimes", timeout=1).status_code == 200
     except httpx.HTTPError:
         return False
 
