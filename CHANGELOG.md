@@ -1,14 +1,29 @@
 # Changelog
 
-Notable changes, newest first, summarised from the git history. The project has no tagged
-releases yet; entries are grouped by date. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+Notable changes, newest first. Releases are tagged on GitHub; changes before the first
+release are grouped by date. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
+[Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## [1.0.0-rc.1] - 2026-10-19
+
+First release candidate, for a pilot on a campus server. Everything listed below under earlier
+dates is included.
 
 ### Added
 - Documentation: `SETUP.md` (moved from `docs/INSTALLATION.md`), a configuration reference,
   deployment, troubleshooting, and this changelog.
+
+### Changed
+- `docker-compose.prod.yml` (single-host production): the API and web app are published on host
+  ports 8001 and 3001, and `ENVIRONMENT` / `DEBUG` can be overridden from the environment
+  (defaults unchanged: `production`, `false`).
+
+### Fixed
+- Code engine: the 8 MB request limit is restored and the upstream image pinned by digest.
+  Without it, Submit failed on the 73 of 127 problems whose tests exceed 100 kB.
+- Continuous integration is green again: two tests depended on the working directory and on a
+  local PostgreSQL; both now run the same on the CI runner.
 
 ## 2026-10-16
 
@@ -66,3 +81,5 @@ Initial platform: authentication and roles, the exam builder, enrollment, the ca
 environment with timer and auto-save, objective auto-grading, results and leaderboards, the live
 proctor dashboard, reviewer cases, user management, AI question generation, password-reset
 e-mails, and many fixes found while using it.
+
+[1.0.0-rc.1]: https://github.com/vishwa-10147/ExamSentiinel/releases/tag/v1.0.0-rc.1
