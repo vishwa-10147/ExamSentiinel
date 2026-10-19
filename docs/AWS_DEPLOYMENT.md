@@ -241,7 +241,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.production run --rm mi
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 python scripts/install_piston_runtimes.py
 ```
-Ports are bound to `127.0.0.1`; put an ALB (or Caddy/nginx with TLS) in front and expose only 443.
+The API (host port 8001) and web app (3001) are bound to `127.0.0.1`; put an ALB (or Caddy/nginx with TLS) in front and expose only 443.
 Use an instance with ≥ 4 vCPU / 8 GB (e.g. `t3.xlarge`) when `WITH_AI=true`.
 
 ## Post-deployment checks

@@ -5,6 +5,15 @@ release are grouped by date. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.0] - 2026-10-19
+
+First stable release. Same as 1.0.0-rc.1 except:
+
+### Security
+- `docker-compose.prod.yml`: the API (host port 8001) and web app (3001) are bound to
+  `127.0.0.1` again, so only the TLS front end on the same host can reach them; in 1.0.0-rc.1
+  they were published on every network interface over plain HTTP.
+
 ## [1.0.0-rc.1] - 2026-10-19
 
 First release candidate, for a pilot on a campus server. Everything listed below under earlier
@@ -82,4 +91,5 @@ environment with timer and auto-save, objective auto-grading, results and leader
 proctor dashboard, reviewer cases, user management, AI question generation, password-reset
 e-mails, and many fixes found while using it.
 
+[1.0.0]: https://github.com/vishwa-10147/ExamSentiinel/releases/tag/v1.0.0
 [1.0.0-rc.1]: https://github.com/vishwa-10147/ExamSentiinel/releases/tag/v1.0.0-rc.1
