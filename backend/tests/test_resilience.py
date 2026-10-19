@@ -75,8 +75,11 @@ def test_the_api_never_imports_the_problem_bank():
     import subprocess
     import sys
 
+    from pathlib import Path
+
     code = "import sys, app.main; print('practice_bank' in sys.modules)"
-    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
+    backend_dir = Path(__file__).resolve().parents[1]  # CI runs pytest from the repository root
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120, cwd=backend_dir)
     assert result.stdout.strip().splitlines()[-1] == "False", result.stderr[-2000:]
 
 
