@@ -356,7 +356,7 @@ export default function DashboardPage() {
                 <StatCard
                   label="Flagged Risk Signals"
                   value={stats ? stats.high_risk_count + stats.medium_risk_count : 0}
-                  sub={`${stats?.high_risk_count ?? 0} critical · ${stats?.medium_risk_count ?? 0} medium`}
+                  sub={`${stats?.high_risk_count ?? 0} high · ${stats?.medium_risk_count ?? 0} medium`}
                   icon={AlertTriangle}
                   accent="bg-amber-500"
                   loading={statsLoading}
@@ -364,7 +364,7 @@ export default function DashboardPage() {
                 <StatCard
                   label="Completed Submissions"
                   value={stats?.submitted_sessions ?? 0}
-                  sub={`Avg risk score: ${((stats?.average_risk_score ?? 0) * 100).toFixed(1)}%`}
+                  sub={`Avg risk score: ${(stats?.average_risk_score ?? 0).toFixed(1)} points`}
                   icon={CheckCircle2}
                   accent="bg-emerald-600"
                   loading={statsLoading}

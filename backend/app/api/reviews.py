@@ -27,6 +27,15 @@ _ACTION_STATUS = {
 }
 
 
+def _with_names(case: ReviewCase) -> ReviewCaseResponse:
+    """The case plus who and which exam it is about, so reviewers see names rather than IDs."""
+    item = ReviewCaseResponse.model_validate(case)
+    item.candidate_name = case.candidate.full_name if case.candidate else None
+    item.exam_title = case.exam.title if case.exam else None
+    item.exam_duration_minutes = case.exam.duration_minutes if case.exam else None
+    return item
+
+
 @router.get("", response_model=ReviewCaseList)
 async def list_review_cases(
     status_filter: ReviewStatus | None = Query(None, alias="status"),
@@ -42,14 +51,14 @@ async def list_review_cases(
     total = (await db.execute(select(func.count(ReviewCase.id)).where(*filters))).scalar_one()
     result = await db.execute(
         select(ReviewCase)
-        .options(selectinload(ReviewCase.actions))
+        .options(selectinload(ReviewCase.actions), selectinload(ReviewCase.candidate), selectinload(ReviewCase.exam))
         .where(*filters)
         .order_by(ReviewCase.created_at.asc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
     return ReviewCaseList(
-        items=[ReviewCaseResponse.model_validate(case) for case in result.scalars().all()],
+        items=[_with_names(case) for case in result.scalars().all()],
         total=total,
         page=page,
         page_size=page_size,
@@ -64,13 +73,13 @@ async def get_review_case(
 ):
     result = await db.execute(
         select(ReviewCase)
-        .options(selectinload(ReviewCase.actions))
+        .options(selectinload(ReviewCase.actions), selectinload(ReviewCase.candidate), selectinload(ReviewCase.exam))
         .where(ReviewCase.id == case_id)
     )
     case = result.scalar_one_or_none()
     if case is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review case not found")
-    return ReviewCaseResponse.model_validate(case)
+    return _with_names(case)
 
 
 @router.get("/{case_id}/evidence")

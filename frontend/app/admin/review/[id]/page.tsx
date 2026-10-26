@@ -26,9 +26,10 @@ export default function ReviewDetailPage() {
         if (response && response.id) {
           setReview({
             ...response,
-            candidateName: response.candidate_id,
+            candidateName: response.candidate_name || response.candidate_id,
             candidateId: response.candidate_id,
-            examName: response.exam_id,
+            examName: response.exam_title || response.exam_id,
+            duration: response.exam_duration_minutes ? `${response.exam_duration_minutes} minutes` : "—",
             date: response.created_at,
             riskScore: response.risk_score_at_creation,
             timeline: (evidence?.events || []).map((event: any) => ({

@@ -166,7 +166,7 @@ export default function ResultsPage() {
                           <th className="px-6 py-3.5 text-left">Candidate Name</th>
                           <th className="px-6 py-3.5 text-left">Session Status</th>
                           <th className="px-6 py-3.5 text-left">Awarded Score</th>
-                          <th className="px-6 py-3.5 text-left">Proctor Risk Index</th>
+                          <th className="px-6 py-3.5 text-left" title="Risk engine points: Medium from 15, High from 35, Critical from 60">Proctor Risk Index</th>
                           <th className="px-6 py-3.5 text-left">Publication Status</th>
                         </tr>
                       </thead>
@@ -203,15 +203,15 @@ export default function ResultsPage() {
                                   <div className="h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                     <div
                                       className={`h-full ${
-                                        session.integrity_score >= 60 ? "bg-red-500" : session.integrity_score >= 30 ? "bg-amber-400" : "bg-emerald-400"
+                                        session.integrity_score >= 35 ? "bg-red-500" : session.integrity_score >= 15 ? "bg-amber-400" : "bg-emerald-400"
                                       }`}
                                       style={{ width: `${Math.min(session.integrity_score, 100)}%` }}
                                     />
                                   </div>
                                   <span className={`text-xs font-mono font-semibold ${
-                                    session.integrity_score >= 60 ? "text-red-600 dark:text-red-400" : session.integrity_score >= 30 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                                    session.integrity_score >= 35 ? "text-red-600 dark:text-red-400" : session.integrity_score >= 15 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
                                   }`}>
-                                    {session.integrity_score.toFixed(1)}%
+                                    {session.integrity_score.toFixed(1)} pts
                                   </span>
                                 </div>
                               </td>

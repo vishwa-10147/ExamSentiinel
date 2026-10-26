@@ -47,6 +47,10 @@ class ReviewCaseResponse(BaseModel):
     actions: List[ReviewActionResponse] = []
     created_at: datetime
     updated_at: datetime
+    # Filled by the list endpoint so the queue shows people and exams, not IDs.
+    candidate_name: Optional[str] = None
+    exam_title: Optional[str] = None
+    exam_duration_minutes: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 
