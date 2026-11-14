@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ExamSentinel Methodology Flowchart</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    body { 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        background-color: #ffffff; 
+        display: flex; 
+        justify-content: center; 
+        padding: 40px; 
+    }
+    .flowchart { 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        width: 800px; 
+    }
+    .box { 
+        border-radius: 8px; 
+        padding: 12px 20px; 
+        text-align: center; 
+        border: 2px solid; 
+        background: #fff; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        gap: 15px; 
+        width: 400px; 
+        font-weight: 600; 
+        font-size: 15px; 
+        color: #111; 
+        z-index: 2; 
+        position: relative; 
+    }
+    .box i { font-size: 24px; }
+    .box-subtext { 
+        font-size: 11px; 
+        font-weight: 500; 
+        color: #333; 
+        display: block; 
+        margin-top: 4px; 
+    }
+    .text-content { 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center;
+    }
+    
+    .line-v { width: 2px; height: 30px; background-color: #333; z-index: 1; }
+    .arrow-down { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid #333; margin-top: -2px; z-index: 2; margin-bottom: 2px;}
+
+    /* Colors based on the provided reference image */
+    .blue-1 { border-color: #6d9eeb; background: #e8f0fe; }
+    .blue-1 i { color: #3c78d8; }
+    
+    .orange-1 { border-color: #f6b26b; background: #fdf3e8; }
+    .orange-1 i { color: #d98836; }
+    
+    .green-1 { border-color: #93c47d; background: #eef7eb; }
+    .green-1 i { color: #5a993e; }
+    
+    .purple-1 { border-color: #b4a7d6; background: #f3f0f9; }
+    .purple-1 i { color: #7f66b0; }
+    
+    .cyan-1 { border-color: #76a5af; background: #eaf3f5; }
+    .cyan-1 i { color: #43808c; }
+    
+    .orange-2 { border-color: #f6b26b; background: #fff8eb; }
+    
+    .blue-2 { border-color: #9fc5e8; background: #eef6fc; }
+    
+    .pink-1 { border-color: #d5a6bd; background: #fbf1f5; }
+    .pink-1 i { color: #a64d79; }
+
+    /* Multi-column setup for the split */
+    .split-3 { display: flex; justify-content: space-between; width: 100%; position: relative; margin-top: 30px; }
+    .col { display: flex; flex-direction: column; align-items: center; width: 31%; }
+    .col .box { width: 90%; padding: 10px; font-size: 13px;}
+    .col .box i { font-size: 18px; }
+    .h-line { position: absolute; top: -15px; left: 16%; right: 16%; height: 2px; background: #333; }
+    
+    /* Parallel Branches */
+    .red-1 { border-color: #e06666; background: #faebeb; }
+    .red-1 i { color: #b33939; }
+    
+    .yellow-1 { border-color: #ffd966; background: #fffcf0; }
+    .yellow-1 i { color: #bba233; }
+    
+    .connector { display: flex; flex-direction: column; align-items: center; }
+</style>
+</head>
+<body>
+<div class="flowchart">
+    
+    <!-- Step 1 -->
+    <div class="box blue-1">
+        <i class="fa-solid fa-server"></i>
+        <div class="text-content">
+            <span>ExamSentinel Platform</span>
+            <span class="box-subtext">(Next.js Frontend + FastAPI Backend)</span>
+        </div>
+    </div>
+    
+    <div class="connector"><div class="line-v"></div><div class="arrow-down"></div></div>
+    
+    <!-- Step 2 -->
+    <div class="box orange-1">
+        <i class="fa-solid fa-clipboard-check"></i>
+        <div class="text-content">
+            <span>Candidate Session Initialization</span>
+            <span class="box-subtext">(Auth & Hardware Verification)</span>
+        </div>
+    </div>
+
+    <div class="connector"><div class="line-v"></div><div class="arrow-down"></div></div>
+    
+    <!-- Step 3 -->
+    <div class="box green-1">
+        <i class="fa-solid fa-database"></i>
+        <div class="text-content">
+            <span>Real-time Data Capture</span>
+            <span class="box-subtext">(WebRTC Audio/Video & Browser Telemetry)</span>
+        </div>
+    </div>
+
+    <div class="connector"><div class="line-v"></div></div>
+    
+    <!-- Split into 3 parallel processes -->
+    <div class="split-3">
+        <div class="h-line"></div>
+        
+        <!-- Left Column (Vision) -->
+        <div class="col">
+            <div class="connector" style="margin-top:-15px"><div class="line-v"></div><div class="arrow-down"></div></div>
+            <div class="box red-1" style="flex-direction: column; gap: 8px;">
+                <i class="fa-solid fa-camera"></i>
+                <div class="text-content"><span>YOLOv11 Proctoring</span><span class="box-subtext">Visual Processing</span></div>
+            </div>
+            <div class="connector"><div class="line-v"></div><div class="arrow-down"></div></div>
+            <div class="box red-1" style="flex-direction: column; gap: 8px;">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div class="text-content"><span>Visual Risk Score</span><span class="box-subtext">Anomaly Detection</span></div>
+            </div>
+        </div>
+
+        <!-- Center Column (Code) -->
+        <div class="col">
+            <div class="connector" style="margin-top:-15px"><div class="line-v"></div><div class="arrow-down"></div></div>
+            <div class="box blue-1" style="flex-direction: column; gap: 8px;">
+                <i class="fa-solid fa-code"></i>
+                <div class="text-content"><span>Piston Code Sandbox</span><span class="box-subtext">Execution Engine</span></div>
+            </div>
+            <div class="connector"><div class="line-v"></div><div class="arrow-down"></div></div>
+            <div class="box blue-1" style="flex-direction: column; gap: 8px;">
+                <i class="fa-solid fa-file-code"></i>
+                <div class="text-content"><span>MOSS Winnowing</span><span class="box-subtext">Plagiarism Detection</span></div>
+            </div>
+        </div>
+
+        <!-- Right Column (Audio) -->
+        <div class="col">
+            <div class="connector" style="margin-top:-15px"><div class="line-v"></div><div class="arrow-down"></div></div>
+            <div class="box yellow-1" style="flex-direction: column; gap: 8px;">
+                <i class="fa-solid fa-microphone"></i>
+                <div class="text-content"><span>Whisper AI Transcriber</span><span class="box-subtext">Audio Processing</span></div>
+            </div>
+            <div class="connector"><div class="line-v"></div><div class="arrow-down"></div></div>
+            <div class="box yellow-1" style="flex-direction: column; gap: 8px;">
+                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                <div class="text-content"><span>Keyword Extraction</span><span class="box-subtext">Semantic Analysis</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join the 3 columns back together -->
+    <div style="display: flex; justify-content: space-between; width: 100%; position: relative;">
+        <div class="col"><div class="line-v"></div></div>
+        <div class="col"><div class="line-v"></div></div>
+        <div class="col"><div class="line-v"></div></div>
+        <div style="position: absolute; bottom: 0; left: 16%; right: 16%; height: 2px; background: #333;"></div>
+    </div>
+    <div class="connector"><div class="line-v" style="height:15px"></div><div class="arrow-down"></div></div>
+
+    <!-- Step 6 -->
+    <div class="box purple-1">
+        <i class="fa-solid fa-chart-line"></i>
+        <div class="text-content">
+            <span>Aggregated Telemetry Engine</span>
+            <span class="box-subtext">(Consolidates AI & Browser Data)</span>
+        </div>
+    </div>
+
+    <div class="connector"><div class="line-v"></div><div class="arrow-down"></div></div>
+    
+    <!-- Step 7 -->
+    <div class="box cyan-1">
+        <i class="fa-solid fa-scale-balanced"></i>
+        <div class="text-content">
+            <span>Risk Calibration Module</span>
+            <span class="box-subtext">(Generates CRITICAL, HIGH, MEDIUM flags)</span>
+        </div>
+    </div>
+
+    <div class="connector"><div class="line-v"></div><div class="arrow-down"></div></div>
+
+    <!-- Step 8 -->
+    <div class="box blue-2">
+        <i class="fa-solid fa-user-check"></i>
+        <div class="text-content">
+            <span>Human-in-the-Loop Review</span>
+            <span class="box-subtext">(Proctor & Evaluator Queue)</span>
+        </div>
+    </div>
+    
+    <div class="connector"><div class="line-v"></div><div class="arrow-down"></div></div>
+
+    <!-- Step 9 -->
+    <div class="box pink-1">
+        <i class="fa-solid fa-square-poll-vertical"></i>
+        <div class="text-content">
+            <span>Final Assessment & Grading</span>
+            <span class="box-subtext">(Performance & Integrity Report)</span>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

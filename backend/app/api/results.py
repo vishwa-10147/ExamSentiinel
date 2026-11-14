@@ -43,13 +43,16 @@ async def get_my_history(
                 is_published = bool(getattr(s, "results_published", False))
                 
                 tot_score = None
+                max_score = None
                 pct = None
                 if is_published:
                     try:
                         tot_score = float(s.total_score) if s.total_score is not None else 0.0
+                        max_score = float(s.max_score) if s.max_score is not None else 0.0
                         pct = float(s.percentage) if s.percentage is not None else 0.0
                     except (ValueError, TypeError):
                         tot_score = 0.0
+                        max_score = 0.0
                         pct = 0.0
 
                 exam_title = "Unknown Exam"
@@ -63,6 +66,7 @@ async def get_my_history(
                     "status": status_str,
                     "submitted_at": submitted_val,
                     "total_score": tot_score,
+                    "max_score": max_score,
                     "percentage": pct,
                     "results_published": is_published,
                 })

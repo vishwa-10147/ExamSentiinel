@@ -29,9 +29,9 @@ export default function ReviewQueuePage() {
         if (items.length) {
           setReviews(items.map((item: any) => ({
             ...item,
-            candidateName: item.candidate_id,
+            candidateName: item.candidate_name || item.candidate_id,
             candidateId: item.candidate_id,
-            examName: item.exam_id,
+            examName: item.exam_title || item.exam_id,
             date: item.created_at,
             riskScore: item.risk_score_at_creation,
           })));

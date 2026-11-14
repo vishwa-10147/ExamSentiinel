@@ -17,6 +17,7 @@ from sqlalchemy.orm import joinedload
 
 from app.api.deps import get_current_user, require_roles
 from app.core.database import get_db
+from app.services.risk_engine import RISK_THRESHOLDS
 from app.models.exam import Exam, ExamStatus
 from app.models.session import ExamSession, SessionStatus
 from app.models.risk_score_history import RiskScoreHistory
@@ -27,9 +28,10 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 # Roles permitted to access the monitoring dashboard
 _DASHBOARD_ROLES = [UserRole.ADMIN, UserRole.PROCTOR]
 
-# Risk level thresholds (aligned with risk scoring pipeline)
-_HIGH_RISK_THRESHOLD = 0.7
-_MEDIUM_RISK_THRESHOLD = 0.4
+# Risk levels use the risk engine's own point thresholds (MEDIUM 15, HIGH 35, CRITICAL 60), so
+# these counts agree with the level shown for each session. "High" includes CRITICAL.
+_HIGH_RISK_THRESHOLD = RISK_THRESHOLDS["HIGH"]
+_MEDIUM_RISK_THRESHOLD = RISK_THRESHOLDS["MEDIUM"]
 
 
 # --------------------------------------------------------------------------
